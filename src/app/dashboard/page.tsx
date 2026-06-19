@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   const { data: profile, error } = await supabase
     .from("users")
     .select("full_name, role, clinic_id, clinics(name, name_ar, tier)")
-    .eq("id", user.id)
+    .eq("id", user!.id)
     .single();
 
   if (error || !profile) {
