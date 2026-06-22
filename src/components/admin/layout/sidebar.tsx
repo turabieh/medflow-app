@@ -8,9 +8,9 @@ const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "⊞" },
   { href: "/admin/settings/clinic", label: "Clinic Settings", icon: "⚙" },
   { href: "/admin/settings/users", label: "User Management", icon: "👥" },
-  { href: "/settings/schedules", label: "Schedule Settings", icon: "📅" },
-  { href: "/settings/symptoms", label: "Medications & Symptoms", icon: "💊" },
-  { href: "/settings/insurance", label: "Insurance & Procedures", icon: "🏥" },
+  { href: "/admin/settings/schedules", label: "Schedule Settings", icon: "📅" },
+  { href: "/admin/settings/medications", label: "Medications & Symptoms", icon: "💊" },
+  { href: "/admin/settings/insurance", label: "Insurance & Procedures", icon: "🏥" },
   { href: "/admin/finance", label: "Finance & Reports", icon: "💰" },
 ];
 

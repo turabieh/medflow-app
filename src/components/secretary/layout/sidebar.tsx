@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/secretary/appointments", label: "Appointments", icon: "📅" },
   { href: "/secretary/schedule", label: "Schedule", icon: "🗓" },
   { href: "/secretary/reports", label: "Reports & Print", icon: "🖨" },
-  { href: "/secretary/settings", label: "Settings", icon: "⚙" },
+  { href: "/secretary/settings/schedules", label: "Settings", icon: "⚙" },
 ];
 
 export function SecretarySidebar({
