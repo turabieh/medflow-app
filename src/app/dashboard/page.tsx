@@ -45,6 +45,11 @@ export default async function DashboardPage() {
     redirect("/admin/dashboard");
   }
 
+  // Doctor gets their own clinical workspace
+  if (profile.role === "doctor") {
+    redirect("/doctor/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-8">
       <div className="mx-auto max-w-2xl">

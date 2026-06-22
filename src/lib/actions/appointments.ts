@@ -361,23 +361,47 @@ export async function markArrived(appointmentId: string): Promise<ConfirmBooking
 }
 
 /**
- * Doctor calls the patient in -- moves to with_doctor. From this point,
- * the secretary cannot cancel or reschedule (enforced by a database
- * trigger, not just hidden in the UI) until the doctor marks it done.
+ * Doctor calls the patient in -- moves to with_doctor and auto-creates
+ * the visit record that clinical documentation will attach to.
  */
 export async function markWithDoctor(appointmentId: string): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
+
+  const { data: appt, error: apptError } = await supabase
+    .from("appointments")
+    .select("id, clinic_id, patient_id, doctor_id, visit_type, appt_date")
+    .eq("id", appointmentId)
+    .single();
+
+  if (apptError || !appt) {
+    return { success: false, error: "Could not find appointment." };
+  }
 
   const { error } = await supabase
     .from("appointments")
     .update({ status: "with_doctor" })
     .eq("id", appointmentId);
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
+  if (error) return { success: false, error: error.message };
+
+  // Auto-create the visit record so clinical documentation has somewhere
+  // to attach immediately. Uses upsert on appointment_id (unique index)
+  // to avoid duplicates if called twice.
+  await supabase.from("visits").upsert(
+    {
+      clinic_id:      appt.clinic_id,
+      patient_id:     appt.patient_id,
+      doctor_id:      appt.doctor_id,
+      appointment_id: appt.id,
+      visit_date:     appt.appt_date,
+      visit_type:     appt.visit_type,
+      status:         "in_progress",
+    },
+    { onConflict: "appointment_id" }
+  );
 
   revalidatePath("/dashboard");
+  revalidatePath("/secretary/dashboard");
   return { success: true };
 }
 
