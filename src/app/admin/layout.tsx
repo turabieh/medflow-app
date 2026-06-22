@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, full_name, role, clinic_id, clinics(name)")
+    .select("id, full_name, role, clinic_id, clinics(name, logo_url)")
     .eq("id", user.id)
     .single();
 
@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-      <AdminSidebarNav clinicName={clinic?.name ?? "Clinic"} userName={profile.full_name} />
+      <AdminSidebarNav clinicName={clinic?.name ?? "Clinic"} userName={profile.full_name} logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url} />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
     </div>
   );

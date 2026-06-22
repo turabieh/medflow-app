@@ -1,153 +1,97 @@
 "use client";
-
 import { useState } from "react";
-import { addProcedure, toggleProcedureActive } from "@/lib/actions/procedures";
+import { addProcedure, toggleProcedureActive, updateProcedure } from "@/lib/actions/procedures";
 
-interface Procedure {
-  id: string;
-  name: string;
-  name_ar: string | null;
-  category: string | null;
-  outpatient_price: number;
-  inpatient_price: number | null;
-  duration_minutes: number | null;
-  notes: string | null;
-  is_active: boolean;
-}
+interface Procedure { id: string; name: string; name_ar: string|null; category: string|null; outpatient_price: number; inpatient_price: number|null; duration_minutes: number|null; notes: string|null; is_active: boolean; }
 
 export function ProceduresManager({ initialProcedures }: { initialProcedures: Procedure[] }) {
   const [procedures, setProcedures] = useState(initialProcedures);
   const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [outpatientPrice, setOutpatientPrice] = useState("0");
-  const [inpatientPrice, setInpatientPrice] = useState("");
-  const [duration, setDuration] = useState("30");
-  const [notes, setNotes] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string|null>(null);
+  const [name,setName]=useState(""); const [category,setCategory]=useState(""); const [outPrice,setOutPrice]=useState("0"); const [inPrice,setInPrice]=useState(""); const [duration,setDuration]=useState("30"); const [notes,setNotes]=useState("");
+  const [loading,setLoading]=useState(false); const [error,setError]=useState<string|null>(null);
 
   async function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const result = await addProcedure({
-      name,
-      category: category || undefined,
-      outpatientPrice: parseFloat(outpatientPrice) || 0,
-      inpatientPrice: inpatientPrice ? parseFloat(inpatientPrice) : undefined,
-      durationMinutes: duration ? parseInt(duration, 10) : undefined,
-      notes: notes || undefined,
-    });
-
+    e.preventDefault(); setLoading(true); setError(null);
+    const r = await addProcedure({ name, category: category||undefined, outpatientPrice: parseFloat(outPrice)||0, inpatientPrice: inPrice?parseFloat(inPrice):undefined, durationMinutes: duration?parseInt(duration):undefined, notes: notes||undefined });
     setLoading(false);
-
-    if (!result.success) {
-      setError(result.error ?? "Could not add procedure.");
-      return;
-    }
-
-    setProcedures((prev) => [...prev, {
-      id: crypto.randomUUID(), name: name.trim(), name_ar: null,
-      category: category || null, outpatient_price: parseFloat(outpatientPrice) || 0,
-      inpatient_price: inpatientPrice ? parseFloat(inpatientPrice) : null,
-      duration_minutes: duration ? parseInt(duration, 10) : null,
-      notes: notes || null, is_active: true,
-    }]);
-
-    setShowForm(false);
-    setName(""); setCategory(""); setOutpatientPrice("0"); setInpatientPrice(""); setNotes("");
-  }
-
-  async function handleToggle(id: string, current: boolean) {
-    setProcedures((prev) => prev.map((p) => p.id === id ? { ...p, is_active: !current } : p));
-    await toggleProcedureActive(id, !current);
+    if (!r.success) { setError(r.error??'Error'); return; }
+    setProcedures(prev=>[...prev,{id:crypto.randomUUID(),name:name.trim(),name_ar:null,category:category||null,outpatient_price:parseFloat(outPrice)||0,inpatient_price:inPrice?parseFloat(inPrice):null,duration_minutes:duration?parseInt(duration):null,notes:notes||null,is_active:true}]);
+    setShowForm(false); setName(""); setCategory(""); setOutPrice("0"); setInPrice(""); setNotes("");
   }
 
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-neutral-500">Procedures</h2>
-        <button onClick={() => setShowForm(!showForm)} className="text-xs font-medium text-neutral-700 underline hover:text-neutral-900">
-          {showForm ? "Cancel" : "+ Add procedure"}
-        </button>
+        <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">Procedures</h3>
+        <button onClick={()=>setShowForm(!showForm)} className="text-xs font-medium text-neutral-700 underline">{showForm?"Cancel":"+ Add procedure"}</button>
       </div>
-
-      {showForm && (
+      {showForm&&(
         <form onSubmit={handleAdd} className="mb-4 space-y-2 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error&&<div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
           <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="mb-1 block text-xs text-neutral-600">Procedure name</label>
-              <input type="text" required value={name} onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. EEG"
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-neutral-600">Category</label>
-              <input type="text" value={category} onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Neurology"
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-            </div>
+            <div><label className="mb-1 block text-xs text-neutral-600">Procedure name *</label><input required value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. EEG" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+            <div><label className="mb-1 block text-xs text-neutral-600">Category</label><input value={category} onChange={e=>setCategory(e.target.value)} placeholder="e.g. Neurology" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <div>
-              <label className="mb-1 block text-xs text-neutral-600">Outpatient price (JOD)</label>
-              <input type="number" step="0.01" min="0" required value={outpatientPrice}
-                onChange={(e) => setOutpatientPrice(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-neutral-600">Inpatient price (JOD)</label>
-              <input type="number" step="0.01" min="0" value={inpatientPrice}
-                onChange={(e) => setInpatientPrice(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-neutral-600">Duration (min)</label>
-              <input type="number" min="0" value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-            </div>
+            <div><label className="mb-1 block text-xs text-neutral-600">Outpatient price</label><input type="number" step="0.01" min="0" value={outPrice} onChange={e=>setOutPrice(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+            <div><label className="mb-1 block text-xs text-neutral-600">Inpatient price</label><input type="number" step="0.01" min="0" value={inPrice} onChange={e=>setInPrice(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+            <div><label className="mb-1 block text-xs text-neutral-600">Duration (min)</label><input type="number" min="0" value={duration} onChange={e=>setDuration(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-neutral-600">Notes</label>
-            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-          </div>
-          <button type="submit" disabled={loading}
-            className="rounded-md bg-neutral-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
-            {loading ? "Adding..." : "Add procedure"}
-          </button>
+          <div><label className="mb-1 block text-xs text-neutral-600">Notes</label><input value={notes} onChange={e=>setNotes(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+          <button type="submit" disabled={loading} className="w-full rounded-md bg-red-500 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50">{loading?"Adding...":"+ Add Procedure"}</button>
         </form>
       )}
-
       <div className="rounded-lg border border-neutral-200 bg-white shadow-sm">
-        {procedures.length === 0 ? (
-          <p className="p-4 text-sm text-neutral-500">No procedures added yet.</p>
-        ) : (
+        {procedures.length===0?<p className="p-4 text-sm text-neutral-500">No procedures yet.</p>:(
           <ul className="divide-y divide-neutral-100">
-            {procedures.map((p) => (
-              <li key={p.id} className="flex items-center justify-between px-4 py-2.5">
-                <div>
-                  <p className={`text-sm ${p.is_active ? "text-neutral-900" : "text-neutral-400 line-through"}`}>
-                    {p.name} {p.category && <span className="text-xs text-neutral-400">· {p.category}</span>}
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    {p.outpatient_price.toFixed(2)} JOD outpatient
-                    {p.inpatient_price !== null && ` · ${p.inpatient_price.toFixed(2)} JOD inpatient`}
-                    {p.duration_minutes && ` · ${p.duration_minutes} min`}
-                  </p>
-                </div>
-                <button onClick={() => handleToggle(p.id, p.is_active)} className="text-xs text-neutral-500 underline hover:text-neutral-700">
-                  {p.is_active ? "Deactivate" : "Activate"}
-                </button>
-              </li>
+            {procedures.map(p=>(
+              <ProcedureRow key={p.id} proc={p}
+                editing={editing===p.id}
+                onEdit={()=>setEditing(editing===p.id?null:p.id)}
+                onSave={async(data)=>{ const r=await updateProcedure(p.id,data); if(r.success){setProcedures(prev=>prev.map(x=>x.id===p.id?{...x,name:data.name,name_ar:null,category:data.category??null,outpatient_price:data.outpatientPrice,inpatient_price:data.inpatientPrice??null,duration_minutes:data.durationMinutes??null,notes:data.notes??null}:x)); setEditing(null);} else setError(r.error??'Error'); }}
+                onToggle={async()=>{ setProcedures(prev=>prev.map(x=>x.id===p.id?{...x,is_active:!p.is_active}:x)); await toggleProcedureActive(p.id,!p.is_active); }} />
             ))}
           </ul>
         )}
       </div>
     </div>
+  );
+}
+
+function ProcedureRow({proc,editing,onEdit,onSave,onToggle}:{proc:Procedure;editing:boolean;onEdit:()=>void;onSave:(d:{name:string;category?:string;outpatientPrice:number;inpatientPrice?:number;durationMinutes?:number;notes?:string})=>Promise<void>;onToggle:()=>void;}) {
+  const [name,setName]=useState(proc.name); const [cat,setCat]=useState(proc.category??''); const [out,setOut]=useState(String(proc.outpatient_price)); const [inp,setInp]=useState(proc.inpatient_price!=null?String(proc.inpatient_price):''); const [dur,setDur]=useState(proc.duration_minutes!=null?String(proc.duration_minutes):''); const [notes,setNotes]=useState(proc.notes??''); const [saving,setSaving]=useState(false);
+  return (
+    <li className="px-4 py-2.5">
+      {editing?(
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Name" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
+            <input value={cat} onChange={e=>setCat(e.target.value)} placeholder="Category" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <input type="number" step="0.01" value={out} onChange={e=>setOut(e.target.value)} placeholder="Outpatient price" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
+            <input type="number" step="0.01" value={inp} onChange={e=>setInp(e.target.value)} placeholder="Inpatient price" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
+            <input type="number" value={dur} onChange={e=>setDur(e.target.value)} placeholder="Duration min" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
+          </div>
+          <input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Notes" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
+          <div className="flex gap-2">
+            <button onClick={async()=>{setSaving(true);await onSave({name,category:cat||undefined,outpatientPrice:parseFloat(out)||0,inpatientPrice:inp?parseFloat(inp):undefined,durationMinutes:dur?parseInt(dur):undefined,notes:notes||undefined});setSaving(false);}} disabled={saving} className="rounded-md bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50">{saving?"Saving...":"Save"}</button>
+            <button onClick={onEdit} className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600">Cancel</button>
+          </div>
+        </div>
+      ):(
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={`text-sm ${proc.is_active?"text-neutral-900":"text-neutral-400 line-through"}`}>{proc.name}{proc.category&&<span className="ml-2 text-xs text-neutral-400">· {proc.category}</span>}</p>
+            <p className="text-xs text-neutral-400">{proc.outpatient_price.toFixed(2)} outpatient{proc.inpatient_price!=null?` · ${proc.inpatient_price.toFixed(2)} inpatient`:''}{proc.duration_minutes?` · ${proc.duration_minutes}min`:''}</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={onEdit} className="text-xs text-blue-600 underline hover:text-blue-800">Edit</button>
+            <button onClick={onToggle} className="text-xs text-neutral-500 underline">{proc.is_active?"Deactivate":"Activate"}</button>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }

@@ -53,3 +53,28 @@ export async function toggleMedicationActive(id: string, isActive: boolean) {
   revalidatePath("/admin/settings/medications");
   return { success: true };
 }
+
+export async function updateMedication(id: string, input: {
+  name: string;
+  nameAr?: string;
+  defaultDose?: string;
+  defaultUnit?: string;
+}) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+  if (!input.name?.trim()) return { success: false, error: "Name is required." };
+
+  const { error } = await auth.supabase
+    .from("medications_catalog")
+    .update({
+      name: input.name.trim(),
+      name_ar: input.nameAr?.trim() || null,
+      default_dose: input.defaultDose?.trim() || null,
+      default_unit: input.defaultUnit?.trim() || null,
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/admin/settings/medications");
+  return { success: true };
+}

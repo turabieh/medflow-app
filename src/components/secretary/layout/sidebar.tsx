@@ -17,10 +17,12 @@ export function SecretarySidebar({
   clinicName,
   userName,
   userRole,
+  logoUrl,
 }: {
   clinicName: string;
   userName: string;
   userRole: string;
+  logoUrl?: string | null;
 }) {
   const pathname = usePathname();
 
@@ -28,6 +30,9 @@ export function SecretarySidebar({
     <aside className="flex w-56 flex-col border-r border-neutral-200 bg-white">
       {/* Clinic header */}
       <div className="border-b border-neutral-100 px-4 py-4">
+        {logoUrl && (
+          <img src={logoUrl} alt="logo" className="mb-2 h-10 w-auto object-contain" />
+        )}
         <p className="text-sm font-medium text-neutral-900 leading-tight">{clinicName}</p>
         <p className="mt-0.5 text-xs text-neutral-500">{userName} · {userRole}</p>
       </div>

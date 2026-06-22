@@ -112,3 +112,28 @@ export async function reactivateStaffMember(userId: string) {
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+export async function updateStaffMember(userId: string, input: {
+  fullName: string;
+  role: string;
+  specialty?: string;
+}) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+  if (!input.fullName?.trim()) return { success: false, error: "Name is required." };
+
+  const { error } = await auth.supabase
+    .from("users")
+    .update({
+      full_name: input.fullName.trim(),
+      role: input.role,
+      specialty: input.specialty?.trim() || null,
+    })
+    .eq("id", userId)
+    .eq("clinic_id", auth.clinicId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/admin/settings/users");
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}

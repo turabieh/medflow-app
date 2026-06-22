@@ -17,15 +17,20 @@ const NAV_ITEMS = [
 export function AdminSidebarNav({
   clinicName,
   userName,
+  logoUrl,
 }: {
   clinicName: string;
   userName: string;
+  logoUrl?: string | null;
 }) {
   const pathname = usePathname();
 
   return (
     <aside className="flex w-60 flex-col border-r border-neutral-200 bg-neutral-900">
       <div className="border-b border-neutral-700 px-4 py-4">
+        {logoUrl && (
+          <img src={logoUrl} alt="logo" className="mb-2 h-10 w-auto object-contain" />
+        )}
         <p className="text-sm font-medium text-white leading-tight">{clinicName}</p>
         <p className="mt-0.5 text-xs text-neutral-400">{userName} · admin</p>
       </div>

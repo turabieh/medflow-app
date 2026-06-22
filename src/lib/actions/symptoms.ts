@@ -72,3 +72,19 @@ export async function toggleSymptomActive(symptomId: string, isActive: boolean) 
   revalidatePath("/settings/symptoms");
   return { success: true };
 }
+
+export async function updateSymptom(id: string, name: string, nameAr?: string) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+  if (!name?.trim()) return { success: false, error: "Name is required." };
+
+  const { error } = await auth.supabase
+    .from("symptoms_catalog")
+    .update({ name: name.trim(), name_ar: nameAr?.trim() || null })
+    .eq("id", id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/admin/settings/medications");
+  revalidatePath("/settings/symptoms");
+  return { success: true };
+}

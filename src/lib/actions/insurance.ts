@@ -79,3 +79,35 @@ export async function toggleInsuranceCompanyActive(companyId: string, isActive: 
   revalidatePath("/settings/insurance");
   return { success: true };
 }
+
+export async function updateInsuranceCompany(id: string, input: {
+  name: string;
+  nameAr?: string;
+  portalUrl?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  isCovered: boolean;
+}) {
+  const auth = await requireStaffAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+  if (!input.name?.trim()) return { success: false, error: "Name is required." };
+
+  const { error } = await auth.supabase
+    .from("insurance_companies")
+    .update({
+      name: input.name.trim(),
+      name_ar: input.nameAr?.trim() || null,
+      portal_url: input.portalUrl?.trim() || null,
+      phone: input.phone?.trim() || null,
+      email: input.email?.trim() || null,
+      notes: input.notes?.trim() || null,
+      is_covered: input.isCovered,
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/admin/settings/insurance");
+  revalidatePath("/settings/insurance");
+  return { success: true };
+}

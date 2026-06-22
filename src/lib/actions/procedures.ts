@@ -66,3 +66,35 @@ export async function toggleProcedureActive(procedureId: string, isActive: boole
   revalidatePath("/settings/procedures");
   return { success: true };
 }
+
+export async function updateProcedure(id: string, input: {
+  name: string;
+  nameAr?: string;
+  category?: string;
+  outpatientPrice: number;
+  inpatientPrice?: number;
+  durationMinutes?: number;
+  notes?: string;
+}) {
+  const auth = await requireStaffAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+  if (!input.name?.trim()) return { success: false, error: "Name is required." };
+
+  const { error } = await auth.supabase
+    .from("procedures_catalog")
+    .update({
+      name: input.name.trim(),
+      name_ar: input.nameAr?.trim() || null,
+      category: input.category?.trim() || null,
+      outpatient_price: input.outpatientPrice,
+      inpatient_price: input.inpatientPrice ?? null,
+      duration_minutes: input.durationMinutes ?? null,
+      notes: input.notes?.trim() || null,
+    })
+    .eq("id", id);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/admin/settings/insurance");
+  revalidatePath("/settings/procedures");
+  return { success: true };
+}
