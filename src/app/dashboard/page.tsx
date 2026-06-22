@@ -37,13 +37,23 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-8">
       <div className="mx-auto max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-xl font-medium text-neutral-900">
-            {clinic?.name ?? "Dashboard"}
-          </h1>
-          <p className="text-sm text-neutral-500">
-            Signed in as {profile.full_name} · {profile.role}
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-medium text-neutral-900">
+              {clinic?.name ?? "Dashboard"}
+            </h1>
+            <p className="text-sm text-neutral-500">
+              Signed in as {profile.full_name} · {profile.role}
+            </p>
+          </div>
+          <form action="/auth/logout" method="POST">
+            <button
+              type="submit"
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
+            >
+              Log out
+            </button>
+          </form>
         </div>
 
         {profile.role === "secretary" && <SecretaryDashboard clinicId={profile.clinic_id} />}
