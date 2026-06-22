@@ -444,3 +444,130 @@ export async function markNoShow(appointmentId: string): Promise<ConfirmBookingR
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+export interface BookWalkInInput {
+  clinicId: string;
+  patientId: string;
+  doctorId: string;
+  apptDate: string;
+  startTime: string;
+  visitType: VisitType;
+  secretaryNotes?: string;
+  symptomIds: string[];
+}
+
+/**
+ * Books a walk-in or manually-created appointment — skips the pending
+ * state entirely since the secretary is booking on behalf of a patient
+ * who is present or on the phone, so a time slot is assigned immediately.
+ * Status goes directly to 'booked'.
+ */
+export async function bookWalkInAppointment(
+  input: BookWalkInInput
+): Promise<ConfirmBookingResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Not authenticated." };
+  if (!input.patientId) return { success: false, error: "Patient is required." };
+  if (!input.doctorId) return { success: false, error: "Doctor is required." };
+  if (!input.startTime) return { success: false, error: "Time slot is required." };
+
+  const endTime = computeEndTime(input.startTime, input.visitType, DEFAULT_SCHEDULE_SETTINGS);
+
+  const { data: appt, error: apptError } = await supabase
+    .from("appointments")
+    .insert({
+      clinic_id: input.clinicId,
+      patient_id: input.patientId,
+      doctor_id: input.doctorId,
+      appt_date: input.apptDate,
+      start_time: input.startTime,
+      end_time: endTime,
+      visit_type: input.visitType,
+      status: "booked",
+      heard_from: "walk_in",
+      secretary_notes: input.secretaryNotes?.trim() || null,
+    })
+    .select("id")
+    .single();
+
+  if (apptError || !appt) {
+    return { success: false, error: apptError?.message ?? "Could not create appointment." };
+  }
+
+  if (input.symptomIds.length > 0) {
+    await supabase.from("appointment_symptoms").insert(
+      input.symptomIds.map((symptomId) => ({
+        appointment_id: appt.id,
+        symptom_id: symptomId,
+      }))
+    );
+  }
+
+  revalidatePath("/secretary/appointments");
+  revalidatePath("/secretary/dashboard");
+  return { success: true };
+}
+
+export interface SaveVitalsInput {
+  appointmentId: string;
+  heartRate?: number;
+  bp?: string;
+  temperature?: number;
+  o2Saturation?: number;
+  respRate?: number;
+  weightKg?: number;
+  heightCm?: number;
+}
+
+export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBookingResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({
+      vital_heart_rate:    input.heartRate    ?? null,
+      vital_bp:            input.bp?.trim()   || null,
+      vital_temperature:   input.temperature  ?? null,
+      vital_o2_saturation: input.o2Saturation ?? null,
+      vital_resp_rate:     input.respRate     ?? null,
+      vital_weight_kg:     input.weightKg     ?? null,
+      vital_height_cm:     input.heightCm     ?? null,
+      vitals_recorded_at:  new Date().toISOString(),
+    })
+    .eq("id", input.appointmentId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/secretary/dashboard");
+  return { success: true };
+}
+
+export async function confirmPayment(
+  appointmentId: string,
+  method: "cash" | "insurance" | "card" | "other",
+  amount?: number
+): Promise<ConfirmBookingResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({
+      payment_method:       method,
+      payment_amount:       amount ?? null,
+      payment_confirmed:    true,
+      payment_confirmed_at: new Date().toISOString(),
+    })
+    .eq("id", appointmentId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/secretary/dashboard");
+  return { success: true };
+}

@@ -35,6 +35,16 @@ export default async function DashboardPage() {
 
   const clinic = Array.isArray(profile.clinics) ? profile.clinics[0] : profile.clinics;
 
+  // Secretary and nurse get the full sidebar workspace
+  if (profile.role === "secretary" || profile.role === "nurse") {
+    redirect("/secretary/dashboard");
+  }
+
+  // Admin gets their own sidebar workspace
+  if (profile.role === "admin") {
+    redirect("/admin/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-8">
       <div className="mx-auto max-w-2xl">

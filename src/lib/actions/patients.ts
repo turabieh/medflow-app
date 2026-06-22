@@ -91,3 +91,57 @@ export async function createPatient(
 
   return { success: true, patientId: data.id };
 }
+
+export interface UpdatePatientInput {
+  full_name?: string;
+  full_name_ar?: string;
+  phone?: string;
+  phone2?: string;
+  phone2_relation?: string;
+  dob?: string;
+  gender?: "male" | "female";
+  address?: string;
+  email?: string;
+  blood_type?: string;
+  allergies?: string;
+  insurance_company_id?: string;
+  insurance_policy_number?: string;
+  insurance_expiry_date?: string;
+}
+
+export async function updatePatient(
+  patientId: string,
+  input: UpdatePatientInput
+): Promise<CreatePatientResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { error } = await supabase
+    .from("patients")
+    .update({
+      full_name: input.full_name?.trim(),
+      full_name_ar: input.full_name_ar?.trim() || null,
+      phone: input.phone?.trim(),
+      phone2: input.phone2?.trim() || null,
+      phone2_relation: input.phone2_relation?.trim() || null,
+      dob: input.dob || null,
+      gender: input.gender || null,
+      address: input.address?.trim() || null,
+      email: input.email?.trim() || null,
+      blood_type: input.blood_type || null,
+      allergies: input.allergies?.trim() || null,
+      insurance_company_id: input.insurance_company_id || null,
+      insurance_policy_number: input.insurance_policy_number?.trim() || null,
+      insurance_expiry_date: input.insurance_expiry_date || null,
+    })
+    .eq("id", patientId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/secretary/patients");
+  return { success: true };
+}

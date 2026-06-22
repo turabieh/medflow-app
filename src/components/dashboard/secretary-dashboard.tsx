@@ -112,24 +112,49 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: todayAppointments } = await supabase
     .from("appointments")
-    .select("id, start_time, status, is_overbooked, patient_id")
+    .select("id, start_time, status, is_overbooked, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed")
     .eq("appt_date", todayStr)
     .neq("status", "pending")
     .order("start_time", { ascending: true });
 
   const todayPatientIds = (todayAppointments ?? []).map((a) => a.patient_id);
   const { data: todayPatients } = todayPatientIds.length
-    ? await supabase.from("patients").select("id, full_name").in("id", todayPatientIds)
+    ? await supabase.from("patients").select("id, full_name, full_name_ar, phone").in("id", todayPatientIds)
     : { data: [] };
   const todayPatientsById = new Map((todayPatients ?? []).map((p) => [p.id, p]));
 
-  const todayQueueItems = (todayAppointments ?? []).map((appt) => ({
-    id: appt.id,
-    start_time: appt.start_time,
-    status: appt.status,
-    is_overbooked: appt.is_overbooked,
-    patientName: todayPatientsById.get(appt.patient_id)?.full_name ?? "Unknown patient",
-  }));
+  const todayQueueItems = (todayAppointments ?? []).map((appt) => {
+    const patient = todayPatientsById.get(appt.patient_id);
+    return {
+      id: appt.id,
+      start_time: appt.start_time,
+      status: appt.status,
+      visit_type: appt.visit_type,
+      is_overbooked: appt.is_overbooked,
+      patientId: appt.patient_id,
+      patientName: patient?.full_name ?? "Unknown patient",
+      patientNameAr: patient?.full_name_ar ?? null,
+      phone: patient?.phone ?? null,
+      vital_heart_rate: appt.vital_heart_rate,
+      vital_bp: appt.vital_bp,
+      vital_temperature: appt.vital_temperature,
+      vital_o2_saturation: appt.vital_o2_saturation,
+      vital_resp_rate: appt.vital_resp_rate,
+      vital_weight_kg: appt.vital_weight_kg,
+      vital_height_cm: appt.vital_height_cm,
+      vitals_recorded_at: appt.vitals_recorded_at,
+      payment_confirmed: appt.payment_confirmed,
+    };
+  });
+
+  const { data: currencySetting } = await supabase
+    .from("clinic_settings")
+    .select("value")
+    .eq("clinic_id", clinicId)
+    .eq("key", "currency")
+    .maybeSingle();
+
+  const currency = currencySetting?.value ?? "JOD";
 
   return (
     <>
@@ -170,7 +195,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
         Today&apos;s queue
       </h2>
       <div className="mb-6">
-        <TodayQueue items={todayQueueItems} />
+        <TodayQueue items={todayQueueItems} currency={currency} />
       </div>
 
       {callTodayAppointments.length > 0 && (
