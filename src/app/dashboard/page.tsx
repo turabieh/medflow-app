@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SecretaryDashboard } from "@/components/dashboard/secretary-dashboard";
 import { DoctorDashboard } from "@/components/dashboard/doctor-dashboard";
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard";
+import { LogoutButton } from "@/components/ui/logout-button";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -46,14 +47,7 @@ export default async function DashboardPage() {
               Signed in as {profile.full_name} · {profile.role}
             </p>
           </div>
-          <form action="/auth/logout" method="POST">
-            <button
-              type="submit"
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100"
-            >
-              Log out
-            </button>
-          </form>
+          <LogoutButton />
         </div>
 
         {profile.role === "secretary" && <SecretaryDashboard clinicId={profile.clinic_id} />}
