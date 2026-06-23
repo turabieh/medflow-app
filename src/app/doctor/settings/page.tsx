@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ScheduleManager } from "@/app/settings/schedules/schedule-manager";
+import { SignatureUpload } from "@/components/doctor/signature-upload";
 
 export default async function DoctorSettingsPage() {
   const supabase = await createClient();
@@ -8,7 +9,7 @@ export default async function DoctorSettingsPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("users").select("id, full_name, clinic_id").eq("id", user.id).single();
+    .from("users").select("id, full_name, clinic_id, signature_url").eq("id", user.id).single();
 
   const { data: workingHours } = await supabase
     .from("doctor_working_hours")
@@ -27,10 +28,17 @@ export default async function DoctorSettingsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-1 text-lg font-medium text-neutral-900">My Schedule</h1>
-      <p className="mb-6 text-sm text-neutral-500">
-        Set your working hours and block dates when unavailable.
-      </p>
+      <h1 className="mb-1 text-lg font-medium text-neutral-900">My Settings</h1>
+
+      {/* Signature */}
+      <div className="mb-8">
+        <h2 className="mb-1 text-sm font-medium text-neutral-700">Handwritten Signature</h2>
+        <p className="mb-3 text-xs text-neutral-500">Upload an image of your signature. It appears at the bottom of printed reports.</p>
+        <SignatureUpload userId={profile?.id ?? ""} currentSignatureUrl={profile?.signature_url ?? null} />
+      </div>
+
+      <h2 className="mb-1 text-sm font-medium text-neutral-700">My Schedule</h2>
+      <p className="mb-4 text-xs text-neutral-500">Set your working hours and block dates when unavailable.</p>
       <ScheduleManager
         doctors={doctors}
         initialWorkingHours={workingHours ?? []}

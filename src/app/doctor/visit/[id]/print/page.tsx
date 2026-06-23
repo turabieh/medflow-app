@@ -39,7 +39,7 @@ export default function VisitPrintPage() {
 
       const [{ data: patient }, { data: doctor }, { data: clinic }, { data: prescriptions }, { data: diagnoses }, { data: labs }] = await Promise.all([
         supabase.from("patients").select("full_name, full_name_ar, dob, gender, blood_type, allergies, phone").eq("id", visit.patient_id as string).single(),
-        supabase.from("users").select("full_name, specialty").eq("id", visit.doctor_id as string).single(),
+        supabase.from("users").select("full_name, specialty, signature_url").eq("id", visit.doctor_id as string).single(),
         supabase.from("clinics").select("name, name_ar, tagline, tagline_ar, logo_url, phone, phone2, email, website, address, address_ar").limit(1).single(),
         supabase.from("prescriptions").select("medication_name, dose, unit, instructions, duration").eq("visit_id", visitId),
         supabase.from("visit_diagnoses").select("icd_code, description, is_primary").eq("visit_id", visitId),
@@ -111,7 +111,7 @@ export default function VisitPrintPage() {
 
   return (
     <>
-      <style>{`@media print { .no-print { display:none!important; } body { background:#fff; } }`}</style>
+      <style>{`@page { margin: 12mm; size: A4; } @media print { .no-print { display:none!important; } body { background:#fff; margin:0; } nav, aside, header, [class*="sidebar"] { display:none!important; } }`}</style>
       <button className="no-print" style={s.printBtn} onClick={() => window.print()}>Print / Save PDF</button>
 
       <div style={s.page}>
@@ -124,7 +124,7 @@ export default function VisitPrintPage() {
             <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
               {(clinic?.logo_url as string) && (
                 <img src={clinic.logo_url as string} alt="logo"
-                  style={{ height: "52px", width: "52px", objectFit: "contain", flexShrink: 0, border: "1px solid #eee", borderRadius: "6px" }} />
+                  style={{ height: "72px", width: "72px", objectFit: "contain", flexShrink: 0, border: "1px solid #eee", borderRadius: "8px" }} />
               )}
               <div>
                 <div style={{ fontSize: "15px", fontWeight: "700", color: "#111", lineHeight: "1.2" }}>

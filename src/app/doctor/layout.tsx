@@ -77,7 +77,9 @@ export default async function DoctorLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-      <DoctorSidebarNav
+      <style>{`@media print { aside, .doctor-sidebar { display: none !important; } .doctor-main { padding: 0 !important; } }`}</style>
+      <aside className="doctor-sidebar">
+        <DoctorSidebarNav
         doctorId={profile.id}
         doctorName={profile.full_name}
         specialty={profile.specialty}
@@ -86,7 +88,8 @@ export default async function DoctorLayout({ children }: { children: React.React
         patients={sidebarPatients}
         inpatients={sidebarInpatients}
       />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      </aside>
+      <main className="doctor-main flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 }
