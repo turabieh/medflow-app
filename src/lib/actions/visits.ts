@@ -212,3 +212,17 @@ export async function saveVisitNotes(visitId: string, voiceNotes: string, keyPoi
   revalidatePath(`/doctor/visit/${visitId}`);
   return { success: true };
 }
+
+export async function saveAINote(visitId: string, clinicalNote: string) {
+  const auth = await getClinicId();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const { error } = await auth.supabase.from("visits").update({
+    clinical_note: clinicalNote.trim() || null,
+    updated_at:    new Date().toISOString(),
+  }).eq("id", visitId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath(`/doctor/visit/${visitId}`);
+  return { success: true };
+}

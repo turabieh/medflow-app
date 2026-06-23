@@ -189,6 +189,7 @@ export default async function VisitPage({
           visitStatus={visit.status}
           voiceNotes={visit.voice_notes ?? null}
           keyPoints={visit.key_clinical_points ?? null}
+          clinicalNote={visit.clinical_note ?? null}
         />
       </div>
     </div>

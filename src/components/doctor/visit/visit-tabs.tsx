@@ -49,6 +49,7 @@ interface VisitTabsProps {
   visitStatus: string;
   voiceNotes: string | null;
   keyPoints: string | null;
+  clinicalNote: string | null;
 }
 
 const TABS = [
@@ -132,7 +133,22 @@ export function VisitTabs(props: VisitTabsProps) {
             diagnoses={props.diagnoses}
           />
         )}
-        {activeTab === "ai" && <AINotesTab visitId={props.visitId} />}
+        {activeTab === "ai" && (
+          <AINotesTab
+            visitId={props.visitId}
+            existingNote={props.clinicalNote}
+            patient={props.patient}
+            vitals={props.vitals}
+            symptoms={props.checkedSymptomIds
+              .map(id => props.symptomsCatalog.find(s => s.id === id))
+              .filter((s): s is NonNullable<typeof s> => !!s)}
+            prescriptions={props.prescriptions}
+            diagnoses={props.diagnoses}
+            labs={props.labs}
+            voiceNotes={props.voiceNotes}
+            keyPoints={props.keyPoints}
+          />
+        )}
       </div>
     </div>
   );
