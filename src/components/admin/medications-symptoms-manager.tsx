@@ -6,11 +6,11 @@ import { addSymptom, toggleSymptomActive, updateSymptom } from "@/lib/actions/sy
 import { BilingualInput } from "@/components/ui/bilingual-input";
 
 interface Medication { id: string; name: string; name_ar: string | null; default_dose: string | null; default_unit: string | null; is_active: boolean; }
-interface Symptom { id: string; name: string; name_ar: string | null; is_active: boolean; }
+interface Symptom { id: string; name: string; name_ar: string | null; is_active: boolean; category: string; }
 const UNITS = ["mg", "ml", "g", "mcg", "IU", "tablet", "capsule", "drop", "puff", "unit"];
 
 export function MedicationsAndSymptomsManager({ initialMedications, initialSymptoms }: { initialMedications: Medication[]; initialSymptoms: Symptom[]; }) {
-  const [tab, setTab] = useState<"medications" | "symptoms">("medications");
+  const [tab, setTab] = useState<"medications" | "symptoms" | "advanced">("medications");
   const [medications, setMedications] = useState(initialMedications);
   const [symptoms, setSymptoms] = useState(initialSymptoms);
   const [error, setError] = useState<string | null>(null);
@@ -33,20 +33,24 @@ export function MedicationsAndSymptomsManager({ initialMedications, initialSympt
 
   async function handleAddSym(e: React.FormEvent) {
     e.preventDefault(); setAddingSym(true); setError(null);
-    const r = await addSymptom(symName, symNameAr || undefined);
+    const r = await addSymptom(symName, symNameAr || undefined, "basic");
     setAddingSym(false);
     if (!r.success) { setError(r.error ?? "Error"); return; }
-    setSymptoms(prev => [...prev, { id: crypto.randomUUID(), name: symName.trim(), name_ar: symNameAr || null, is_active: true }].sort((a,b)=>a.name.localeCompare(b.name)));
+    setSymptoms(prev => [...prev, { id: crypto.randomUUID(), name: symName.trim(), name_ar: symNameAr || null, is_active: true, category: "basic" }].sort((a,b)=>a.name.localeCompare(b.name)));
     setSymName(""); setSymNameAr("");
   }
 
   return (
     <div>
       <div className="mb-4 flex border-b border-neutral-200">
-        {["medications","symptoms"].map(t => (
-          <button key={t} onClick={() => setTab(t as typeof tab)}
+        {(["medications","symptoms","advanced"] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors capitalize ${tab===t?"border-neutral-900 text-neutral-900":"border-transparent text-neutral-500 hover:text-neutral-700"}`}>
-            {t} ({(t==="medications"?medications:symptoms).filter(x=>x.is_active).length} active)
+            {t === "advanced" ? "Advanced Symptoms" : t}
+            {" "}({t==="medications"
+              ? medications.filter(x=>x.is_active).length
+              : symptoms.filter(x=>x.is_active && (t==="symptoms" ? x.category==="basic" : x.category==="advanced")).length
+            } active)
           </button>
         ))}
       </div>
@@ -87,7 +91,7 @@ export function MedicationsAndSymptomsManager({ initialMedications, initialSympt
       {tab === "symptoms" && (
         <div>
           <form onSubmit={handleAddSym} className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
-            <p className="text-sm font-medium text-neutral-900">+ Add Symptom</p>
+            <p className="text-sm font-medium text-neutral-900">+ Add Basic Symptom</p>
             <div className="grid grid-cols-2 gap-3">
               <BilingualInput label="Symptom name" required value={symName} onChange={e=>setSymName(e.target.value)} placeholder="e.g. Headache" />
               <BilingualInput label="Arabic name" value={symNameAr} onChange={e=>setSymNameAr(e.target.value)} placeholder="صداع" />
@@ -95,9 +99,36 @@ export function MedicationsAndSymptomsManager({ initialMedications, initialSympt
             <button type="submit" disabled={addingSym} className="w-full rounded-md bg-red-500 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50">{addingSym?"Adding...":"+ Add"}</button>
           </form>
           <div className="rounded-lg border border-neutral-200 bg-white shadow-sm">
-            {symptoms.length===0?<p className="p-4 text-sm text-neutral-500">No symptoms yet.</p>:(
+            {symptoms.filter(s=>s.category!=="advanced").length===0?<p className="p-4 text-sm text-neutral-500">No basic symptoms yet.</p>:(
               <ul className="divide-y divide-neutral-100">
-                {symptoms.map(s=>(
+                {symptoms.filter(s=>s.category!=="advanced").map(s=>(
+                  <SymRow key={s.id} sym={s} editing={editingSym===s.id}
+                    onEdit={()=>setEditingSym(editingSym===s.id?null:s.id)}
+                    onSave={async(name,nameAr)=>{ const r=await updateSymptom(s.id,name,nameAr); if(r.success){setSymptoms(prev=>prev.map(x=>x.id===s.id?{...x,name,name_ar:nameAr??null}:x)); setEditingSym(null);} else setError(r.error??'Error'); }}
+                    onToggle={async()=>{ setSymptoms(prev=>prev.map(x=>x.id===s.id?{...x,is_active:!s.is_active}:x)); await toggleSymptomActive(s.id,!s.is_active); }} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === "advanced" && (
+        <div>
+          <form onSubmit={async(e)=>{ e.preventDefault(); setAddingSym(true); setError(null); const r=await addSymptom(symName,symNameAr||undefined,"advanced"); setAddingSym(false); if(!r.success){setError(r.error??'Error');return;} setSymptoms(prev=>[...prev,{id:crypto.randomUUID(),name:symName.trim(),name_ar:symNameAr||null,is_active:true,category:"advanced"}].sort((a,b)=>a.name.localeCompare(b.name))); setSymName(""); setSymNameAr(""); }}
+            className="mb-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm space-y-3">
+            <p className="text-sm font-medium text-neutral-900">+ Add Advanced Clinical Symptom</p>
+            <p className="text-xs text-neutral-500">These appear in a separate section in the doctor&apos;s clinical tab.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <BilingualInput label="Symptom name" required value={symName} onChange={e=>setSymName(e.target.value)} placeholder="e.g. Photophobia" />
+              <BilingualInput label="Arabic name" value={symNameAr} onChange={e=>setSymNameAr(e.target.value)} placeholder="رهاب الضوء" />
+            </div>
+            <button type="submit" disabled={addingSym} className="w-full rounded-md bg-red-500 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50">{addingSym?"Adding...":"+ Add"}</button>
+          </form>
+          <div className="rounded-lg border border-neutral-200 bg-white shadow-sm">
+            {symptoms.filter(s=>s.category==="advanced").length===0?<p className="p-4 text-sm text-neutral-500">No advanced symptoms yet.</p>:(
+              <ul className="divide-y divide-neutral-100">
+                {symptoms.filter(s=>s.category==="advanced").map(s=>(
                   <SymRow key={s.id} sym={s} editing={editingSym===s.id}
                     onEdit={()=>setEditingSym(editingSym===s.id?null:s.id)}
                     onSave={async(name,nameAr)=>{ const r=await updateSymptom(s.id,name,nameAr); if(r.success){setSymptoms(prev=>prev.map(x=>x.id===s.id?{...x,name,name_ar:nameAr??null}:x)); setEditingSym(null);} else setError(r.error??'Error'); }}

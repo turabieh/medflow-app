@@ -197,3 +197,18 @@ export async function markVisitDone(visitId: string, appointmentId: string) {
   revalidatePath("/doctor/dashboard");
   return { success: true };
 }
+
+export async function saveVisitNotes(visitId: string, voiceNotes: string, keyPoints: string) {
+  const auth = await getClinicId();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const { error } = await auth.supabase.from("visits").update({
+    voice_notes:         voiceNotes.trim() || null,
+    key_clinical_points: keyPoints.trim()  || null,
+    updated_at:          new Date().toISOString(),
+  }).eq("id", visitId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath(`/doctor/visit/${visitId}`);
+  return { success: true };
+}

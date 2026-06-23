@@ -161,6 +161,7 @@ export default async function VisitPage({
           patient={{
             id: patient?.id ?? "",
             full_name: patient?.full_name ?? "",
+            full_name_ar: patient?.full_name_ar ?? null,
             dob: patient?.dob ?? null,
             gender: patient?.gender ?? null,
             blood_type: patient?.blood_type ?? null,
@@ -185,8 +186,9 @@ export default async function VisitPage({
           prescriptions={prescriptions ?? []}
           medsCatalog={medsCatalog ?? []}
           diagnoses={diagnoses ?? []}
-          proceduresCatalog={proceduresCatalog ?? []}
           visitStatus={visit.status}
+          voiceNotes={visit.voice_notes ?? null}
+          keyPoints={visit.key_clinical_points ?? null}
         />
       </div>
     </div>

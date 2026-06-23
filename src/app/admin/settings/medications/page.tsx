@@ -11,8 +11,8 @@ export default async function MedicationsAndSymptomsPage() {
 
   const { data: symptoms } = await supabase
     .from("symptoms_catalog")
-    .select("id, name, name_ar, is_active")
-    .order("name");
+    .select("id, name, name_ar, is_active, category")
+    .order("category").order("name");
 
   return (
     <div>

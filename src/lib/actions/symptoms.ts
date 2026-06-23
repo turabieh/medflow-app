@@ -30,7 +30,7 @@ async function requireAdmin() {
   return { ok: true as const, supabase, clinicId: profile.clinic_id };
 }
 
-export async function addSymptom(name: string, nameAr?: string) {
+export async function addSymptom(name: string, nameAr?: string, category: string = "basic") {
   const auth = await requireAdmin();
   if (!auth.ok) return { success: false, error: auth.error };
 
@@ -42,6 +42,7 @@ export async function addSymptom(name: string, nameAr?: string) {
     clinic_id: auth.clinicId,
     name: name.trim(),
     name_ar: nameAr?.trim() || null,
+    category,
   });
 
   if (error) {

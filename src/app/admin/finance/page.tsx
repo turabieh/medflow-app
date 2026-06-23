@@ -32,7 +32,7 @@ export default async function AdminFinancePage({
   // Fetch confirmed payments in range
   const { data: payments } = await supabase
     .from("appointments")
-    .select("id, appt_date, payment_method, payment_amount, payment_confirmed_at, patient_id, users(full_name)")
+    .select("id, appt_date, payment_method, payment_amount, payment_confirmed_at, patient_id, users!appointments_doctor_id_fkey(full_name)")
     .eq("payment_confirmed", true)
     .gte("appt_date", fromDate)
     .lte("appt_date", toDate)
