@@ -18,40 +18,51 @@ export async function POST(request: NextRequest) {
     if (type === "clinical_note") {
       prompt = `You are a medical assistant helping a ${clinicSpecialty} specialist write a clinical note.
 
-Based on the visit information below, write a professional SOAP clinical note.
+Based on the visit information below, write a professional SOAP clinical note as PLAIN TEXT only.
 
-FORMAT:
-S (Subjective): Patient's chief complaint, symptoms, and history as reported
-O (Objective): Vitals, examination findings, lab/imaging results  
-A (Assessment): Diagnosis and clinical interpretation
-P (Plan): Treatment plan, medications, follow-up instructions
+IMPORTANT: Do NOT use markdown formatting. No asterisks, no pound signs, no bullet dashes. Use plain text only.
+
+FORMAT (use these exact section labels on their own line):
+SUBJECTIVE:
+[patient's chief complaint, symptoms, history]
+
+OBJECTIVE:
+[vitals, examination findings, lab/imaging results]
+
+ASSESSMENT:
+[diagnosis and clinical interpretation]
+
+PLAN:
+[treatment plan, medications, follow-up instructions]
 
 Rules:
+- Plain text only, no markdown
 - Use proper medical terminology
 - Be concise and specific
-- Include all provided data
-- If information is missing for a section, write "Not documented"
-- Write in third person (e.g., "Patient presents with...")
+- Write in third person
+- If a section has no data, write "Not documented"
 
 VISIT INFORMATION:
 ${context}
 
-Write the SOAP clinical note:`;
+Write the SOAP note:`;
     } else if (type === "abstract") {
-      prompt = `You are a medical assistant. Write a patient-friendly visit summary in both English and Arabic.
+      prompt = `You are a medical assistant. Write a patient-friendly visit summary in both English and Arabic as PLAIN TEXT only.
 
-The summary should:
-- Be written in simple, non-medical language the patient can understand
-- Explain what was found and what the plan is
-- Be reassuring and clear
-- Be 3-5 sentences per language
+IMPORTANT: Do NOT use markdown. No asterisks, no pound signs. Use plain text only.
 
-FORMAT EXACTLY AS:
-**English Summary:**
-[English text here]
+FORMAT (use these exact labels):
+English Summary:
+[3-4 sentences in simple non-medical English]
 
-**ملخص بالعربية:**
-[Arabic text here]
+ملخص بالعربية:
+[3-4 sentences in simple Arabic]
+
+Rules:
+- Plain text, no markdown symbols
+- Simple language the patient can understand
+- Reassuring and clear tone
+- Explain what was found and the plan
 
 VISIT INFORMATION:
 ${context}

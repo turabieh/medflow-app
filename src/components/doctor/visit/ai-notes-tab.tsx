@@ -155,12 +155,23 @@ export function AINotesTab({
     return data.text ?? "";
   }
 
+  function stripMarkdown(text: string): string {
+    return text
+      .replace(/#{1,6}\s+/g, "")           // ## headers
+      .replace(/\*\*(.+?)\*\*/g, "$1")     // **bold**
+      .replace(/\*(.+?)\*/g, "$1")         // *italic*
+      .replace(/^[-*]\s+/gm, "• ")         // bullet points
+      .replace(/`(.+?)`/g, "$1")           // `code`
+      .replace(/\n{3,}/g, "\n\n")          // excess blank lines
+      .trim();
+  }
+
   async function handleGenerateNote() {
     setGenerating(true);
     setError(null);
     try {
       const text = await callAI("clinical_note");
-      setClinicalNote(text);
+      setClinicalNote(stripMarkdown(text));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate note.");
     }
@@ -172,7 +183,7 @@ export function AINotesTab({
     setError(null);
     try {
       const text = await callAI("abstract");
-      setAbstract(text);
+      setAbstract(stripMarkdown(text));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate summary.");
     }

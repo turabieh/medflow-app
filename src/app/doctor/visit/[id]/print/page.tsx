@@ -46,22 +46,28 @@ export default async function VisitPrintPage({
         <style>{`
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 40px; }
-          .header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 20px; }
-          .clinic-name { font-size: 18px; font-weight: bold; }
-          .doc-title { font-size: 14px; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; color: #555; }
-          .section { margin-bottom: 16px; }
-          .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 3px; margin-bottom: 8px; font-weight: bold; }
-          .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 8px; }
-          .field .label { font-size: 10px; color: #888; }
+          .header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 24px; }
+          .clinic-name { font-size: 20px; font-weight: bold; letter-spacing: 0.5px; }
+          .doc-title { font-size: 13px; margin-top: 8px; text-transform: uppercase; letter-spacing: 2px; color: #555; }
+          .print-date { font-size: 11px; color: #888; margin-top: 6px; }
+          .section { margin-bottom: 18px; }
+          .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; font-weight: bold; }
+          .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 10px; }
+          .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 10px; }
+          .field .label { font-size: 10px; color: #888; margin-bottom: 2px; }
           .field .value { font-size: 12px; font-weight: 500; }
-          .allergy { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; display: inline-block; margin: 2px; font-size: 11px; }
-          .note-box { border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fafafa; min-height: 80px; white-space: pre-wrap; font-size: 12px; line-height: 1.6; }
-          .rx-item { border-bottom: 1px solid #eee; padding: 6px 0; }
+          .allergy { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; display: inline-block; margin: 2px 2px 2px 0; font-size: 11px; }
+          .soap-section { margin-bottom: 14px; }
+          .soap-label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #333; margin-bottom: 4px; border-left: 3px solid #111; padding-left: 8px; }
+          .soap-text { font-size: 12px; line-height: 1.7; white-space: pre-wrap; padding-left: 12px; color: #222; }
+          .rx-item { padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
           .rx-name { font-weight: 600; }
-          .dx-item { padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
+          .dx-item { padding: 4px 0; border-bottom: 1px solid #f5f5f5; font-size: 12px; }
           .primary-badge { background: #dbeafe; color: #1e40af; padding: 1px 6px; border-radius: 8px; font-size: 10px; margin-left: 6px; }
-          .footer { margin-top: 40px; border-top: 1px solid #ddd; padding-top: 16px; display: flex; justify-content: space-between; }
-          .sig-line { width: 180px; border-top: 1px solid #111; margin-top: 40px; text-align: center; font-size: 10px; color: #666; padding-top: 4px; }
+          .footer { margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .footer-info { font-size: 11px; color: #666; line-height: 1.6; }
+          .sig-block { text-align: center; }
+          .sig-line { width: 200px; border-top: 1px solid #111; padding-top: 4px; font-size: 10px; color: #666; margin-top: 40px; }
           @media print { body { padding: 20px; } .no-print { display: none !important; } }
         `}</style>
       </head>
@@ -77,25 +83,27 @@ export default async function VisitPrintPage({
 
         <div className="section">
           <div className="section-title">Patient</div>
-          <div className="row">
-            <div className="field"><div className="label">Name</div><div className="value">{patient?.full_name}</div></div>
+          <div className="grid-4">
+            <div className="field"><div className="label">Full name</div><div className="value">{patient?.full_name}</div></div>
             {age !== null && <div className="field"><div className="label">Age</div><div className="value">{age} years</div></div>}
             <div className="field"><div className="label">Gender</div><div className="value" style={{textTransform:"capitalize"}}>{patient?.gender ?? "—"}</div></div>
             <div className="field"><div className="label">Blood type</div><div className="value" style={{color:"#dc2626"}}>{patient?.blood_type ?? "—"}</div></div>
           </div>
           {patient?.allergies && (
             <div style={{marginTop:"6px"}}>
-              <div className="label" style={{fontSize:"10px",color:"#888",marginBottom:"3px"}}>Allergies</div>
+              <div style={{fontSize:"10px",color:"#888",marginBottom:"4px"}}>Allergies</div>
               {patient.allergies.split(",").map((a: string) => <span key={a} className="allergy">{a.trim()}</span>)}
             </div>
           )}
         </div>
 
         <div className="section">
-          <div className="section-title">Visit — {doctor?.full_name}{doctor?.specialty && ` (${doctor.specialty})`}</div>
-          <div className="row">
+          <div className="section-title">Visit</div>
+          <div className="grid-4">
             <div className="field"><div className="label">Date</div><div className="value">{visit.visit_date ?? printDate}</div></div>
             <div className="field"><div className="label">Type</div><div className="value" style={{textTransform:"capitalize"}}>{visit.visit_type}</div></div>
+            <div className="field"><div className="label">Physician</div><div className="value">{doctor?.full_name ?? "—"}</div></div>
+            {doctor?.specialty && <div className="field"><div className="label">Specialty</div><div className="value">{doctor.specialty}</div></div>}
           </div>
         </div>
 
@@ -126,19 +134,57 @@ export default async function VisitPrintPage({
 
         {type === "note" && (visit.clinical_note || visit.voice_notes || visit.key_clinical_points) && (
           <div className="section">
-            <div className="section-title">Clinical Notes</div>
-            {visit.clinical_note && <div className="note-box">{visit.clinical_note}</div>}
-            {!visit.clinical_note && visit.voice_notes && (
-              <>
-                <div className="label" style={{fontSize:"10px",color:"#888",margin:"6px 0 3px"}}>Voice notes</div>
-                <div className="note-box">{visit.voice_notes}</div>
-              </>
-            )}
-            {visit.key_clinical_points && (
-              <>
-                <div className="label" style={{fontSize:"10px",color:"#888",margin:"8px 0 3px"}}>Key clinical points</div>
-                <div className="note-box">{visit.key_clinical_points}</div>
-              </>
+            <div className="section-title">Clinical Note</div>
+            {visit.clinical_note ? (() => {
+              // Parse SOAP sections from plain text
+              const noteText = visit.clinical_note;
+              const sections = [
+                { key: "SUBJECTIVE", label: "S — Subjective" },
+                { key: "OBJECTIVE",  label: "O — Objective" },
+                { key: "ASSESSMENT", label: "A — Assessment" },
+                { key: "PLAN",       label: "P — Plan" },
+              ];
+              const parsed: { label: string; text: string }[] = [];
+              sections.forEach((sec, idx) => {
+                const start = noteText.indexOf(sec.key + ":");
+                if (start === -1) return;
+                const nextStart = sections.slice(idx + 1).reduce((min, s) => {
+                  const pos = noteText.indexOf(s.key + ":");
+                  return pos !== -1 && pos < min ? pos : min;
+                }, noteText.length);
+                const text = noteText.slice(start + sec.key.length + 1, nextStart).trim();
+                parsed.push({ label: sec.label, text });
+              });
+
+              if (parsed.length === 0) {
+                return <div style={{whiteSpace:"pre-wrap",lineHeight:"1.7",fontSize:"12px"}}>{noteText}</div>;
+              }
+
+              return (
+                <div>
+                  {parsed.map(s => (
+                    <div key={s.label} className="soap-section">
+                      <div className="soap-label">{s.label}</div>
+                      <div className="soap-text">{s.text}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })() : (
+              <div>
+                {visit.voice_notes && (
+                  <div className="soap-section">
+                    <div className="soap-label">Voice Notes</div>
+                    <div className="soap-text">{visit.voice_notes}</div>
+                  </div>
+                )}
+                {visit.key_clinical_points && (
+                  <div className="soap-section">
+                    <div className="soap-label">Key Clinical Points</div>
+                    <div className="soap-text">{visit.key_clinical_points}</div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -181,8 +227,16 @@ export default async function VisitPrintPage({
         )}
 
         <div className="footer">
-          <div className="sig-line">Doctor&apos;s signature</div>
-          <div className="sig-line">Clinic stamp</div>
+          <div className="footer-info">
+            <div style={{fontWeight:"600",marginBottom:"2px"}}>{clinic?.name ?? "Clinic"}</div>
+            <div style={{color:"#888"}}>Date: {printDate}</div>
+          </div>
+          <div className="sig-block">
+            <div className="sig-line">
+              {doctor?.full_name ?? "Physician"}
+              {doctor?.specialty && <div style={{color:"#888"}}>{doctor.specialty}</div>}
+            </div>
+          </div>
         </div>
       </body>
     </html>
