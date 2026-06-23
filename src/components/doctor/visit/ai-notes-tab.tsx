@@ -48,138 +48,133 @@ export function AINotesTab({
 }) {
   const router = useRouter();
   const [clinicalNote, setClinicalNote] = useState(existingNote ?? "");
+  const [abstract, setAbstract] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatingAbstract, setGeneratingAbstract] = useState(false);
-  const [abstract, setAbstract] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Build context string for AI
-  function buildContext() {
+  function buildContext(): string {
     const age = patient.dob
       ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
       : null;
 
     const lines: string[] = [
-      `Patient: ${patient.full_name}`,
+      "=== PATIENT ===",
+      `Name: ${patient.full_name}`,
       age ? `Age: ${age} years old` : "",
       patient.gender ? `Gender: ${patient.gender}` : "",
       patient.blood_type ? `Blood type: ${patient.blood_type}` : "",
-      patient.allergies ? `Allergies: ${patient.allergies}` : "",
+      patient.allergies ? `Allergies: ${patient.allergies}` : "Allergies: None known",
       "",
     ];
 
     const v = vitals;
     const vitalParts = [
-      v.heart_rate ? `HR ${v.heart_rate} bpm` : "",
-      v.blood_pressure ? `BP ${v.blood_pressure}` : "",
-      v.temperature ? `Temp ${v.temperature}°C` : "",
-      v.oxygen_saturation ? `O2 ${v.oxygen_saturation}%` : "",
-      v.resp_rate ? `RR ${v.resp_rate}/min` : "",
-      v.weight_kg ? `Weight ${v.weight_kg}kg` : "",
-      v.height_cm ? `Height ${v.height_cm}cm` : "",
+      v.heart_rate ? `Heart Rate: ${v.heart_rate} bpm` : "",
+      v.blood_pressure ? `Blood Pressure: ${v.blood_pressure}` : "",
+      v.temperature ? `Temperature: ${v.temperature}°C` : "",
+      v.oxygen_saturation ? `O2 Saturation: ${v.oxygen_saturation}%` : "",
+      v.resp_rate ? `Respiratory Rate: ${v.resp_rate}/min` : "",
+      v.weight_kg ? `Weight: ${v.weight_kg} kg` : "",
+      v.height_cm ? `Height: ${v.height_cm} cm` : "",
     ].filter(Boolean);
-    if (vitalParts.length) lines.push(`Vitals: ${vitalParts.join(", ")}`);
+
+    if (vitalParts.length) {
+      lines.push("=== VITALS ===");
+      vitalParts.forEach(v => lines.push(v));
+      lines.push("");
+    }
 
     const basicSymptoms = symptoms.filter(s => s.category !== "advanced").map(s => s.name);
     const advSymptoms = symptoms.filter(s => s.category === "advanced").map(s => s.name);
-    if (basicSymptoms.length) lines.push(`Symptoms: ${basicSymptoms.join(", ")}`);
-    if (advSymptoms.length) lines.push(`Advanced symptoms: ${advSymptoms.join(", ")}`);
+
+    if (basicSymptoms.length || advSymptoms.length) {
+      lines.push("=== PRESENTING SYMPTOMS ===");
+      if (basicSymptoms.length) lines.push(`Basic: ${basicSymptoms.join(", ")}`);
+      if (advSymptoms.length) lines.push(`Advanced/Clinical: ${advSymptoms.join(", ")}`);
+      lines.push("");
+    }
 
     if (labs.length) {
-      lines.push("Labs & Imaging:");
+      lines.push("=== LABS & IMAGING ===");
       labs.forEach(l => {
-        lines.push(`  - ${l.type.toUpperCase()}: ${l.name}${l.lab_date ? ` (${l.lab_date})` : ""}${l.findings ? ` — ${l.findings}` : ""}`);
+        lines.push(`${l.type.toUpperCase()}: ${l.name}${l.lab_date ? ` (${l.lab_date})` : ""}${l.findings ? ` — Findings: ${l.findings}` : ""}`);
       });
+      lines.push("");
     }
 
     if (diagnoses.length) {
-      lines.push("Diagnosis:");
+      lines.push("=== DIAGNOSIS ===");
       diagnoses.forEach(d => {
-        lines.push(`  - ${d.icd_code ? `[${d.icd_code}] ` : ""}${d.description}${d.is_primary ? " (PRIMARY)" : ""}`);
+        lines.push(`${d.is_primary ? "[PRIMARY] " : ""}${d.icd_code ? `${d.icd_code} — ` : ""}${d.description}`);
       });
+      lines.push("");
     }
 
     if (prescriptions.length) {
-      lines.push("Medications prescribed:");
+      lines.push("=== MEDICATIONS PRESCRIBED ===");
       prescriptions.forEach(rx => {
-        const detail = [rx.dose, rx.unit, rx.instructions, rx.duration].filter(Boolean).join(" ");
-        lines.push(`  - ${rx.medication_name}${detail ? `: ${detail}` : ""}`);
+        const detail = [rx.dose, rx.unit].filter(Boolean).join(" ");
+        const instr = [rx.instructions, rx.duration].filter(Boolean).join(", ");
+        lines.push(`- ${rx.medication_name}${detail ? ` ${detail}` : ""}${instr ? ` (${instr})` : ""}`);
       });
+      lines.push("");
     }
 
-    if (voiceNotes) lines.push(`\nDoctor's voice notes:\n${voiceNotes}`);
-    if (keyPoints) lines.push(`\nKey clinical points:\n${keyPoints}`);
+    if (voiceNotes?.trim()) {
+      lines.push("=== DOCTOR'S VOICE NOTES ===");
+      lines.push(voiceNotes.trim());
+      lines.push("");
+    }
 
-    return lines.filter(Boolean).join("\n");
+    if (keyPoints?.trim()) {
+      lines.push("=== KEY CLINICAL POINTS ===");
+      lines.push(keyPoints.trim());
+      lines.push("");
+    }
+
+    return lines.filter(l => l !== undefined).join("\n").trim();
   }
 
-  async function generateClinicalNote() {
+  async function callAI(type: "clinical_note" | "abstract"): Promise<string> {
+    const context = buildContext();
+    const response = await fetch("/api/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, context, specialty: "Neurology" }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error ?? "API error");
+    }
+
+    const data = await response.json();
+    return data.text ?? "";
+  }
+
+  async function handleGenerateNote() {
     setGenerating(true);
     setError(null);
     try {
-      const context = buildContext();
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `You are a medical assistant helping a neurologist write a clinical note. 
-Based on the following visit information, write a professional clinical note in SOAP format (Subjective, Objective, Assessment, Plan). 
-Be concise and clinical. Use medical terminology appropriately.
-
-Visit Information:
-${context}
-
-Write the clinical note now:`
-          }]
-        })
-      });
-      const data = await response.json();
-      const text = data.content?.[0]?.text ?? "";
+      const text = await callAI("clinical_note");
       setClinicalNote(text);
     } catch (err) {
-      setError("Failed to generate note. Check your connection.");
+      setError(err instanceof Error ? err.message : "Failed to generate note.");
     }
     setGenerating(false);
   }
 
-  async function generateAbstract() {
+  async function handleGenerateAbstract() {
     setGeneratingAbstract(true);
     setError(null);
     try {
-      const context = buildContext();
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `You are a medical assistant. Based on this visit, write a patient-friendly summary in both English and Arabic that the patient can understand. 
-Avoid medical jargon. Be reassuring and clear. Format as:
-
-**English Summary:**
-[English text]
-
-**ملخص بالعربية:**
-[Arabic text]
-
-Visit information:
-${context}`
-          }]
-        })
-      });
-      const data = await response.json();
-      const text = data.content?.[0]?.text ?? "";
+      const text = await callAI("abstract");
       setAbstract(text);
     } catch (err) {
-      setError("Failed to generate abstract.");
+      setError(err instanceof Error ? err.message : "Failed to generate summary.");
     }
     setGeneratingAbstract(false);
   }
@@ -197,29 +192,76 @@ ${context}`
     window.open(`/doctor/visit/${visitId}/print?type=${type}`, "_blank");
   }
 
+  async function handleBookFollowUp() {
+    const res = await fetch(`/api/visit-patient?visitId=${visitId}`);
+    const { patientId } = await res.json();
+    if (patientId) window.location.href = `/secretary/appointments/new?patientId=${patientId}`;
+  }
+
+  const contextSummary = [
+    symptoms.length ? `${symptoms.length} symptoms` : "",
+    vitals.heart_rate || vitals.blood_pressure ? "Vitals recorded" : "",
+    labs.length ? `${labs.length} labs` : "",
+    diagnoses.length ? `${diagnoses.length} diagnoses` : "",
+    prescriptions.length ? `${prescriptions.length} medications` : "",
+    voiceNotes ? "Voice notes" : "",
+    keyPoints ? "Key points" : "",
+  ].filter(Boolean);
+
   return (
     <div className="p-6 space-y-5">
-      {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
 
-      {/* Clinical Note Generation */}
+      {/* Context summary */}
+      <div className="rounded-md bg-neutral-50 border border-neutral-200 px-4 py-3">
+        <p className="text-xs font-medium text-neutral-500 mb-1">AI will use:</p>
+        <div className="flex flex-wrap gap-1.5">
+          {contextSummary.length === 0 ? (
+            <span className="text-xs text-neutral-400">
+              No clinical data yet — fill in Patient, Clinical, and Notes tabs first.
+            </span>
+          ) : (
+            contextSummary.map((item) => (
+              <span key={item} className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                {item}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Clinical Note */}
       <section className="rounded-lg border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-100 px-4 py-3">
-          <h2 className="text-sm font-medium text-neutral-900">Generate Clinical Note</h2>
+          <h2 className="text-sm font-medium text-neutral-900">Clinical Note (SOAP)</h2>
           <p className="text-xs text-neutral-400 mt-0.5">
-            AI reads all symptoms, vitals, labs, medications, diagnoses, and your notes to generate a SOAP note.
+            AI generates a Subjective / Objective / Assessment / Plan note from all visit data. 
+            You can edit it before saving or printing.
           </p>
         </div>
         <div className="p-4 space-y-3">
           <div className="flex gap-2">
-            <button onClick={generateClinicalNote} disabled={generating}
-              className="rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50 flex items-center gap-2">
+            <button
+              onClick={handleGenerateNote}
+              disabled={generating}
+              className="flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+            >
               {generating ? (
-                <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> Generating...</>
-              ) : "Generate Clinical Note with AI"}
+                <>
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Clinical Note with AI"
+              )}
             </button>
             {clinicalNote && (
-              <button onClick={() => setClinicalNote("")}
-                className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50">
+              <button
+                onClick={() => setClinicalNote("")}
+                className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+              >
                 Clear
               </button>
             )}
@@ -227,50 +269,74 @@ ${context}`
 
           <textarea
             value={clinicalNote}
-            onChange={e => setClinicalNote(e.target.value)}
-            rows={12}
-            placeholder="AI will generate a clinical note here. You can edit it after generation."
+            onChange={(e) => setClinicalNote(e.target.value)}
+            rows={14}
+            placeholder={
+              generating
+                ? "Generating..."
+                : "Click 'Generate Clinical Note with AI' to create a SOAP note, or type your note directly here."
+            }
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-mono leading-relaxed"
           />
 
           <div className="flex gap-2">
-            <button onClick={handleSaveNote} disabled={saving || !clinicalNote}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
+            <button
+              onClick={handleSaveNote}
+              disabled={saving || !clinicalNote}
+              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+            >
               {saving ? "Saving..." : saved ? "Saved ✓" : "Save Note"}
             </button>
-            <button onClick={() => openPrint("note")} disabled={!clinicalNote}
-              className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-50">
+            <button
+              onClick={() => openPrint("note")}
+              disabled={!clinicalNote}
+              className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+            >
               Print Clinical Note
             </button>
-            <button onClick={() => openPrint("prescription")}
-              className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50">
+            <button
+              onClick={() => openPrint("prescription")}
+              className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+            >
               Print Prescription
             </button>
           </div>
         </div>
       </section>
 
-      {/* Patient-Friendly Abstract */}
+      {/* Patient-Friendly Summary */}
       <section className="rounded-lg border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-100 px-4 py-3">
           <h2 className="text-sm font-medium text-neutral-900">Patient-Friendly Summary</h2>
-          <p className="text-xs text-neutral-400 mt-0.5">Simple summary in English + Arabic the patient can take home.</p>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            Simple bilingual summary (English + Arabic) the patient can take home.
+          </p>
         </div>
         <div className="p-4 space-y-3">
-          <button onClick={generateAbstract} disabled={generatingAbstract}
-            className="rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50 flex items-center gap-2">
+          <button
+            onClick={handleGenerateAbstract}
+            disabled={generatingAbstract}
+            className="flex items-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+          >
             {generatingAbstract ? (
-              <><span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> Generating...</>
-            ) : "Generate Summary (English + Arabic)"}
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Generating...
+              </>
+            ) : (
+              "Generate Summary (English + Arabic)"
+            )}
           </button>
 
           {abstract && (
             <>
-              <div className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed">
+              <div className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm leading-relaxed whitespace-pre-wrap">
                 {abstract}
               </div>
-              <button onClick={() => openPrint("summary")}
-                className="rounded-md border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50">
+              <button
+                onClick={() => openPrint("summary")}
+                className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+              >
                 Print Patient Summary
               </button>
             </>
@@ -281,25 +347,21 @@ ${context}`
       {/* Book follow-up */}
       <section className="rounded-lg border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-100 px-4 py-3">
-          <h2 className="text-sm font-medium text-neutral-900">Book Follow-up</h2>
+          <h2 className="text-sm font-medium text-neutral-900">Actions</h2>
         </div>
-        <div className="p-4">
-          <p className="mb-3 text-xs text-neutral-500">
-            Book a follow-up appointment for this patient directly from the visit.
-          </p>
-          <a
-            href={`/secretary/appointments/new?patientId=PATIENT_ID`}
-            onClick={(e) => {
-              e.preventDefault();
-              // We need to navigate with the patient ID — fetch it from the visit
-              fetch(`/api/visit-patient?visitId=${visitId}`)
-                .then(r => r.json())
-                .then(d => { if (d.patientId) window.location.href = `/secretary/appointments/new?patientId=${d.patientId}`; });
-            }}
-            className="inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+        <div className="p-4 flex gap-2">
+          <button
+            onClick={handleBookFollowUp}
+            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
           >
             Book Follow-up Appointment
-          </a>
+          </button>
+          <button
+            onClick={() => openPrint("note")}
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+          >
+            Print All Reports
+          </button>
         </div>
       </section>
     </div>
