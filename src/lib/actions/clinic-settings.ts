@@ -35,16 +35,27 @@ export async function saveClinicSettings(input: SaveClinicSettingsInput) {
   let logoUrl: string | undefined;
   if (input.logoBase64 && input.logoMimeType) {
     const adminClient = createAdminClient();
-    const ext = input.logoMimeType.split("/")[1] ?? "png";
+    const ext = input.logoMimeType.split("/")[1]?.split("+")[0] ?? "png";
     const path = `${input.clinicId}/logo.${ext}`;
     const buffer = Buffer.from(input.logoBase64, "base64");
+
+    // Try to create bucket if it doesn't exist
+    await adminClient.storage.createBucket("clinic-assets", { public: true }).catch(() => {
+      // Bucket already exists — fine
+    });
+
     const { error: uploadError } = await adminClient.storage
       .from("clinic-assets")
       .upload(path, buffer, { contentType: input.logoMimeType, upsert: true });
-    if (!uploadError) {
-      const { data: { publicUrl } } = adminClient.storage.from("clinic-assets").getPublicUrl(path);
-      logoUrl = publicUrl;
+
+    if (uploadError) {
+      return { success: false, error: `Logo upload failed: ${uploadError.message}` };
     }
+
+    const { data: { publicUrl } } = adminClient.storage
+      .from("clinic-assets")
+      .getPublicUrl(path);
+    logoUrl = publicUrl;
   }
 
   const updateData: Record<string, string | null> = {

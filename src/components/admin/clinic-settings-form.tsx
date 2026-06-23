@@ -119,6 +119,12 @@ export function ClinicSettingsForm({ clinic, currency }: ClinicSettingsFormProps
               Upload logo
             </label>
             <p className="mt-1 text-xs text-neutral-400">PNG, JPG or SVG. Appears on all reports.</p>
+            {clinic.logo_url && !logoFile && (
+              <p className="mt-1 text-xs text-emerald-600">✓ Logo saved in database</p>
+            )}
+            {logoFile && (
+              <p className="mt-1 text-xs text-blue-600">New logo selected — save to upload</p>
+            )}
           </div>
         </div>
       </div>
