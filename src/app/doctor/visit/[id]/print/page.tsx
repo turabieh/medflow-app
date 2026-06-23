@@ -116,54 +116,54 @@ export default function VisitPrintPage() {
 
       <div style={s.page}>
         {/* Professional bilingual header */}
-        <div style={{ borderBottom: "3px solid #1a1a1a", marginBottom: "20px", paddingBottom: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            {/* Left: Logo + clinic info in English */}
-            <div style={{ flex: 1 }}>
+        <div style={{ marginBottom: "0" }}>
+          {/* Top row: logo left | Arabic right */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: "12px", borderBottom: "1px solid #ddd" }}>
+
+            {/* LEFT: Logo + English */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
               {(clinic?.logo_url as string) && (
                 <img src={clinic.logo_url as string} alt="logo"
-                  style={{ maxHeight: "60px", maxWidth: "150px", objectFit: "contain", marginBottom: "8px", display: "block" }} />
+                  style={{ height: "52px", width: "52px", objectFit: "contain", flexShrink: 0, border: "1px solid #eee", borderRadius: "6px" }} />
               )}
-              <div style={{ fontSize: "20px", fontWeight: "800", color: "#111", letterSpacing: "-0.3px" }}>
-                {(clinic?.name as string) ?? "Clinic"}
-              </div>
-              {(clinic?.tagline as string) && (
-                <div style={{ fontSize: "11px", color: "#666", marginTop: "2px", fontStyle: "italic" }}>
-                  {clinic.tagline as string}
+              <div>
+                <div style={{ fontSize: "15px", fontWeight: "700", color: "#111", lineHeight: "1.2" }}>
+                  {(clinic?.name as string) ?? "Clinic"}
                 </div>
-              )}
-              <div style={{ marginTop: "8px", fontSize: "11px", color: "#555", lineHeight: "1.7" }}>
-                {(clinic?.address as string) && <div>📍 {clinic.address as string}</div>}
-                {(clinic?.phone as string) && <div>📞 {clinic.phone as string}{(clinic?.phone2 as string) ? ` / ${clinic.phone2 as string}` : ""}</div>}
-                {(clinic?.email as string) && <div>✉ {clinic.email as string}</div>}
-                {(clinic?.website as string) && <div>🌐 {clinic.website as string}</div>}
+                {(clinic?.tagline as string) && (
+                  <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>{clinic.tagline as string}</div>
+                )}
+                <div style={{ marginTop: "5px", fontSize: "10px", color: "#555", lineHeight: "1.6" }}>
+                  {(clinic?.address as string) && <div>{clinic.address as string}</div>}
+                  {(clinic?.phone as string) && <div>T: {clinic.phone as string}{(clinic?.phone2 as string) ? `  |  ${clinic.phone2 as string}` : ""}</div>}
+                  {(clinic?.email as string) && <div>{clinic.email as string}</div>}
+                  {(clinic?.website as string) && <div>{clinic.website as string}</div>}
+                </div>
               </div>
             </div>
 
-            {/* Center: Document type */}
-            <div style={{ textAlign: "center", padding: "0 24px" }}>
-              <div style={{ fontSize: "13px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "2px", color: "#333", background: "#f5f5f5", padding: "8px 16px", borderRadius: "4px", whiteSpace: "nowrap" }}>
-                {titles[type] ?? "Report"}
-              </div>
-              <div style={{ fontSize: "11px", color: "#888", marginTop: "6px" }}>{printDate}</div>
-            </div>
-
-            {/* Right: Arabic clinic info */}
-            <div style={{ flex: 1, textAlign: "right", direction: "rtl" }}>
-              <div style={{ fontSize: "20px", fontWeight: "800", color: "#111" }}>
-                {(clinic?.name_ar as string) ?? (clinic?.name as string) ?? ""}
+            {/* RIGHT: Arabic */}
+            <div style={{ textAlign: "right", direction: "rtl" }}>
+              <div style={{ fontSize: "15px", fontWeight: "700", color: "#111", lineHeight: "1.2" }}>
+                {(clinic?.name_ar as string) || ""}
               </div>
               {(clinic?.tagline_ar as string) && (
-                <div style={{ fontSize: "11px", color: "#666", marginTop: "2px", fontStyle: "italic" }}>
-                  {clinic.tagline_ar as string}
-                </div>
+                <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>{clinic.tagline_ar as string}</div>
               )}
-              <div style={{ marginTop: "8px", fontSize: "11px", color: "#555", lineHeight: "1.7" }}>
-                {(clinic?.address_ar as string) && <div>{clinic.address_ar as string} 📍</div>}
-                {(clinic?.phone as string) && <div>{clinic.phone as string}{(clinic?.phone2 as string) ? ` / ${clinic.phone2 as string}` : ""} 📞</div>}
-                {(clinic?.email as string) && <div>{clinic.email as string} ✉</div>}
+              <div style={{ marginTop: "5px", fontSize: "10px", color: "#555", lineHeight: "1.6" }}>
+                {(clinic?.address_ar as string) && <div>{clinic.address_ar as string}</div>}
+                {(clinic?.phone as string) && <div>{clinic.phone as string}{(clinic?.phone2 as string) ? `  |  ${clinic.phone2 as string}` : ""}</div>}
+                {(clinic?.email as string) && <div>{clinic.email as string}</div>}
               </div>
             </div>
+          </div>
+
+          {/* Document title bar */}
+          <div style={{ background: "#1a1a1a", color: "#fff", padding: "6px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "2.5px" }}>
+              {titles[type] ?? "Report"}
+            </div>
+            <div style={{ fontSize: "11px", color: "#ccc" }}>{printDate}</div>
           </div>
         </div>
 
