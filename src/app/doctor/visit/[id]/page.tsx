@@ -23,10 +23,8 @@ export default async function VisitPage({
       blood_pressure, heart_rate, temperature, oxygen_saturation,
       weight_kg, height_cm, resp_rate,
       subjective, objective, assessment, plan,
-      voice_notes, key_clinical_points, clinical_note,
-      appointment_id,
-      patient_id,
-      doctor_id
+      voice_notes, key_clinical_points, clinical_note, patient_summary,
+      appointment_id, patient_id, doctor_id
     `)
     .eq("id", id)
     .single();
@@ -111,6 +109,30 @@ export default async function VisitPage({
     .eq("clinic_id", profile?.clinic_id ?? "")
     .eq("is_active", true)
     .order("name");
+
+  // Past visits for this patient (excluding current)
+  const { data: pastVisitRows } = await supabase
+    .from("visits")
+    .select("id, visit_date, visit_type, status, clinical_note, voice_notes, key_clinical_points")
+    .eq("patient_id", visit.patient_id)
+    .neq("id", visit.id)
+    .order("visit_date", { ascending: false });
+
+  const pastVisitIds = (pastVisitRows ?? []).map(v => v.id);
+  const [{ data: pastPrescriptions }, { data: pastDiagnoses }] = await Promise.all([
+    pastVisitIds.length
+      ? supabase.from("prescriptions").select("visit_id, medication_name, dose, unit, instructions, duration").in("visit_id", pastVisitIds)
+      : { data: [] },
+    pastVisitIds.length
+      ? supabase.from("visit_diagnoses").select("visit_id, icd_code, description, is_primary").in("visit_id", pastVisitIds)
+      : { data: [] },
+  ]);
+
+  const pastVisits = (pastVisitRows ?? []).map(v => ({
+    ...v,
+    prescriptions: (pastPrescriptions ?? []).filter(p => p.visit_id === v.id),
+    diagnoses: (pastDiagnoses ?? []).filter(d => d.visit_id === v.id),
+  }));
 
   // Parse manual symptoms stored in the subjective field
   const manualSymptoms = (visit.subjective ?? "")
@@ -198,6 +220,8 @@ export default async function VisitPage({
           voiceNotes={visit.voice_notes ?? null}
           keyPoints={visit.key_clinical_points ?? null}
           clinicalNote={visit.clinical_note ?? null}
+          patientSummary={visit.patient_summary ?? null}
+          pastVisits={pastVisits}
         />
       </div>
     </div>

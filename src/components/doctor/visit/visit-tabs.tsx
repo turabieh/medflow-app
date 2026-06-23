@@ -6,6 +6,7 @@ import { PatientTab } from "./patient-tab";
 import { ClinicalTab } from "./clinical-tab";
 import { NotesTab } from "./notes-tab";
 import { AINotesTab } from "./ai-notes-tab";
+import { HistoryTab } from "./history-tab";
 import { markVisitDone } from "@/lib/actions/visits";
 
 interface Symptom { id: string; name: string; name_ar: string | null; category: string; }
@@ -51,6 +52,18 @@ interface VisitTabsProps {
   voiceNotes: string | null;
   keyPoints: string | null;
   clinicalNote: string | null;
+  patientSummary: string | null;
+  pastVisits: {
+    id: string;
+    visit_date: string | null;
+    visit_type: string | null;
+    status: string | null;
+    clinical_note: string | null;
+    voice_notes: string | null;
+    key_clinical_points: string | null;
+    prescriptions: { medication_name: string; dose: string | null; unit: string | null; instructions: string | null; duration: string | null }[];
+    diagnoses: { icd_code: string | null; description: string; is_primary: boolean }[];
+  }[];
 }
 
 const TABS = [
@@ -58,6 +71,7 @@ const TABS = [
   { id: "clinical",  label: "Clinical" },
   { id: "notes",     label: "Notes" },
   { id: "ai",        label: "AI Notes" },
+  { id: "history",   label: "History" },
 ];
 
 export function VisitTabs(props: VisitTabsProps) {
@@ -139,6 +153,7 @@ export function VisitTabs(props: VisitTabsProps) {
           <AINotesTab
             visitId={props.visitId}
             existingNote={props.clinicalNote}
+            existingAbstract={props.patientSummary}
             patient={props.patient}
             vitals={props.vitals}
             symptoms={props.checkedSymptomIds
@@ -149,6 +164,12 @@ export function VisitTabs(props: VisitTabsProps) {
             labs={props.labs}
             voiceNotes={props.voiceNotes}
             keyPoints={props.keyPoints}
+          />
+        )}
+        {activeTab === "history" && (
+          <HistoryTab
+            pastVisits={props.pastVisits}
+            patientName={props.patient.full_name}
           />
         )}
       </div>

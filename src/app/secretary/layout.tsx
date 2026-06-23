@@ -23,7 +23,7 @@ export default async function SecretaryLayout({
   if (!profile) redirect("/login");
 
   // Only secretary, nurse, and admin can access the secretary workspace.
-  if (!["secretary", "nurse", "admin"].includes(profile.role)) {
+  if (!["secretary", "nurse", "admin", "doctor"].includes(profile.role)) {
     redirect("/dashboard");
   }
 

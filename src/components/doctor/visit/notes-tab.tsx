@@ -87,6 +87,31 @@ export function NotesTab({
   const [diagDesc, setDiagDesc] = useState("");
   const [diagPrimary, setDiagPrimary] = useState(diagnoses.length === 0);
   const [addingDiag, setAddingDiag] = useState(false);
+  const [icdSuggestions, setIcdSuggestions] = useState<{code:string;description:string}[]>([]);
+  const [loadingIcd, setLoadingIcd] = useState(false);
+
+  async function handleSuggestICD() {
+    setLoadingIcd(true);
+    setIcdSuggestions([]);
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "icd_suggest", context: buildICDContext() }),
+      });
+      const data = await res.json();
+      setIcdSuggestions(data.suggestions ?? []);
+    } catch { /* silent */ }
+    setLoadingIcd(false);
+  }
+
+  function buildICDContext() {
+    return [
+      voiceNotes ? `Doctor notes: ${voiceNotes}` : "",
+      keyPoints ? `Key points: ${keyPoints}` : "",
+      diagnoses.length ? `Current diagnoses: ${diagnoses.map(d=>d.description).join(", ")}` : "",
+    ].filter(Boolean).join("\n");
+  }
 
   async function handleAddDiagnosis(e: React.FormEvent) {
     e.preventDefault();
@@ -197,7 +222,7 @@ export function NotesTab({
               {diagnoses.map((d) => (
                 <li key={d.id} className="flex items-center justify-between py-2">
                   <p className="text-sm text-neutral-900">
-                    {d.icd_code && <span className="mr-2 font-mono text-xs text-neutral-400">{d.icd_code}</span>}
+                    {d.icd_code && <span className="mr-2 font-mono text-xs text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">{d.icd_code}</span>}
                     {d.description}
                     {d.is_primary && <span className="ml-2 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">Primary</span>}
                   </p>
@@ -207,7 +232,36 @@ export function NotesTab({
               ))}
             </ul>
           )}
+
+          {/* AI ICD Suggestion */}
+          <div className="mb-3 rounded-md bg-blue-50 border border-blue-200 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-blue-800">AI Diagnosis Suggestions</p>
+              <button onClick={handleSuggestICD} disabled={loadingIcd}
+                className="flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                {loadingIcd ? <><span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-white border-t-transparent"/>Suggesting...</> : "Suggest ICD codes with AI"}
+              </button>
+            </div>
+            {icdSuggestions.length > 0 && (
+              <div className="space-y-1">
+                {icdSuggestions.map((s) => (
+                  <button key={s.code} type="button"
+                    onClick={() => { setDiagCode(s.code); setDiagDesc(s.description); }}
+                    className="w-full flex items-center gap-2 rounded-md bg-white border border-blue-200 px-2.5 py-1.5 text-left hover:bg-blue-50 transition-colors">
+                    <span className="font-mono text-xs font-bold text-blue-700 shrink-0">{s.code}</span>
+                    <span className="text-xs text-neutral-700">{s.description}</span>
+                    <span className="ml-auto text-[10px] text-blue-500 shrink-0">Select →</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {icdSuggestions.length === 0 && !loadingIcd && (
+              <p className="text-xs text-blue-600">Click to get AI-suggested ICD-10 codes based on symptoms and notes.</p>
+            )}
+          </div>
+
           <form onSubmit={handleAddDiagnosis} className="space-y-2 rounded-md border border-dashed border-neutral-300 p-3">
+            <p className="text-xs font-medium text-neutral-600">Add diagnosis (from suggestion or manually):</p>
             <div className="grid grid-cols-4 gap-2">
               <input value={diagCode} onChange={e=>setDiagCode(e.target.value)} placeholder="ICD code (optional)"
                 className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-mono"/>

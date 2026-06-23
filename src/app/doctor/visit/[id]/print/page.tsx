@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { PrintTrigger } from "@/components/secretary/print-trigger";
 
 export default async function VisitPrintPage({
   params,
@@ -15,7 +14,7 @@ export default async function VisitPrintPage({
 
   const { data: visit } = await supabase
     .from("visits")
-    .select("id, visit_date, visit_type, voice_notes, key_clinical_points, clinical_note, heart_rate, blood_pressure, temperature, oxygen_saturation, resp_rate, weight_kg, height_cm, appointment_id, patient_id, doctor_id")
+    .select("id, visit_date, visit_type, voice_notes, key_clinical_points, clinical_note, patient_summary, heart_rate, blood_pressure, temperature, oxygen_saturation, resp_rate, weight_kg, height_cm, appointment_id, patient_id, doctor_id")
     .eq("id", id)
     .single();
 
@@ -24,220 +23,318 @@ export default async function VisitPrintPage({
   const [{ data: patient }, { data: doctor }, { data: clinic }, { data: prescriptions }, { data: diagnoses }, { data: labs }] = await Promise.all([
     supabase.from("patients").select("full_name, full_name_ar, dob, gender, blood_type, allergies, phone").eq("id", visit.patient_id).single(),
     supabase.from("users").select("full_name, specialty").eq("id", visit.doctor_id).single(),
-    supabase.from("clinics").select("name, logo_url").limit(1).single(),
+    supabase.from("clinics").select("name, name_ar, logo_url, phone, address").limit(1).single(),
     supabase.from("prescriptions").select("medication_name, dose, unit, instructions, duration").eq("visit_id", id),
     supabase.from("visit_diagnoses").select("icd_code, description, is_primary").eq("visit_id", id),
     supabase.from("visit_labs").select("type, name, lab_date, findings").eq("visit_id", id),
   ]);
 
-  const printDate = new Date().toLocaleDateString("en", { year: "numeric", month: "long", day: "numeric" });
-  const age = patient?.dob ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 3600 * 1000)) : null;
+  const age = patient?.dob
+    ? Math.floor((Date.now() - new Date(patient.dob).getTime()) / (365.25 * 24 * 3600 * 1000))
+    : null;
+
+  const printDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 
   const titles: Record<string, string> = {
     note: "Clinical Note",
     prescription: "Prescription",
-    summary: "Patient Visit Summary",
+    summary: "Patient Summary",
   };
 
+  // Parse SOAP sections
+  function parseSoap(text: string) {
+    const sections = [
+      { key: "SUBJECTIVE", label: "S — Subjective" },
+      { key: "OBJECTIVE",  label: "O — Objective" },
+      { key: "ASSESSMENT", label: "A — Assessment" },
+      { key: "PLAN",       label: "P — Plan" },
+    ];
+    const result: { label: string; text: string }[] = [];
+    sections.forEach((sec, idx) => {
+      const start = text.indexOf(sec.key + ":");
+      if (start === -1) return;
+      const nextStarts = sections.slice(idx + 1).map(s => text.indexOf(s.key + ":")).filter(p => p !== -1);
+      const end = nextStarts.length ? Math.min(...nextStarts) : text.length;
+      const content = text.slice(start + sec.key.length + 1, end).trim();
+      if (content) result.push({ label: sec.label, text: content });
+    });
+    return result;
+  }
+
+  const soapSections = visit.clinical_note ? parseSoap(visit.clinical_note) : [];
+
   return (
-    <html>
+    <html lang="en">
       <head>
-        <title>{`${titles[type] ?? "Report"} — ${patient?.full_name}`}</title>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{`${titles[type] ?? "Report"} — ${patient?.full_name ?? "Patient"}`}</title>
         <style>{`
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 40px; }
-          .header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 16px; margin-bottom: 24px; }
-          .clinic-name { font-size: 20px; font-weight: bold; letter-spacing: 0.5px; }
-          .doc-title { font-size: 13px; margin-top: 8px; text-transform: uppercase; letter-spacing: 2px; color: #555; }
-          .print-date { font-size: 11px; color: #888; margin-top: 6px; }
-          .section { margin-bottom: 18px; }
-          .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; font-weight: bold; }
-          .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 10px; }
-          .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 10px; }
-          .field .label { font-size: 10px; color: #888; margin-bottom: 2px; }
-          .field .value { font-size: 12px; font-weight: 500; }
-          .allergy { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; display: inline-block; margin: 2px 2px 2px 0; font-size: 11px; }
-          .soap-section { margin-bottom: 14px; }
-          .soap-label { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #333; margin-bottom: 4px; border-left: 3px solid #111; padding-left: 8px; }
-          .soap-text { font-size: 12px; line-height: 1.7; white-space: pre-wrap; padding-left: 12px; color: #222; }
-          .rx-item { padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+          body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; }
+          .page { max-width: 750px; margin: 0 auto; padding: 40px; }
+
+          /* Header */
+          .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1a1a1a; padding-bottom: 16px; margin-bottom: 24px; }
+          .header-left { flex: 1; }
+          .clinic-logo { max-height: 55px; max-width: 140px; object-fit: contain; margin-bottom: 6px; display: block; }
+          .clinic-name { font-size: 18px; font-weight: 700; color: #111; }
+          .clinic-sub { font-size: 11px; color: #666; margin-top: 3px; line-height: 1.5; }
+          .header-right { text-align: right; }
+          .doc-type { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #333; }
+          .doc-date { font-size: 11px; color: #888; margin-top: 6px; }
+
+          /* Patient strip */
+          .patient-strip { background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+          .pf-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: #999; margin-bottom: 2px; }
+          .pf-value { font-size: 12px; font-weight: 600; color: #111; }
+          .allergies-row { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e8e8e8; display: flex; align-items: center; gap: 8px; grid-column: 1/-1; }
+          .allergy-badge { background: #fee2e2; color: #991b1b; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+
+          /* Vitals */
+          .vitals-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+          .vital-card { border: 1px solid #e8e8e8; border-radius: 5px; padding: 8px 10px; }
+          .vital-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px; color: #999; margin-bottom: 3px; }
+          .vital-value { font-size: 14px; font-weight: 700; color: #111; }
+          .vital-unit { font-size: 9px; color: #aaa; margin-left: 2px; }
+
+          /* Section */
+          .section { margin-bottom: 20px; }
+          .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #777; padding-bottom: 5px; border-bottom: 1px solid #e0e0e0; margin-bottom: 10px; }
+
+          /* SOAP */
+          .soap-block { margin-bottom: 14px; }
+          .soap-tag { display: inline-block; font-size: 10px; font-weight: 700; background: #1a1a1a; color: #fff; padding: 2px 8px; border-radius: 3px; margin-bottom: 6px; letter-spacing: 0.5px; }
+          .soap-body { font-size: 12px; line-height: 1.75; white-space: pre-wrap; color: #222; padding-left: 4px; }
+
+          /* Medications */
+          .rx-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          .rx-table th { background: #f0f0f0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 10px; text-align: left; color: #555; font-weight: 600; }
+          .rx-table td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; }
           .rx-name { font-weight: 600; }
-          .dx-item { padding: 4px 0; border-bottom: 1px solid #f5f5f5; font-size: 12px; }
-          .primary-badge { background: #dbeafe; color: #1e40af; padding: 1px 6px; border-radius: 8px; font-size: 10px; margin-left: 6px; }
-          .footer { margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
-          .footer-info { font-size: 11px; color: #666; line-height: 1.6; }
+
+          /* Diagnosis */
+          .dx-list { list-style: none; }
+          .dx-item { padding: 6px 0; border-bottom: 1px solid #f5f5f5; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+          .dx-code { font-family: monospace; font-size: 11px; background: #f0f0f0; padding: 1px 6px; border-radius: 3px; color: #333; white-space: nowrap; }
+          .dx-primary { font-size: 9px; font-weight: 700; background: #dbeafe; color: #1e40af; padding: 1px 6px; border-radius: 8px; }
+
+          /* Summary (bilingual) */
+          .summary-box { border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+          .summary-lang { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 1px; margin-bottom: 8px; }
+          .summary-text { font-size: 13px; line-height: 1.8; color: #222; }
+          .summary-ar { direction: rtl; text-align: right; font-size: 14px; }
+
+          /* Footer */
+          .footer { margin-top: 50px; padding-top: 16px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: flex-end; }
+          .footer-clinic { font-size: 11px; color: #666; line-height: 1.6; }
           .sig-block { text-align: center; }
-          .sig-line { width: 200px; border-top: 1px solid #111; padding-top: 4px; font-size: 10px; color: #666; margin-top: 40px; }
-          @media print { body { padding: 20px; } .no-print { display: none !important; } }
+          .sig-line-draw { width: 200px; border-top: 1px solid #333; margin: 40px auto 4px; }
+          .sig-name { font-size: 11px; font-weight: 700; color: #333; }
+          .sig-specialty { font-size: 10px; color: #888; }
+
+          /* Print button */
+          .print-btn { position: fixed; top: 16px; right: 16px; background: #1a1a1a; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; z-index: 100; }
+          .print-btn:hover { background: #333; }
+
+          @media print {
+            .print-btn { display: none !important; }
+            body { background: #fff; }
+            .page { padding: 20px; max-width: 100%; }
+          }
         `}</style>
       </head>
       <body>
-        <PrintTrigger />
+        <button className="print-btn" onClick={() => window.print()}>Print / Save PDF</button>
 
-        <div className="header">
-          {clinic?.logo_url && <img src={clinic.logo_url} alt="logo" style={{height:"50px",objectFit:"contain",marginBottom:"8px"}} />}
-          <div className="clinic-name">{clinic?.name ?? "Clinic"}</div>
-          <div className="doc-title">{titles[type] ?? "Report"}</div>
-          <div style={{fontSize:"11px",color:"#888",marginTop:"4px"}}>{printDate}</div>
-        </div>
-
-        <div className="section">
-          <div className="section-title">Patient</div>
-          <div className="grid-4">
-            <div className="field"><div className="label">Full name</div><div className="value">{patient?.full_name}</div></div>
-            {age !== null && <div className="field"><div className="label">Age</div><div className="value">{age} years</div></div>}
-            <div className="field"><div className="label">Gender</div><div className="value" style={{textTransform:"capitalize"}}>{patient?.gender ?? "—"}</div></div>
-            <div className="field"><div className="label">Blood type</div><div className="value" style={{color:"#dc2626"}}>{patient?.blood_type ?? "—"}</div></div>
-          </div>
-          {patient?.allergies && (
-            <div style={{marginTop:"6px"}}>
-              <div style={{fontSize:"10px",color:"#888",marginBottom:"4px"}}>Allergies</div>
-              {patient.allergies.split(",").map((a: string) => <span key={a} className="allergy">{a.trim()}</span>)}
+        <div className="page">
+          {/* Header */}
+          <div className="header">
+            <div className="header-left">
+              {clinic?.logo_url && (
+                <img src={clinic.logo_url} alt="Clinic logo" className="clinic-logo" />
+              )}
+              <div className="clinic-name">{clinic?.name ?? "Clinic"}</div>
+              {clinic?.address && <div className="clinic-sub">{clinic.address}</div>}
+              {clinic?.phone && <div className="clinic-sub">Tel: {clinic.phone}</div>}
             </div>
-          )}
-        </div>
-
-        <div className="section">
-          <div className="section-title">Visit</div>
-          <div className="grid-4">
-            <div className="field"><div className="label">Date</div><div className="value">{visit.visit_date ?? printDate}</div></div>
-            <div className="field"><div className="label">Type</div><div className="value" style={{textTransform:"capitalize"}}>{visit.visit_type}</div></div>
-            <div className="field"><div className="label">Physician</div><div className="value">{doctor?.full_name ?? "—"}</div></div>
-            {doctor?.specialty && <div className="field"><div className="label">Specialty</div><div className="value">{doctor.specialty}</div></div>}
-          </div>
-        </div>
-
-        {(visit.heart_rate || visit.blood_pressure || visit.temperature) && (
-          <div className="section">
-            <div className="section-title">Vitals</div>
-            <div className="row">
-              {visit.heart_rate && <div className="field"><div className="label">Heart rate</div><div className="value">{visit.heart_rate} bpm</div></div>}
-              {visit.blood_pressure && <div className="field"><div className="label">Blood pressure</div><div className="value">{visit.blood_pressure}</div></div>}
-              {visit.temperature && <div className="field"><div className="label">Temperature</div><div className="value">{visit.temperature}°C</div></div>}
-              {visit.oxygen_saturation && <div className="field"><div className="label">O₂ sat</div><div className="value">{visit.oxygen_saturation}%</div></div>}
+            <div className="header-right">
+              <div className="doc-type">{titles[type] ?? "Report"}</div>
+              <div className="doc-date">{printDate}</div>
             </div>
           </div>
-        )}
 
-        {diagnoses && diagnoses.length > 0 && (
-          <div className="section">
-            <div className="section-title">Diagnosis</div>
-            {diagnoses.map((d, i) => (
-              <div key={i} className="dx-item">
-                {d.icd_code && <span style={{fontFamily:"monospace",color:"#888",marginRight:"8px",fontSize:"11px"}}>{d.icd_code}</span>}
-                {d.description}
-                {d.is_primary && <span className="primary-badge">Primary</span>}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {type === "note" && (visit.clinical_note || visit.voice_notes || visit.key_clinical_points) && (
-          <div className="section">
-            <div className="section-title">Clinical Note</div>
-            {visit.clinical_note ? (() => {
-              // Parse SOAP sections from plain text
-              const noteText = visit.clinical_note;
-              const sections = [
-                { key: "SUBJECTIVE", label: "S — Subjective" },
-                { key: "OBJECTIVE",  label: "O — Objective" },
-                { key: "ASSESSMENT", label: "A — Assessment" },
-                { key: "PLAN",       label: "P — Plan" },
-              ];
-              const parsed: { label: string; text: string }[] = [];
-              sections.forEach((sec, idx) => {
-                const start = noteText.indexOf(sec.key + ":");
-                if (start === -1) return;
-                const nextStart = sections.slice(idx + 1).reduce((min, s) => {
-                  const pos = noteText.indexOf(s.key + ":");
-                  return pos !== -1 && pos < min ? pos : min;
-                }, noteText.length);
-                const text = noteText.slice(start + sec.key.length + 1, nextStart).trim();
-                parsed.push({ label: sec.label, text });
-              });
-
-              if (parsed.length === 0) {
-                return <div style={{whiteSpace:"pre-wrap",lineHeight:"1.7",fontSize:"12px"}}>{noteText}</div>;
-              }
-
-              return (
-                <div>
-                  {parsed.map(s => (
-                    <div key={s.label} className="soap-section">
-                      <div className="soap-label">{s.label}</div>
-                      <div className="soap-text">{s.text}</div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })() : (
+          {/* Patient strip */}
+          <div className="patient-strip">
+            <div>
+              <div className="pf-label">Patient</div>
+              <div className="pf-value">{patient?.full_name}</div>
+            </div>
+            {age !== null && (
               <div>
-                {visit.voice_notes && (
-                  <div className="soap-section">
-                    <div className="soap-label">Voice Notes</div>
-                    <div className="soap-text">{visit.voice_notes}</div>
-                  </div>
-                )}
-                {visit.key_clinical_points && (
-                  <div className="soap-section">
-                    <div className="soap-label">Key Clinical Points</div>
-                    <div className="soap-text">{visit.key_clinical_points}</div>
-                  </div>
-                )}
+                <div className="pf-label">Age</div>
+                <div className="pf-value">{age} yrs</div>
+              </div>
+            )}
+            <div>
+              <div className="pf-label">Gender</div>
+              <div className="pf-value" style={{textTransform:"capitalize"}}>{patient?.gender ?? "—"}</div>
+            </div>
+            <div>
+              <div className="pf-label">Blood type</div>
+              <div className="pf-value" style={{color:"#dc2626"}}>{patient?.blood_type ?? "—"}</div>
+            </div>
+            {patient?.allergies && (
+              <div className="allergies-row">
+                <span className="pf-label" style={{marginBottom:0}}>Allergies:</span>
+                {patient.allergies.split(",").map((a: string) => (
+                  <span key={a} className="allergy-badge">{a.trim()}</span>
+                ))}
               </div>
             )}
           </div>
-        )}
 
-        {(type === "prescription" || type === "note") && prescriptions && prescriptions.length > 0 && (
-          <div className="section">
-            <div className="section-title">Medications</div>
-            {prescriptions.map((rx, i) => (
-              <div key={i} className="rx-item">
-                <span className="rx-name">{rx.medication_name}</span>
-                {(rx.dose || rx.unit) && <span style={{marginLeft:"8px",color:"#555"}}>{rx.dose} {rx.unit}</span>}
-                {rx.instructions && <span style={{marginLeft:"8px",color:"#888"}}>· {rx.instructions}</span>}
-                {rx.duration && <span style={{marginLeft:"8px",color:"#888"}}>· {rx.duration}</span>}
+          {/* Vitals */}
+          {(visit.heart_rate || visit.blood_pressure || visit.temperature || visit.oxygen_saturation) && (
+            <div className="section">
+              <div className="section-title">Vitals</div>
+              <div className="vitals-grid">
+                {visit.heart_rate && <div className="vital-card"><div className="vital-label">Heart rate</div><div className="vital-value">{visit.heart_rate}<span className="vital-unit">bpm</span></div></div>}
+                {visit.blood_pressure && <div className="vital-card"><div className="vital-label">Blood pressure</div><div className="vital-value">{visit.blood_pressure}</div></div>}
+                {visit.temperature && <div className="vital-card"><div className="vital-label">Temperature</div><div className="vital-value">{visit.temperature}<span className="vital-unit">°C</span></div></div>}
+                {visit.oxygen_saturation && <div className="vital-card"><div className="vital-label">O₂ saturation</div><div className="vital-value">{visit.oxygen_saturation}<span className="vital-unit">%</span></div></div>}
+                {visit.resp_rate && <div className="vital-card"><div className="vital-label">Resp. rate</div><div className="vital-value">{visit.resp_rate}<span className="vital-unit">/min</span></div></div>}
               </div>
-            ))}
-          </div>
-        )}
-
-        {labs && labs.length > 0 && type === "note" && (
-          <div className="section">
-            <div className="section-title">Labs &amp; Imaging</div>
-            {labs.map((lab, i) => (
-              <div key={i} className="rx-item">
-                <span className="rx-name">{lab.name}</span>
-                <span style={{marginLeft:"8px",color:"#888",textTransform:"capitalize",fontSize:"11px"}}>({lab.type})</span>
-                {lab.lab_date && <span style={{marginLeft:"8px",color:"#888"}}>{lab.lab_date}</span>}
-                {lab.findings && <div style={{color:"#555",marginTop:"2px",fontSize:"11px"}}>{lab.findings}</div>}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {type === "summary" && (
-          <div className="section">
-            <div className="section-title">Patient Summary</div>
-            <div className="note-box" style={{minHeight:"100px"}}>
-              {visit.clinical_note ?? "Summary to be completed by physician."}
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="footer">
-          <div className="footer-info">
-            <div style={{fontWeight:"600",marginBottom:"2px"}}>{clinic?.name ?? "Clinic"}</div>
-            <div style={{color:"#888"}}>Date: {printDate}</div>
-          </div>
-          <div className="sig-block">
-            <div className="sig-line">
-              {doctor?.full_name ?? "Physician"}
-              {doctor?.specialty && <div style={{color:"#888"}}>{doctor.specialty}</div>}
+          {/* Diagnosis */}
+          {diagnoses && diagnoses.length > 0 && (
+            <div className="section">
+              <div className="section-title">Diagnosis</div>
+              <ul className="dx-list">
+                {diagnoses.map((d, i) => (
+                  <li key={i} className="dx-item">
+                    {d.icd_code && <span className="dx-code">{d.icd_code}</span>}
+                    <span>{d.description}</span>
+                    {d.is_primary && <span className="dx-primary">Primary</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Clinical Note (SOAP) */}
+          {type === "note" && (visit.clinical_note || visit.voice_notes) && (
+            <div className="section">
+              <div className="section-title">Clinical Note</div>
+              {soapSections.length > 0 ? (
+                soapSections.map((sec) => (
+                  <div key={sec.label} className="soap-block">
+                    <div className="soap-tag">{sec.label}</div>
+                    <div className="soap-body">{sec.text}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="soap-body">{visit.clinical_note || visit.voice_notes}</div>
+              )}
+              {visit.key_clinical_points && (
+                <div className="soap-block" style={{marginTop:"12px"}}>
+                  <div className="soap-tag">Key Points</div>
+                  <div className="soap-body">{visit.key_clinical_points}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Prescription */}
+          {(type === "note" || type === "prescription") && prescriptions && prescriptions.length > 0 && (
+            <div className="section">
+              <div className="section-title">Medications</div>
+              <table className="rx-table">
+                <thead>
+                  <tr>
+                    <th>Medication</th>
+                    <th>Dose</th>
+                    <th>Instructions</th>
+                    <th>Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prescriptions.map((rx, i) => (
+                    <tr key={i}>
+                      <td className="rx-name">{rx.medication_name}</td>
+                      <td>{[rx.dose, rx.unit].filter(Boolean).join(" ") || "—"}</td>
+                      <td>{rx.instructions || "—"}</td>
+                      <td>{rx.duration || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Labs */}
+          {type === "note" && labs && labs.length > 0 && (
+            <div className="section">
+              <div className="section-title">Labs & Imaging</div>
+              <table className="rx-table">
+                <thead><tr><th>Type</th><th>Name</th><th>Date</th><th>Findings</th></tr></thead>
+                <tbody>
+                  {labs.map((lab, i) => (
+                    <tr key={i}>
+                      <td style={{textTransform:"capitalize"}}>{lab.type}</td>
+                      <td className="rx-name">{lab.name}</td>
+                      <td>{lab.lab_date || "—"}</td>
+                      <td>{lab.findings || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Patient-Friendly Summary */}
+          {type === "summary" && visit.patient_summary && (() => {
+            const text = visit.patient_summary;
+            const arabicStart = text.indexOf("ملخص بالعربية:");
+            const englishText = arabicStart > -1 ? text.slice(0, arabicStart) : text;
+            const arabicText = arabicStart > -1 ? text.slice(arabicStart + "ملخص بالعربية:".length).trim() : "";
+            const cleanEn = englishText.replace(/English Summary:/i, "").trim();
+            return (
+              <>
+                {cleanEn && (
+                  <div className="summary-box">
+                    <div className="summary-lang">English Summary</div>
+                    <div className="summary-text">{cleanEn}</div>
+                  </div>
+                )}
+                {arabicText && (
+                  <div className="summary-box">
+                    <div className="summary-lang" style={{textAlign:"right"}}>ملخص بالعربية</div>
+                    <div className="summary-text summary-ar">{arabicText}</div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          {/* Footer */}
+          <div className="footer">
+            <div className="footer-clinic">
+              <div style={{fontWeight:600}}>{clinic?.name}</div>
+              {clinic?.address && <div>{clinic.address}</div>}
+              {clinic?.phone && <div>Tel: {clinic.phone}</div>}
+              <div style={{marginTop:"4px",color:"#aaa"}}>Date: {printDate}</div>
+            </div>
+            <div className="sig-block">
+              <div className="sig-line-draw"></div>
+              <div className="sig-name">{doctor?.full_name}</div>
+              {doctor?.specialty && <div className="sig-specialty">{doctor.specialty}</div>}
             </div>
           </div>
         </div>
+
       </body>
     </html>
   );

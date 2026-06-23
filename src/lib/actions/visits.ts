@@ -224,13 +224,14 @@ export async function saveVisitNotes(visitId: string, voiceNotes: string, keyPoi
   return { success: true };
 }
 
-export async function saveAINote(visitId: string, clinicalNote: string) {
+export async function saveAINote(visitId: string, clinicalNote: string, patientSummary?: string) {
   const auth = await getClinicId();
   if (!auth.ok) return { success: false, error: auth.error };
 
   const { error } = await auth.supabase.from("visits").update({
-    clinical_note: clinicalNote.trim() || null,
-    updated_at:    new Date().toISOString(),
+    clinical_note:    clinicalNote.trim() || null,
+    patient_summary:  patientSummary?.trim() || null,
+    updated_at:       new Date().toISOString(),
   }).eq("id", visitId);
 
   if (error) return { success: false, error: error.message };

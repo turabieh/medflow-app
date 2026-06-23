@@ -12,6 +12,7 @@ interface Lab { type: string; name: string; lab_date: string | null; findings: s
 export function AINotesTab({
   visitId,
   existingNote,
+  existingAbstract,
   patient,
   vitals,
   symptoms,
@@ -23,6 +24,7 @@ export function AINotesTab({
 }: {
   visitId: string;
   existingNote: string | null;
+  existingAbstract: string | null;
   patient: {
     full_name: string;
     dob: string | null;
@@ -192,7 +194,16 @@ export function AINotesTab({
 
   async function handleSaveNote() {
     setSaving(true);
-    await saveAINote(visitId, clinicalNote);
+    await saveAINote(visitId, clinicalNote, abstract || undefined);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    router.refresh();
+  }
+
+  async function handleSaveAbstract() {
+    setSaving(true);
+    await saveAINote(visitId, clinicalNote || "", abstract);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -339,17 +350,29 @@ export function AINotesTab({
             )}
           </button>
 
-          {abstract && (
+          {(abstract || existingAbstract) && (
             <>
-              <div className="rounded-md border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm leading-relaxed whitespace-pre-wrap">
-                {abstract}
+              <textarea
+                value={abstract || existingAbstract || ""}
+                onChange={(e) => setAbstract(e.target.value)}
+                rows={8}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm leading-relaxed"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveAbstract}
+                  disabled={saving}
+                  className="rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : saved ? "Saved ✓" : "Save Summary"}
+                </button>
+                <button
+                  onClick={() => openPrint("summary")}
+                  className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                >
+                  Print Patient Summary
+                </button>
               </div>
-              <button
-                onClick={() => openPrint("summary")}
-                className="rounded-md border border-neutral-300 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
-              >
-                Print Patient Summary
-              </button>
             </>
           )}
         </div>

@@ -68,6 +68,28 @@ VISIT INFORMATION:
 ${context}
 
 Write the bilingual summary:`;
+    } else if (type === "icd_suggest") {
+      prompt = `You are a medical coding assistant specializing in ${clinicSpecialty}.
+
+Based on the clinical information below, suggest the top 5 most likely ICD-10-CM diagnosis codes.
+
+RESPOND WITH ONLY A JSON ARRAY, no other text:
+[
+  {"code": "G43.909", "description": "Migraine, unspecified, not intractable, without status migrainosus"},
+  {"code": "R51.9", "description": "Headache, unspecified"}
+]
+
+Rules:
+- Return exactly 5 items (fewer if truly not enough data)
+- Most likely diagnosis first
+- Use full ICD-10-CM codes (e.g. G43.909 not just G43)
+- Descriptions must be the official ICD-10 description
+- JSON only, no explanation
+
+CLINICAL INFORMATION:
+${context}
+
+JSON response:`;
     } else {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
@@ -79,6 +101,17 @@ Write the bilingual summary:`;
     });
 
     const text = message.content[0].type === "text" ? message.content[0].text : "";
+
+    // For ICD suggestions, parse and return as JSON array
+    if (type === "icd_suggest") {
+      try {
+        const clean = text.replace(/```json|```/g, "").trim();
+        const suggestions = JSON.parse(clean);
+        return NextResponse.json({ suggestions });
+      } catch {
+        return NextResponse.json({ suggestions: [] });
+      }
+    }
 
     return NextResponse.json({ text });
   } catch (error) {
