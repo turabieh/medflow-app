@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveVisitSymptoms, addLab, deleteLab } from "@/lib/actions/visits";
+import { saveVisitSymptoms, addLab, deleteLab, addManualSymptom, removeManualSymptom } from "@/lib/actions/visits";
 
 interface Symptom { id: string; name: string; name_ar: string | null; category: string; }
 interface Lab { id: string; type: string; name: string; lab_date: string | null; findings: string | null; link_url: string | null; }
@@ -12,6 +12,7 @@ export function ClinicalTab({
   symptomsCatalog,
   preCheckedSymptomIds,
   checkedSymptomIds,
+  manualSymptoms,
   labs,
 }: {
   visitId: string;
@@ -19,6 +20,7 @@ export function ClinicalTab({
   symptomsCatalog: Symptom[];
   preCheckedSymptomIds: string[];
   checkedSymptomIds: string[];
+  manualSymptoms: string[];
   labs: Lab[];
   prescriptions: unknown[];
   medsCatalog: unknown[];
@@ -32,6 +34,9 @@ export function ClinicalTab({
   const [checked, setChecked] = useState<Set<string>>(initialChecked);
   const [savingSymptoms, setSavingSymptoms] = useState(false);
   const [savedSymptoms, setSavedSymptoms] = useState(false);
+  const [manualList, setManualList] = useState<string[]>(manualSymptoms);
+  const [manualInput, setManualInput] = useState("");
+  const [addingManual, setAddingManual] = useState(false);
 
   const categories = Array.from(new Set(symptomsCatalog.map((s) => s.category))).sort();
 
@@ -42,6 +47,21 @@ export function ClinicalTab({
     setSavedSymptoms(true);
     setTimeout(() => setSavedSymptoms(false), 2000);
     router.refresh();
+  }
+
+  async function handleAddManual(e: React.FormEvent) {
+    e.preventDefault();
+    if (!manualInput.trim()) return;
+    setAddingManual(true);
+    await addManualSymptom(visitId, manualInput.trim());
+    setManualList(prev => [...prev, manualInput.trim()]);
+    setManualInput("");
+    setAddingManual(false);
+  }
+
+  async function handleRemoveManual(name: string) {
+    await removeManualSymptom(visitId, name);
+    setManualList(prev => prev.filter(s => s !== name));
   }
 
   const [labType, setLabType] = useState<"lab" | "imaging" | "other">("lab");
@@ -104,6 +124,37 @@ export function ClinicalTab({
               </div>
             </div>
           ))}
+
+          {/* Manual symptoms */}
+          <div className="border-t border-neutral-100 pt-3">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              Other / Manual Symptoms
+            </p>
+            {manualList.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {manualList.map((name) => (
+                  <span key={name} className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                    {name}
+                    <button type="button" onClick={() => handleRemoveManual(name)}
+                      className="ml-1 text-amber-600 hover:text-amber-900">&times;</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <form onSubmit={handleAddManual} className="flex gap-2">
+              <input
+                type="text"
+                value={manualInput}
+                onChange={e => setManualInput(e.target.value)}
+                placeholder="Type a symptom not in the list..."
+                className="flex-1 rounded-md border border-neutral-300 px-2 py-1.5 text-sm"
+              />
+              <button type="submit" disabled={addingManual || !manualInput.trim()}
+                className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
+                Add
+              </button>
+            </form>
+          </div>
         </div>
       </section>
 

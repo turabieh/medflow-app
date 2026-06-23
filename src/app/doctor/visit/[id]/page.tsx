@@ -112,6 +112,13 @@ export default async function VisitPage({
     .eq("is_active", true)
     .order("name");
 
+  // Parse manual symptoms stored in the subjective field
+  const manualSymptoms = (visit.subjective ?? "")
+    .split("\n")
+    .filter((line: string) => line.startsWith("[MANUAL_SYMPTOM:"))
+    .map((line: string) => line.replace("[MANUAL_SYMPTOM:", "").replace("]", "").trim())
+    .filter(Boolean);
+
   const insuranceCompany = patient?.insurance_companies
     ? (Array.isArray(patient.insurance_companies) ? patient.insurance_companies[0] : patient.insurance_companies) as { name?: string } | null
     : null;
@@ -182,6 +189,7 @@ export default async function VisitPage({
           symptomsCatalog={symptomsCatalog ?? []}
           preCheckedSymptomIds={Array.from(preCheckedSymptomIds)}
           checkedSymptomIds={Array.from(checkedSymptomIds)}
+          manualSymptoms={manualSymptoms}
           labs={labs ?? []}
           prescriptions={prescriptions ?? []}
           medsCatalog={medsCatalog ?? []}

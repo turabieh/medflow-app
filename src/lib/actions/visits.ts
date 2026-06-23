@@ -121,9 +121,20 @@ export async function addPrescription(visitId: string, data: {
   if (!auth.ok) return { success: false, error: auth.error };
   if (!data.medicationName?.trim()) return { success: false, error: "Medication name is required." };
 
+  // Get patient_id and doctor_id from the visit record
+  const { data: visit } = await auth.supabase
+    .from("visits")
+    .select("patient_id, doctor_id")
+    .eq("id", visitId)
+    .single();
+
+  if (!visit) return { success: false, error: "Visit not found." };
+
   const { error } = await auth.supabase.from("prescriptions").insert({
     clinic_id:       auth.clinicId,
     visit_id:        visitId,
+    patient_id:      visit.patient_id,
+    doctor_id:       visit.doctor_id,
     medication_id:   data.medicationId || null,
     medication_name: data.medicationName.trim(),
     dose:            data.dose?.trim() || null,
@@ -223,6 +234,53 @@ export async function saveAINote(visitId: string, clinicalNote: string) {
   }).eq("id", visitId);
 
   if (error) return { success: false, error: error.message };
+  revalidatePath(`/doctor/visit/${visitId}`);
+  return { success: true };
+}
+
+export async function addManualSymptom(visitId: string, symptomName: string) {
+  const auth = await getClinicId();
+  if (!auth.ok) return { success: false, error: auth.error };
+  if (!symptomName?.trim()) return { success: false, error: "Symptom name is required." };
+
+  // Store manual symptoms in a separate column on the visit — subjective field
+  // We append to the existing subjective text to preserve previous entries
+  const { data: visit } = await auth.supabase
+    .from("visits")
+    .select("subjective")
+    .eq("id", visitId)
+    .single();
+
+  const existing = visit?.subjective ?? "";
+  const tag = `[MANUAL_SYMPTOM:${symptomName.trim()}]`;
+  if (existing.includes(tag)) return { success: true }; // already added
+
+  const updated = existing ? `${existing}\n${tag}` : tag;
+
+  const { error } = await auth.supabase
+    .from("visits")
+    .update({ subjective: updated, updated_at: new Date().toISOString() })
+    .eq("id", visitId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath(`/doctor/visit/${visitId}`);
+  return { success: true };
+}
+
+export async function removeManualSymptom(visitId: string, symptomName: string) {
+  const auth = await getClinicId();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const { data: visit } = await auth.supabase
+    .from("visits").select("subjective").eq("id", visitId).single();
+
+  const tag = `[MANUAL_SYMPTOM:${symptomName.trim()}]`;
+  const updated = (visit?.subjective ?? "").replace(tag, "").replace(/\n\n+/g, "\n").trim();
+
+  await auth.supabase.from("visits")
+    .update({ subjective: updated || null, updated_at: new Date().toISOString() })
+    .eq("id", visitId);
+
   revalidatePath(`/doctor/visit/${visitId}`);
   return { success: true };
 }

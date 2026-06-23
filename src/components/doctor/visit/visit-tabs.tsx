@@ -42,6 +42,7 @@ interface VisitTabsProps {
   symptomsCatalog: Symptom[];
   preCheckedSymptomIds: string[];
   checkedSymptomIds: string[];
+  manualSymptoms: string[];
   labs: Lab[];
   prescriptions: Prescription[];
   medsCatalog: MedCatalog[];
@@ -117,6 +118,7 @@ export function VisitTabs(props: VisitTabsProps) {
             symptomsCatalog={props.symptomsCatalog}
             preCheckedSymptomIds={props.preCheckedSymptomIds}
             checkedSymptomIds={props.checkedSymptomIds}
+            manualSymptoms={props.manualSymptoms}
             labs={props.labs}
             prescriptions={[]}
             medsCatalog={[]}
