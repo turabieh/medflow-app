@@ -7,7 +7,7 @@ import { ClinicalTab } from "./clinical-tab";
 import { NotesTab } from "./notes-tab";
 import { AINotesTab } from "./ai-notes-tab";
 import { HistoryTab } from "./history-tab";
-import { markVisitDone } from "@/lib/actions/visits";
+import { markVisitDone, reopenVisit } from "@/lib/actions/visits";
 
 interface Symptom { id: string; name: string; name_ar: string | null; category: string; }
 interface Lab { id: string; type: string; name: string; lab_date: string | null; findings: string | null; link_url: string | null; }
@@ -109,7 +109,23 @@ export function VisitTabs(props: VisitTabsProps) {
           </button>
         )}
         {props.visitStatus === "done" && (
-          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700">Visit done — pending finalization</span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-700">
+              Done — pending finalization
+            </span>
+            <button
+              onClick={async () => {
+                setMarkingDone(true);
+                await reopenVisit(props.visitId, props.appointmentId);
+                setMarkingDone(false);
+                router.refresh();
+              }}
+              disabled={markingDone}
+              className="rounded-md border border-orange-300 px-3 py-1 text-xs text-orange-700 hover:bg-orange-50 disabled:opacity-50"
+            >
+              Reopen Visit
+            </button>
+          </div>
         )}
       </div>
 

@@ -285,3 +285,20 @@ export async function removeManualSymptom(visitId: string, symptomName: string) 
   revalidatePath(`/doctor/visit/${visitId}`);
   return { success: true };
 }
+
+export async function reopenVisit(visitId: string, appointmentId: string) {
+  const auth = await getClinicId();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  await auth.supabase.from("visits")
+    .update({ status: "in_progress", updated_at: new Date().toISOString() })
+    .eq("id", visitId);
+
+  await auth.supabase.from("appointments")
+    .update({ status: "with_doctor" })
+    .eq("id", appointmentId);
+
+  revalidatePath(`/doctor/visit/${visitId}`);
+  revalidatePath("/doctor/dashboard");
+  return { success: true };
+}

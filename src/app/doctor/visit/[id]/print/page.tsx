@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { PrintButton } from "@/components/doctor/visit/print-button";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function VisitPrintPage({
@@ -145,7 +146,7 @@ export default async function VisitPrintPage({
         `}</style>
       </head>
       <body>
-        <button className="print-btn" onClick={() => window.print()}>Print / Save PDF</button>
+        <PrintButton />
 
         <div className="page">
           {/* Header */}
