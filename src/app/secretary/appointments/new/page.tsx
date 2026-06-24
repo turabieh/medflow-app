@@ -61,6 +61,33 @@ export default async function NewAppointmentPage({
     .gte("appt_date", today)
     .lte("appt_date", future);
 
+  // Also fetch inpatient visits to block those slots + 15-min buffer
+  const { data: inpatientVisitSlots } = await supabase
+    .from("visits")
+    .select("doctor_id, visit_date, visit_time")
+    .eq("visit_context", "inpatient")
+    .not("visit_date", "is", null)
+    .not("visit_time", "is", null)
+    .gte("visit_date", today)
+    .lte("visit_date", future);
+
+  // Convert inpatient visits to booked slot format with 45-min block (visit + travel + buffer)
+  const inpatientAsBlocked = (inpatientVisitSlots ?? []).map(v => {
+    const time = (v.visit_time as string).slice(0, 5);
+    const [h, m] = time.split(":").map(Number);
+    const endMins = h * 60 + m + 45;
+    return {
+      doctor_id: v.doctor_id,
+      appt_date: v.visit_date,
+      start_time: time,
+      end_time: `${String(Math.floor(endMins/60)).padStart(2,"0")}:${String(endMins%60).padStart(2,"0")}`,
+      patient_id: "",
+      patients: [{ full_name: "Hospital Visit" }],
+    };
+  });
+
+  const allBookedSlots = [...(bookedSlots ?? []), ...inpatientAsBlocked];
+
   return (
     <div>
       <div className="mb-4">
@@ -91,7 +118,7 @@ export default async function NewAppointmentPage({
         symptoms={symptoms ?? []}
         preloadedPatient={preloadedPatient}
         visitDurations={visitDurations}
-        bookedSlots={(bookedSlots ?? []).map(b => ({
+        bookedSlots={allBookedSlots.map(b => ({
           doctorId: b.doctor_id,
           date: b.appt_date,
           startTime: b.start_time,

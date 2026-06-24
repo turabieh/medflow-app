@@ -12,6 +12,9 @@ interface Appointment {
   visit_type: string;
   doctor_id: string | null;
   patientName: string;
+  isInpatient?: boolean;
+  hospitalName?: string;
+  location?: string;
 }
 interface Block {
   id: string;
@@ -25,14 +28,15 @@ interface Block {
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const STATUS_DOT: Record<string, string> = {
-  booked: "bg-purple-400",
-  confirmed: "bg-blue-400",
-  arrived: "bg-emerald-400",
-  with_doctor: "bg-indigo-400",
-  done: "bg-orange-300",
-  finalized: "bg-neutral-300",
-  no_show: "bg-red-300",
-  cancelled: "bg-neutral-200",
+  booked:           "bg-purple-400",
+  confirmed:        "bg-blue-400",
+  arrived:          "bg-emerald-400",
+  with_doctor:      "bg-indigo-400",
+  done:             "bg-orange-300",
+  finalized:        "bg-neutral-300",
+  no_show:          "bg-red-300",
+  cancelled:        "bg-neutral-200",
+  inpatient_visit:  "bg-blue-600",
 };
 
 function getWeekDates(dateStr: string): Date[] {
@@ -95,12 +99,18 @@ function DayCell({
             </div>
           ))}
           {appointments.map((a) => (
-            <div key={a.id} className="mb-0.5 flex items-center gap-0.5">
-              <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${STATUS_DOT[a.status] ?? "bg-neutral-300"}`} />
-              <p className="truncate text-[10px] text-neutral-700">
-                {a.start_time?.slice(0, 5)} {a.patientName}
-              </p>
-            </div>
+            a.isInpatient ? (
+              <div key={a.id} className="mb-0.5 truncate rounded bg-blue-100 border border-blue-300 px-1 py-0.5 text-[10px] text-blue-800">
+                🏨 {a.start_time?.slice(0, 5)} {a.patientName} · {a.hospitalName}
+              </div>
+            ) : (
+              <div key={a.id} className="mb-0.5 flex items-center gap-0.5">
+                <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${STATUS_DOT[a.status] ?? "bg-neutral-300"}`} />
+                <p className="truncate text-[10px] text-neutral-700">
+                  {a.start_time?.slice(0, 5)} {a.patientName}
+                </p>
+              </div>
+            )
           ))}
           {appointments.length === 0 && timeBlocks.length === 0 && (
             <p className="text-center text-[10px] text-neutral-300">— Free —</p>

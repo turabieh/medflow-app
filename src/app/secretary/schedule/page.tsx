@@ -49,7 +49,44 @@ export default async function SecretarySchedulePage({
   const appointmentsWithNames = (appointments ?? []).map((a) => ({
     ...a,
     patientName: patientsById[a.patient_id] ?? "Unknown",
+    isInpatient: false,
   }));
+
+  // Fetch inpatient visits for the schedule view — doctor is at hospital
+  const { data: inpatientVisits } = await supabase
+    .from("visits")
+    .select("id, visit_date, visit_time, visit_fee_type, doctor_id, inpatients(location, hospitals(name), patients(full_name))")
+    .eq("visit_context", "inpatient")
+    .neq("status", "finalized")
+    .not("visit_date", "is", null)
+    .not("visit_time", "is", null)
+    .order("visit_date");
+
+  // Convert inpatient visits to appointment-like objects for the calendar
+  const inpatientSlots = (inpatientVisits ?? []).map(v => {
+    const ip = Array.isArray(v.inpatients) ? v.inpatients[0] : v.inpatients as { location: string; hospitals: { name: string } | { name: string }[] | null; patients: { full_name: string } | { full_name: string }[] | null } | null;
+    const hosp = ip ? (Array.isArray(ip.hospitals) ? ip.hospitals[0] : ip.hospitals) as { name: string } | null : null;
+    const pt   = ip ? (Array.isArray(ip.patients)  ? ip.patients[0]  : ip.patients)  as { full_name: string } | null : null;
+    const time = v.visit_time?.slice(0, 5) ?? "08:00";
+    // Add 15-min buffer: end time = visit_time + 45min (30 travel + 15 buffer)
+    const [h, m] = time.split(":").map(Number);
+    const endMins = h * 60 + m + 45;
+    const endTime = `${String(Math.floor(endMins/60)).padStart(2,"0")}:${String(endMins%60).padStart(2,"0")}`;
+    return {
+      id: v.id,
+      appt_date: v.visit_date!,
+      start_time: time,
+      end_time: endTime,
+      status: "inpatient_visit",
+      visit_type: v.visit_fee_type ?? "inpatient",
+      doctor_id: v.doctor_id,
+      patient_id: "",
+      patientName: pt?.full_name ?? "Hospital Patient",
+      isInpatient: true,
+      hospitalName: hosp?.name ?? "",
+      location: ip?.location ?? "",
+    };
+  });
 
   return (
     <div>
@@ -73,7 +110,7 @@ export default async function SecretarySchedulePage({
           endTime: b.end_time,
           reason: b.reason,
         }))}
-        appointments={appointmentsWithNames}
+        appointments={[...appointmentsWithNames, ...inpatientSlots]}
         initialDate={targetDate}
         initialView={(view as "week" | "day") ?? "week"}
       />

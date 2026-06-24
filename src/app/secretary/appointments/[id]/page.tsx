@@ -65,7 +65,33 @@ export default async function AppointmentEditPage({
     .in("status", ["booked", "confirmed", "arrived", "with_doctor"])
     .gte("appt_date", today2)
     .lte("appt_date", future2)
-    .neq("id", id); // exclude current appointment
+    .neq("id", id);
+
+  // Block inpatient visit slots + 15-min travel buffer
+  const { data: inpatientVisitSlots2 } = await supabase
+    .from("visits")
+    .select("doctor_id, visit_date, visit_time")
+    .eq("visit_context", "inpatient")
+    .not("visit_date", "is", null)
+    .not("visit_time", "is", null)
+    .gte("visit_date", today2)
+    .lte("visit_date", future2);
+
+  const inpatientBlocked2 = (inpatientVisitSlots2 ?? []).map(v => {
+    const time = (v.visit_time as string).slice(0, 5);
+    const [h, m] = time.split(":").map(Number);
+    const endMins = h * 60 + m + 45;
+    return {
+      doctor_id: v.doctor_id,
+      appt_date: v.visit_date,
+      start_time: time,
+      end_time: `${String(Math.floor(endMins/60)).padStart(2,"0")}:${String(endMins%60).padStart(2,"0")}`,
+      patient_id: "",
+      patients: [{ full_name: "Hospital Visit" }],
+    };
+  });
+
+  const allBookedSlots2 = [...(bookedSlots ?? []), ...inpatientBlocked2];
 
   return (
     <div>
@@ -106,7 +132,7 @@ export default async function AppointmentEditPage({
           breakEnd: wh.break_end ?? undefined,
         }))}
         visitDurations={visitDurations}
-        bookedSlots={(bookedSlots ?? []).map(b => ({
+        bookedSlots={allBookedSlots2.map(b => ({
           doctorId: b.doctor_id,
           date: b.appt_date,
           startTime: b.start_time,

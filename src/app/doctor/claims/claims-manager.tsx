@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClaim, updateClaimPayment } from "@/lib/actions/claims";
+import { createClaim, updateClaimPayment, closeClaimAtPartial, createFollowUpClaim } from "@/lib/actions/claims";
 
 interface Hospital { id: string; name: string; }
 interface Claim {
@@ -51,6 +51,8 @@ export function ClaimsManager({
   const [paidAmount, setPaidAmount] = useState("");
   const [paidDate, setPaidDate] = useState(new Date().toISOString().split("T")[0]);
   const [savingPay, setSavingPay] = useState(false);
+  const [followUpId, setFollowUpId] = useState<string | null>(null);
+  const [closingId, setClosingId] = useState<string | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +78,22 @@ export function ClaimsManager({
     setSavingPay(false);
     if (!result.success) { setError(result.error ?? "Failed."); return; }
     setPayingId(null);
+    router.refresh();
+  }
+
+  async function handleFollowUp(claimId: string, remaining: number) {
+    const result = await createFollowUpClaim(claimId, remaining);
+    if (!result.success) { setError(result.error ?? "Failed."); return; }
+    setFollowUpId(null);
+    setNewClaimId(result.claimId!);
+    setNewClaimNumber(result.claimNumber!);
+    router.refresh();
+  }
+
+  async function handleClose(claimId: string) {
+    const result = await closeClaimAtPartial(claimId);
+    if (!result.success) { setError(result.error ?? "Failed."); return; }
+    setClosingId(null);
     router.refresh();
   }
 
@@ -206,6 +224,20 @@ export function ClaimsManager({
                             Record Payment
                           </button>
                         )}
+                        {c.status === "partial" && c.total_paid != null && (
+                          <>
+                            <button
+                              onClick={() => setFollowUpId(followUpId === c.id ? null : c.id)}
+                              className="rounded-md border border-blue-300 px-2.5 py-1 text-xs text-blue-700 hover:bg-blue-50">
+                              Follow-up Claim
+                            </button>
+                            <button
+                              onClick={() => handleClose(c.id)}
+                              className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs text-neutral-500 hover:bg-neutral-50">
+                              Close at {c.total_paid.toFixed(2)}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -236,6 +268,26 @@ export function ClaimsManager({
                               Previously paid: {c.total_paid.toFixed(2)} {currency} on {c.paid_date}
                             </p>
                           )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {followUpId === c.id && c.total_paid != null && (
+                    <tr key={`${c.id}-fu`}>
+                      <td colSpan={7} className="px-4 py-3 bg-blue-50 border-t border-blue-100">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <p className="text-xs font-medium text-blue-800 mb-1">Follow-up Claim</p>
+                            <p className="text-xs text-blue-600">
+                              Original: {c.total_claimed.toFixed(2)} {currency} · Paid: {c.total_paid.toFixed(2)} {currency} · Remaining: <strong>{Math.max(0, c.total_claimed - (c.total_paid ?? 0)).toFixed(2)} {currency}</strong>
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleFollowUp(c.id, Math.max(0, c.total_claimed - (c.total_paid ?? 0)))}
+                            className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                            Generate Follow-up for {(Math.max(0, c.total_claimed - (c.total_paid ?? 0))).toFixed(2)} {currency}
+                          </button>
+                          <button onClick={() => setFollowUpId(null)} className="text-xs text-blue-700 hover:underline">Cancel</button>
                         </div>
                       </td>
                     </tr>
