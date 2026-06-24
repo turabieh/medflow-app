@@ -180,7 +180,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   }
 
   function openPrint(type: string) {
-    window.open(`/secretary/reports/print?type=${type}&patientId=${patientId}`, "_blank");
+    window.open(`/print/report?type=${type}&patientId=${patientId}`, "_blank");
   }
 
   return (

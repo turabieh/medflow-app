@@ -135,7 +135,7 @@ export default async function SecretaryReportsPage({
                   <div className="flex flex-wrap gap-2 px-4 py-3">
                     {PRINT_TYPES.map(pt => (
                       <a key={pt.type}
-                        href={`/secretary/reports/print?type=${pt.type}&visitId=${visit.id}&patientId=${selectedPatient!.id}`}
+                        href={`/print/report?type=${pt.type}&visitId=${visit.id}&patientId=${selectedPatient!.id}`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400"

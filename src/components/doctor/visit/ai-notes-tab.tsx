@@ -211,7 +211,7 @@ export function AINotesTab({
   }
 
   function openPrint(type: string) {
-    window.open(`/doctor/visit/${visitId}/print?type=${type}`, "_blank");
+    window.open(`/print/visit/${visitId}?type=${type}`, "_blank");
   }
 
   async function handleBookFollowUp() {
