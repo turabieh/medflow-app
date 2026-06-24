@@ -26,6 +26,13 @@ export default function VisitPrintPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Override document title so browser print header shows clinic name not "MedFlow"
+    const prev = document.title;
+    document.title = " ";
+    return () => { document.title = prev; };
+  }, []);
+
+  useEffect(() => {
     async function load() {
       const supabase = createClient();
 
@@ -111,8 +118,25 @@ export default function VisitPrintPage() {
 
   return (
     <>
-      <style>{`@page { margin: 12mm; size: A4; } @media print { .no-print { display:none!important; } body { background:#fff; margin:0; } nav, aside, header, [class*="sidebar"] { display:none!important; } }`}</style>
-      <button className="no-print" style={s.printBtn} onClick={() => window.print()}>Print / Save PDF</button>
+      <style>{`
+        @page { margin: 0mm; size: A4; }
+        @media print {
+          .no-print { display:none!important; }
+          body { background:#fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          nav, aside, header, [class*="sidebar"] { display:none!important; }
+        }
+      `}</style>
+      <div className="no-print" style={{ position: "fixed", top: "12px", right: "12px", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", zIndex: 100 }}>
+        <button
+          onClick={() => window.print()}
+          style={{ background: "#1a1a1a", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+        >
+          Print / Save PDF
+        </button>
+        <span style={{ fontSize: "10px", color: "#999", background: "rgba(255,255,255,0.9)", padding: "2px 6px", borderRadius: "4px" }}>
+          In print dialog: set Margins to <strong>None</strong> &amp; uncheck Headers/Footers
+        </span>
+      </div>
 
       <div style={s.page}>
         {/* Professional bilingual header */}
