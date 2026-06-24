@@ -56,12 +56,16 @@ export default function InsuranceClaimPrintPage() {
       const apptIds = (appts ?? []).map((a: { id: string }) => a.id);
 
       // Get approved procedures for these appointments
-      const { data: procs } = apptIds.length ? await supabase
-        .from("outpatient_procedure_claims")
-        .select("appointment_id, procedure_name, price, auth_number, auth_date, auth_status")
-        .in("appointment_id", apptIds) : { data: [] };
+      let procs: { appointment_id: string; procedure_name: string; price: number; auth_number: string | null; auth_date: string | null; auth_status: string }[] = [];
+      if (apptIds.length) {
+        const { data: procsData } = await supabase
+          .from("outpatient_procedure_claims")
+          .select("appointment_id, procedure_name, price, auth_number, auth_date, auth_status")
+          .in("appointment_id", apptIds);
+        procs = procsData ?? [];
+      }
 
-      const procsByAppt = new Map<string, typeof procs>();
+      const procsByAppt = new Map<string, typeof procs[0][]>();
       for (const p of procs ?? []) {
         const arr = procsByAppt.get(p.appointment_id) ?? [];
         arr.push(p);
@@ -84,8 +88,8 @@ export default function InsuranceClaimPrintPage() {
         rows.push({ a, pt, apptProcs, visitFee, procTotal, rowTotal });
       }
 
-      // Update claim total
-      if (grandTotal > 0 && grandTotal !== claim.total_claimed) {
+      // Only update total for original claims
+      if (!claim.is_followup && grandTotal > 0 && grandTotal !== claim.total_claimed) {
         await supabase.from("insurance_claims").update({ total_claimed: grandTotal }).eq("id", claimId);
       }
 

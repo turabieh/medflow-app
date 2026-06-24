@@ -123,8 +123,8 @@ export default function HospitalClaimPrintPage() {
         }
       }
 
-      // Update claim total in DB
-      if (grandTotal > 0 && grandTotal !== claim.total_claimed) {
+      // Only update total for original claims — follow-ups have their own amount
+      if (!claim.is_followup && grandTotal > 0 && grandTotal !== claim.total_claimed) {
         await supabase.from("hospital_claims")
           .update({ total_claimed: grandTotal })
           .eq("id", claimId);
