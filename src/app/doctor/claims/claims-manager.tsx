@@ -106,11 +106,15 @@ export function ClaimsManager({
     router.refresh();
   }
 
-  // Exclude follow-up claims from total to avoid double-counting
+  // For totals: sum original claims only for claimed amount
+  // For paid: sum original + all follow-up payments to get true total received
   const originalClaims = initialClaims.filter(c => !c.is_followup);
   const totalClaimed = originalClaims.reduce((s, c) => s + (c.total_claimed ?? 0), 0);
-  const totalPaid    = originalClaims.reduce((s, c) => s + (c.total_paid ?? 0), 0);
-  const outstanding  = totalClaimed - totalPaid;
+  // Total paid = sum of all payments (original + follow-ups combined)
+  const totalPaid = initialClaims.reduce((s, c) => s + (c.total_paid ?? 0), 0);
+  // Outstanding = original claimed minus ALL payments received
+  const outstanding = Math.max(0, totalClaimed - totalPaid);
+  const totalClaims = initialClaims.length;
 
   return (
     <div className="space-y-5">
