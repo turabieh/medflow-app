@@ -28,30 +28,23 @@ export default async function DoctorLayout({ children }: { children: React.React
     .in("status", ["booked", "confirmed", "arrived", "with_doctor", "done", "finalized"])
     .order("start_time", { ascending: true });
 
-  // Inpatients — appointments without a specific date (or marked as inpatient)
-  // For now: booked appointments where appt_date is past (still active)
-  const { data: inpatientAppts } = await supabase
-    .from("appointments")
-    .select("id, start_time, status, visit_type, patient_id, appt_date")
+  // Active inpatients from the inpatients table
+  const { data: activeInpatients } = await supabase
+    .from("inpatients")
+    .select("id, location, patients(id, full_name), hospitals(name)")
     .eq("doctor_id", profile.id)
-    .eq("visit_type", "inpatient")
-    .in("status", ["arrived", "with_doctor", "done"])
-    .order("appt_date", { ascending: false })
-    .limit(10);
+    .eq("clinic_id", profile.clinic_id)
+    .eq("status", "active")
+    .order("admission_date", { ascending: false })
+    .limit(15);
 
-  const allPatientIds = [
-    ...(todayAppts ?? []).map((a) => a.patient_id),
-    ...(inpatientAppts ?? []).map((a) => a.patient_id),
-  ];
+  const allPatientIds = (todayAppts ?? []).map((a) => a.patient_id);
   const { data: patients } = allPatientIds.length
     ? await supabase.from("patients").select("id, full_name").in("id", [...new Set(allPatientIds)])
     : { data: [] };
   const patientsById = new Map((patients ?? []).map((p) => [p.id, p.full_name]));
 
-  const allApptIds = [
-    ...(todayAppts ?? []).map((a) => a.id),
-    ...(inpatientAppts ?? []).map((a) => a.id),
-  ];
+  const allApptIds = (todayAppts ?? []).map((a) => a.id);
   const { data: visits } = allApptIds.length
     ? await supabase.from("visits").select("id, appointment_id").in("appointment_id", allApptIds)
     : { data: [] };
@@ -66,14 +59,16 @@ export default async function DoctorLayout({ children }: { children: React.React
     visitType: a.visit_type,
   }));
 
-  const sidebarInpatients = (inpatientAppts ?? []).map((a) => ({
-    appointmentId: a.id,
-    visitId: visitByAppt.get(a.id) ?? null,
-    patientName: patientsById.get(a.patient_id) ?? "Unknown",
-    startTime: a.start_time,
-    status: a.status,
-    visitType: a.visit_type,
-  }));
+  const sidebarInpatients = (activeInpatients ?? []).map((ip) => {
+    const pt = Array.isArray(ip.patients) ? ip.patients[0] : ip.patients as { id: string; full_name: string } | null;
+    const hosp = Array.isArray(ip.hospitals) ? ip.hospitals[0] : ip.hospitals as { name: string } | null;
+    return {
+      inpatientId: ip.id,
+      patientName: pt?.full_name ?? "Unknown",
+      location: ip.location,
+      hospitalName: hosp?.name ?? "",
+    };
+  });
 
   return (
     <div className="flex min-h-screen bg-neutral-50">

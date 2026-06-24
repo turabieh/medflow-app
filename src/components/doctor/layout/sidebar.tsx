@@ -4,13 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/ui/logout-button";
 
-interface Patient {
+interface OutpatientEntry {
   appointmentId: string;
   visitId?: string | null;
   patientName: string;
   startTime: string | null;
   status: string;
   visitType: string;
+}
+
+interface InpatientEntry {
+  inpatientId: string;
+  patientName: string;
+  location: string;
+  hospitalName: string;
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -32,7 +39,6 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function DoctorSidebarNav({
-  doctorId,
   doctorName,
   specialty,
   clinicName,
@@ -45,16 +51,16 @@ export function DoctorSidebarNav({
   specialty?: string | null;
   clinicName: string;
   logoUrl?: string | null;
-  patients?: Patient[];
-  inpatients?: Patient[];
+  patients?: OutpatientEntry[];
+  inpatients?: InpatientEntry[];
 }) {
   const pathname = usePathname();
 
-  function PatientLink({ p }: { p: Patient }) {
+  function OutpatientLink({ p }: { p: OutpatientEntry }) {
     const href = p.visitId ? `/doctor/visit/${p.visitId}` : `/doctor/dashboard`;
     const isActive = pathname === href;
     return (
-      <Link key={p.appointmentId} href={href}
+      <Link href={href}
         className={`flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
           isActive ? "bg-neutral-900 text-white" : "text-neutral-700 hover:bg-neutral-100"
         }`}>
@@ -69,8 +75,27 @@ export function DoctorSidebarNav({
     );
   }
 
+  function InpatientLink({ ip }: { ip: InpatientEntry }) {
+    const href = `/doctor/inpatients/${ip.inpatientId}`;
+    const isActive = pathname.startsWith(href);
+    return (
+      <Link href={href}
+        className={`flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
+          isActive ? "bg-blue-700 text-white" : "text-neutral-700 hover:bg-blue-50"
+        }`}>
+        <span className="h-2 w-2 flex-shrink-0 rounded-full bg-blue-400" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium">{ip.patientName}</p>
+          <p className={`text-[10px] truncate ${isActive ? "text-blue-200" : "text-neutral-400"}`}>
+            {ip.location}
+          </p>
+        </div>
+      </Link>
+    );
+  }
+
   return (
-    <aside className="flex w-56 flex-col border-r border-neutral-200 bg-white" style={{height:"100vh"}}>
+    <aside className="flex w-56 flex-col border-r border-neutral-200 bg-white" style={{ height: "100vh" }}>
       {/* Clinic header */}
       <div className="flex-shrink-0 border-b border-neutral-100 px-4 py-3">
         {logoUrl && <img src={logoUrl} alt="logo" className="mb-1.5 h-8 w-auto object-contain" />}
@@ -79,41 +104,46 @@ export function DoctorSidebarNav({
         {specialty && <p className="text-[11px] text-neutral-400">{specialty}</p>}
       </div>
 
-      {/* Scrollable patient list - max height so nav always visible */}
-      <div className="flex-1 overflow-y-auto px-3 py-2" style={{minHeight:0}}>
-        {/* Today's patients */}
+      {/* Scrollable patient lists */}
+      <div className="flex-1 overflow-y-auto px-3 py-2" style={{ minHeight: 0 }}>
+
+        {/* Today's outpatients */}
         <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">
-          Today ({patients.length})
+          Today&apos;s Patients ({patients.length})
         </p>
         {patients.length === 0 ? (
-          <p className="px-2 text-[11px] text-neutral-400">No patients yet.</p>
+          <p className="px-2 text-[11px] text-neutral-400">No outpatients today.</p>
         ) : (
           <div className="space-y-0.5 mb-3">
-            {patients.map((p) => <PatientLink key={p.appointmentId} p={p} />)}
+            {patients.map((p) => <OutpatientLink key={p.appointmentId} p={p} />)}
           </div>
         )}
 
-        {/* Inpatients */}
-        {inpatients.length > 0 && (
-          <>
-            <p className="mb-1 mt-3 px-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">
-              Inpatients ({inpatients.length})
-            </p>
+        {/* Active inpatients — separate section */}
+        <div className="mt-3 border-t border-neutral-100 pt-3">
+          <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-blue-500">
+            Inpatients ({inpatients.length})
+          </p>
+          {inpatients.length === 0 ? (
+            <p className="px-2 text-[11px] text-neutral-400">No active inpatients.</p>
+          ) : (
             <div className="space-y-0.5">
-              {inpatients.map((p) => <PatientLink key={p.appointmentId} p={p} />)}
+              {inpatients.map((ip) => <InpatientLink key={ip.inpatientId} ip={ip} />)}
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Fixed bottom nav — always visible */}
+      {/* Fixed bottom nav */}
       <div className="flex-shrink-0 border-t border-neutral-100">
         <div className="px-3 py-2 space-y-0.5">
           <Link href="/doctor/inpatients"
             className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
-              pathname.startsWith("/doctor/inpatients") ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-700"
+              pathname === "/doctor/inpatients" || pathname === "/doctor/inpatients/"
+                ? "bg-neutral-100 font-medium text-neutral-900"
+                : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-700"
             }`}>
-            🏨 Inpatients
+            🏨 All Inpatients
           </Link>
           <Link href="/doctor/patients"
             className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
@@ -128,17 +158,15 @@ export function DoctorSidebarNav({
             Dashboard
           </Link>
           <Link href="/secretary/dashboard"
-            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700">
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700">
             Secretary Mode
           </Link>
           <Link href="/doctor/settings"
             className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
-              pathname.startsWith("/doctor/settings") ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"
+              pathname === "/doctor/settings" ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"
             }`}>
-            My Schedule
+            Settings
           </Link>
-        </div>
-        <div className="border-t border-neutral-100 px-4 py-3">
           <LogoutButton />
         </div>
       </div>
