@@ -28,7 +28,7 @@ export default async function InpatientDetailPage({
 
   const { data: visits } = await supabase
     .from("visits")
-    .select("id, visit_date, status, clinical_note, voice_notes")
+    .select("id, visit_date, visit_time, visit_fee, visit_fee_type, status, clinical_note")
     .eq("inpatient_id", id)
     .order("visit_date", { ascending: false });
 
@@ -39,6 +39,14 @@ export default async function InpatientDetailPage({
   const { data: clinicSetting } = await supabase
     .from("clinic_settings").select("value").eq("clinic_id", profile?.clinic_id ?? "").eq("key", "currency").single();
   const currency = clinicSetting?.value ?? "JOD";
+
+  const visitTypes = [
+    { key: "round",        label: "Morning Round" },
+    { key: "consultation", label: "Consultation" },
+    { key: "urgent",       label: "Urgent Consultation" },
+    { key: "follow_up",    label: "Follow-up" },
+    { key: "procedure",    label: "Procedure Visit" },
+  ];
 
   const patient = Array.isArray(admission.patients) ? admission.patients[0] : admission.patients as { id: string; full_name: string; full_name_ar: string | null; dob: string | null; gender: string | null; blood_type: string | null; allergies: string | null; phone: string } | null;
   const hospital = Array.isArray(admission.hospitals) ? admission.hospitals[0] : admission.hospitals as { id: string; name: string; primary_phone: string; portal_link: string | null } | null;
@@ -135,15 +143,13 @@ export default async function InpatientDetailPage({
         today={today}
         existingVisitDates={(visits ?? []).map(v => v.visit_date ?? "")}
         location={admission.location}
-        hospitalName={hospital?.name ?? ""}
         patientName={patient?.full_name ?? ""}
+        visitTypes={visitTypes}
         visits={(visits ?? []).length}
         totalFee={totalFee}
         currency={currency}
-        feePerVisit={admission.fee_per_visit ?? null}
+        defaultFeePerVisit={admission.fee_per_visit ?? null}
         admissionDate={admission.admission_date}
-        hospitalId={hospital?.id ?? ""}
-        clinicId={profile?.clinic_id ?? ""}
       />
 
       {/* Visits list */}
@@ -158,11 +164,11 @@ export default async function InpatientDetailPage({
         ) : (
           <div className="space-y-2">
             {visits.map(v => (
-              <Link key={v.id} href={`/doctor/visit/${v.id}`}
+              <Link key={v.id} href={`/doctor/inpatients/${id}/visit/${v.id}`}
                 className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm hover:bg-neutral-50 transition-colors">
                 <div>
-                  <p className="text-sm font-medium text-neutral-900">{v.visit_date}</p>
-                  {(v.clinical_note || v.voice_notes) && (
+                  <p className="text-sm font-medium text-neutral-900">{v.visit_date}{v.visit_time ? ` · ${(v.visit_time as string).slice(0,5)}` : ""}</p>
+                  {v.clinical_note && (
                     <p className="text-xs text-neutral-400 mt-0.5">Note available</p>
                   )}
                 </div>
