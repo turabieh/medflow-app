@@ -25,12 +25,24 @@ export default function InsuranceClaimPrintPage() {
     async function load() {
       const supabase = createClient();
 
-      const { data: claim } = await supabase
+      // Ensure session is active
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setData({ error: "Not authenticated. Please log in and try again." });
+        setLoading(false);
+        return;
+      }
+
+      const { data: claim, error: claimError } = await supabase
         .from("insurance_claims")
         .select("*, insurance_companies(name, address, phone, email, portal_url)")
         .eq("id", claimId).single();
 
-      if (!claim) { setLoading(false); return; }
+      if (!claim) {
+        setData({ error: `Claim not found. ${claimError?.message ?? ""}` });
+        setLoading(false);
+        return;
+      }
 
       const { data: clinic } = await supabase
         .from("clinics").select("name, name_ar, tagline, logo_url, address, phone, email").limit(1).single();
@@ -102,9 +114,10 @@ export default function InsuranceClaimPrintPage() {
   const printDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#666" }}>Loading claim...</div>;
-  if (!data) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>Claim not found.</div>;
+  if (data?.error) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00", flexDirection:"column" as const, gap:"8px" }}><div>Error loading claim</div><div style={{fontSize:"12px"}}>{data.error}</div></div>;
+  if (!data?.claim) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>Claim not found.</div>;
 
-  const { claim, clinic, rows, grandTotal } = data;
+  const { claim, clinic, rows, grandTotal } = data as { claim: any; clinic: any; rows: any[]; grandTotal: number };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const insurance = Array.isArray(claim.insurance_companies) ? claim.insurance_companies[0] : claim.insurance_companies as any;
 

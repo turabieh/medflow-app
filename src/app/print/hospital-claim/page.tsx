@@ -26,12 +26,21 @@ export default function HospitalClaimPrintPage() {
       const supabase = createClient();
 
       // Fetch claim
-      const { data: claim } = await supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setData({ error: "Not authenticated. Please log in and try again." });
+        setLoading(false); return;
+      }
+
+      const { data: claim, error: claimError } = await supabase
         .from("hospital_claims")
         .select("*, hospitals(name, address, primary_phone), users!hospital_claims_doctor_id_fkey(full_name, specialty, signature_url)")
         .eq("id", claimId).single();
 
-      if (!claim) { setLoading(false); return; }
+      if (!claim) {
+        setData({ error: `Claim not found. ${claimError?.message ?? ""}` });
+        setLoading(false); return;
+      }
 
       // Fetch clinic
       const { data: clinic } = await supabase
@@ -139,7 +148,7 @@ export default function HospitalClaimPrintPage() {
   const printDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 
   if (loading) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#666" }}>Loading claim...</div>;
-  if (!data) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>Claim not found.</div>;
+  if (!data?.claim) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>{data?.error ?? "Claim not found."}</div>;
 
   const { claim, clinic, rows, grandTotal } = data;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
