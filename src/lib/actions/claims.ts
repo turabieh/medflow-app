@@ -176,3 +176,18 @@ export async function createFollowUpClaim(
   revalidatePath("/doctor/claims");
   return { success: true, claimId: claim.id, claimNumber };
 }
+
+export async function deleteClaim(claimId: string): Promise<{ success: boolean; error?: string }> {
+  const auth = await getAuth();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const { error } = await auth.supabase
+    .from("hospital_claims")
+    .delete()
+    .eq("id", claimId)
+    .eq("clinic_id", auth.clinicId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/doctor/claims");
+  return { success: true };
+}

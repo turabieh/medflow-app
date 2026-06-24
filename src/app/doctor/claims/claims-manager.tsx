@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClaim, updateClaimPayment, closeClaimAtPartial, createFollowUpClaim } from "@/lib/actions/claims";
+import { createClaim, updateClaimPayment, closeClaimAtPartial, createFollowUpClaim, deleteClaim } from "@/lib/actions/claims";
 
 interface Hospital { id: string; name: string; }
 interface Claim {
@@ -94,6 +94,13 @@ export function ClaimsManager({
     const result = await closeClaimAtPartial(claimId);
     if (!result.success) { setError(result.error ?? "Failed."); return; }
     setClosingId(null);
+    router.refresh();
+  }
+
+  async function handleDelete(claimId: string, claimNumber: string) {
+    if (!confirm(`Delete claim ${claimNumber}? This cannot be undone.`)) return;
+    const result = await deleteClaim(claimId);
+    if (!result.success) { setError(result.error ?? "Failed."); return; }
     router.refresh();
   }
 
@@ -218,6 +225,10 @@ export function ClaimsManager({
                           className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
                           Print
                         </a>
+                        <button onClick={() => handleDelete(c.id, c.claim_number)}
+                          className="rounded-md border border-red-200 px-2.5 py-1 text-xs text-red-500 hover:bg-red-50">
+                          Delete
+                        </button>
                         {c.status !== "paid" && (
                           <button onClick={() => { setPayingId(payingId === c.id ? null : c.id); setPaidAmount(""); }}
                             className="rounded-md border border-green-300 px-2.5 py-1 text-xs text-green-700 hover:bg-green-50">
