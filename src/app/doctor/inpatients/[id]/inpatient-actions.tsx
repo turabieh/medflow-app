@@ -109,11 +109,6 @@ export function InpatientActions({
           </button>
         )}
 
-        <a href="/doctor/claims"
-          className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
-          🧾 Hospital Claims →
-        </a>
-
         {status === "active" && (
           <button onClick={() => setShowDischarge(!showDischarge)}
             className="rounded-md border border-orange-300 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-50">
