@@ -34,27 +34,37 @@ export async function saveClinicSettings(input: SaveClinicSettingsInput) {
 
   let logoUrl: string | undefined;
   if (input.logoBase64 && input.logoMimeType) {
-    const adminClient = createAdminClient();
     const ext = input.logoMimeType.split("/")[1]?.split("+")[0] ?? "png";
     const path = `${input.clinicId}/logo.${ext}`;
     const buffer = Buffer.from(input.logoBase64, "base64");
 
-    // Try to create bucket if it doesn't exist
-    await adminClient.storage.createBucket("clinic-assets", { public: true }).catch(() => {
-      // Bucket already exists — fine
-    });
+    let uploadError: { message: string } | null = null;
+    let publicUrl = "";
 
-    const { error: uploadError } = await adminClient.storage
-      .from("clinic-assets")
-      .upload(path, buffer, { contentType: input.logoMimeType, upsert: true });
-
-    if (uploadError) {
-      return { success: false, error: `Logo upload failed: ${uploadError.message}` };
+    try {
+      const adminClient = createAdminClient();
+      const { error } = await adminClient.storage
+        .from("clinic-assets")
+        .upload(path, buffer, { contentType: input.logoMimeType, upsert: true });
+      uploadError = error;
+      if (!error) {
+        const { data: { publicUrl: url } } = adminClient.storage.from("clinic-assets").getPublicUrl(path);
+        publicUrl = url;
+      }
+    } catch {
+      const { error } = await supabase.storage
+        .from("clinic-assets")
+        .upload(path, buffer, { contentType: input.logoMimeType, upsert: true });
+      uploadError = error;
+      if (!error) {
+        const { data: { publicUrl: url } } = supabase.storage.from("clinic-assets").getPublicUrl(path);
+        publicUrl = url;
+      }
     }
 
-    const { data: { publicUrl } } = adminClient.storage
-      .from("clinic-assets")
-      .getPublicUrl(path);
+    if (uploadError) {
+      return { success: false, error: `Logo upload failed: ${uploadError.message}. Make sure the "clinic-assets" storage bucket exists and is public in Supabase Dashboard → Storage.` };
+    }
     logoUrl = publicUrl;
   }
 

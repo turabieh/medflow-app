@@ -147,7 +147,6 @@ export async function uploadDoctorSignature(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
-  // Doctor can upload their own signature; admin can upload for any doctor
   const { data: profile } = await supabase
     .from("users").select("role, clinic_id").eq("id", user.id).single();
   if (!profile) return { success: false, error: "Profile not found." };
@@ -155,26 +154,43 @@ export async function uploadDoctorSignature(
     return { success: false, error: "Not authorized." };
   }
 
-  const adminClient = createAdminClient();
   const ext = mimeType.split("/")[1]?.split("+")[0] ?? "png";
   const path = `${profile.clinic_id}/signatures/${userId}.${ext}`;
   const buffer = Buffer.from(signatureBase64, "base64");
 
-  await adminClient.storage.createBucket("clinic-assets", { public: true }).catch(() => {});
+  // Try admin client first, fall back to regular client
+  let uploadError: { message: string } | null = null;
+  let publicUrl = "";
 
-  const { error: uploadError } = await adminClient.storage
-    .from("clinic-assets")
-    .upload(path, buffer, { contentType: mimeType, upsert: true });
+  try {
+    const adminClient = createAdminClient();
+    const { error } = await adminClient.storage
+      .from("clinic-assets")
+      .upload(path, buffer, { contentType: mimeType, upsert: true });
+    uploadError = error;
+    if (!error) {
+      const { data: { publicUrl: url } } = adminClient.storage.from("clinic-assets").getPublicUrl(path);
+      publicUrl = url;
+    }
+  } catch {
+    // Admin client not configured — try regular client
+    const { error } = await supabase.storage
+      .from("clinic-assets")
+      .upload(path, buffer, { contentType: mimeType, upsert: true });
+    uploadError = error;
+    if (!error) {
+      const { data: { publicUrl: url } } = supabase.storage.from("clinic-assets").getPublicUrl(path);
+      publicUrl = url;
+    }
+  }
 
-  if (uploadError) return { success: false, error: uploadError.message };
+  if (uploadError) return { success: false, error: `Upload failed: ${uploadError.message}. Make sure the "clinic-assets" storage bucket exists and is public in Supabase.` };
 
-  const { data: { publicUrl } } = adminClient.storage
-    .from("clinic-assets")
-    .getPublicUrl(path);
-
-  await supabase.from("users")
+  const { error: dbError } = await supabase.from("users")
     .update({ signature_url: publicUrl })
     .eq("id", userId);
+
+  if (dbError) return { success: false, error: `Saved to storage but DB update failed: ${dbError.message}` };
 
   revalidatePath("/doctor/settings");
   return { success: true, url: publicUrl };
