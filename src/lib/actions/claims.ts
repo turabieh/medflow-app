@@ -13,6 +13,61 @@ async function getAuth() {
   return { ok: true as const, supabase, userId: profile.id, clinicId: profile.clinic_id };
 }
 
+/** Get next sequential claim number for this clinic — never reuses deleted numbers */
+async function nextClaimNumber(supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never, clinicId: string, suffix = ""): Promise<string> {
+  const year = new Date().getFullYear();
+
+  // Upsert the sequence row and increment atomically
+  const { data } = await supabase.rpc("increment_claim_seq", { p_clinic_id: clinicId }).single() as { data: number | null };
+  let seq = data ?? 1;
+
+  if (!data) {
+    // Fallback: count existing claims including deleted ones via max seq
+    const { data: maxRow } = await supabase
+      .from("hospital_claims")
+      .select("claim_seq")
+      .eq("clinic_id", clinicId)
+      .order("claim_seq", { ascending: false })
+      .limit(1)
+      .single();
+    seq = (maxRow?.claim_seq ?? 0) + 1;
+  }
+
+  return `CLM-${year}-${String(seq).padStart(3, "0")}${suffix}`;
+}
+
+/** Compute total amount for a hospital/doctor in a date range */
+async function computeClaimTotal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clinicId: string,
+  doctorId: string,
+  hospitalId: string,
+  fromDate: string,
+  toDate: string
+): Promise<number> {
+  const { data: inpatients } = await supabase
+    .from("inpatients").select("id")
+    .eq("hospital_id", hospitalId).eq("clinic_id", clinicId).eq("doctor_id", doctorId);
+
+  const ids = (inpatients ?? []).map(i => i.id);
+  if (!ids.length) return 0;
+
+  const { data: visits } = await supabase
+    .from("visits").select("id, visit_fee")
+    .in("inpatient_id", ids)
+    .gte("visit_date", fromDate).lte("visit_date", toDate)
+    .in("status", ["done", "finalized", "in_progress"]);
+
+  const visitIds = (visits ?? []).map(v => v.id);
+  let procTotal = 0;
+  if (visitIds.length) {
+    const { data: procs } = await supabase
+      .from("inpatient_visit_procedures").select("price").in("visit_id", visitIds);
+    procTotal = (procs ?? []).reduce((s, p) => s + (p.price ?? 0), 0);
+  }
+  return (visits ?? []).reduce((s, v) => s + (v.visit_fee ?? 0), 0) + procTotal;
+}
+
 export async function createClaim(input: {
   hospitalId: string;
   fromDate: string;
@@ -23,64 +78,32 @@ export async function createClaim(input: {
   const auth = await getAuth();
   if (!auth.ok) return { success: false, error: auth.error };
 
-  const year = new Date().getFullYear();
-  const { count } = await auth.supabase
-    .from("hospital_claims")
-    .select("id", { count: "exact", head: true })
-    .eq("clinic_id", auth.clinicId);
+  const total = await computeClaimTotal(auth.supabase, auth.clinicId, auth.userId, input.hospitalId, input.fromDate, input.toDate);
 
-  const claimNumber = `CLM-${year}-${String((count ?? 0) + 1).padStart(3, "0")}`;
-
-  // Compute real total from inpatient visits in the date range for this hospital
-  const { data: inpatients } = await auth.supabase
-    .from("inpatients")
-    .select("id")
-    .eq("hospital_id", input.hospitalId)
+  // Simple sequential number: max existing seq + 1 (safe without RPC)
+  const { data: maxRow } = await auth.supabase
+    .from("hospital_claims").select("claim_seq")
     .eq("clinic_id", auth.clinicId)
-    .eq("doctor_id", auth.userId);
-
-  const inpatientIds = (inpatients ?? []).map(i => i.id);
-  let computedTotal = 0;
-
-  if (inpatientIds.length > 0) {
-    const { data: visits } = await auth.supabase
-      .from("visits")
-      .select("id, visit_fee")
-      .in("inpatient_id", inpatientIds)
-      .gte("visit_date", input.fromDate)
-      .lte("visit_date", input.toDate)
-      .in("status", ["done", "finalized", "in_progress"]);
-
-    const visitIds = (visits ?? []).map(v => v.id);
-    let procTotal = 0;
-    if (visitIds.length) {
-      const { data: procs } = await auth.supabase
-        .from("inpatient_visit_procedures")
-        .select("price")
-        .in("visit_id", visitIds);
-      procTotal = (procs ?? []).reduce((s, p) => s + (p.price ?? 0), 0);
-    }
-    const visitTotal = (visits ?? []).reduce((s, v) => s + (v.visit_fee ?? 0), 0);
-    computedTotal = visitTotal + procTotal;
-  }
-
-  const totalClaimed = computedTotal > 0 ? computedTotal : input.totalClaimed;
+    .order("claim_seq", { ascending: false })
+    .limit(1).single();
+  const seq = (maxRow?.claim_seq ?? 0) + 1;
+  const year = new Date().getFullYear();
+  const claimNumber = `CLM-${year}-${String(seq).padStart(3, "0")}`;
 
   const { data: claim, error } = await auth.supabase
-    .from("hospital_claims")
-    .insert({
+    .from("hospital_claims").insert({
       clinic_id:     auth.clinicId,
       hospital_id:   input.hospitalId,
       doctor_id:     auth.userId,
       claim_number:  claimNumber,
+      claim_seq:     seq,
       from_date:     input.fromDate,
       to_date:       input.toDate,
-      total_claimed: totalClaimed,
+      total_claimed: total > 0 ? total : input.totalClaimed,
       notes:         input.notes?.trim() || null,
       status:        "submitted",
-    })
-    .select("id")
-    .single();
+      is_followup:   false,
+    }).select("id").single();
 
   if (error || !claim) return { success: false, error: error?.message ?? "Failed." };
   revalidatePath("/doctor/claims");
@@ -96,9 +119,12 @@ export async function updateClaimPayment(
   if (!auth.ok) return { success: false, error: auth.error };
 
   const { data: claim } = await auth.supabase
-    .from("hospital_claims").select("total_claimed").eq("id", claimId).single();
+    .from("hospital_claims")
+    .select("total_claimed, is_followup, parent_claim_id")
+    .eq("id", claimId).single();
 
-  const status = totalPaid >= (claim?.total_claimed ?? 0) ? "paid" : "partial";
+  const isFullyPaid = totalPaid >= (claim?.total_claimed ?? 0);
+  const status = isFullyPaid ? "paid" : "partial";
 
   const { error } = await auth.supabase
     .from("hospital_claims")
@@ -106,6 +132,14 @@ export async function updateClaimPayment(
     .eq("id", claimId).eq("clinic_id", auth.clinicId);
 
   if (error) return { success: false, error: error.message };
+
+  // If this follow-up is fully paid, also close the parent claim
+  if (isFullyPaid && claim?.is_followup && claim?.parent_claim_id) {
+    await auth.supabase.from("hospital_claims")
+      .update({ status: "paid", updated_at: new Date().toISOString() })
+      .eq("id", claim.parent_claim_id);
+  }
+
   revalidatePath("/doctor/claims");
   return { success: true };
 }
@@ -115,8 +149,7 @@ export async function closeClaimAtPartial(claimId: string): Promise<{ success: b
   if (!auth.ok) return { success: false, error: auth.error };
 
   const { data: claim } = await auth.supabase
-    .from("hospital_claims").select("total_paid").eq("id", claimId).single();
-
+    .from("hospital_claims").select("total_paid, is_followup, parent_claim_id").eq("id", claimId).single();
   if (!claim?.total_paid) return { success: false, error: "No payment recorded yet." };
 
   const { error } = await auth.supabase
@@ -125,6 +158,14 @@ export async function closeClaimAtPartial(claimId: string): Promise<{ success: b
     .eq("id", claimId).eq("clinic_id", auth.clinicId);
 
   if (error) return { success: false, error: error.message };
+
+  // Close parent too if this is a follow-up
+  if (claim.is_followup && claim.parent_claim_id) {
+    await auth.supabase.from("hospital_claims")
+      .update({ status: "paid", updated_at: new Date().toISOString() })
+      .eq("id", claim.parent_claim_id);
+  }
+
   revalidatePath("/doctor/claims");
   return { success: true };
 }
@@ -135,34 +176,42 @@ export async function createFollowUpClaim(
   const auth = await getAuth();
   if (!auth.ok) return { success: false, error: auth.error };
 
-  // Fetch fresh values from DB — not stale client-side state
+  // Fetch fresh values from DB
   const { data: original } = await auth.supabase
     .from("hospital_claims")
-    .select("hospital_id, from_date, to_date, claim_number, total_claimed, total_paid")
+    .select("hospital_id, from_date, to_date, claim_number, claim_seq, total_claimed, total_paid")
     .eq("id", originalClaimId).single();
 
   if (!original) return { success: false, error: "Original claim not found." };
 
-  const remainingAmount = Math.max(0, (original.total_claimed ?? 0) - (original.total_paid ?? 0));
-  if (remainingAmount <= 0) return { success: false, error: "No outstanding balance on this claim." };
+  // Outstanding = what was claimed minus what was paid
+  const outstanding = Math.max(0, (original.total_claimed ?? 0) - (original.total_paid ?? 0));
+  if (outstanding <= 0) return { success: false, error: "No outstanding balance." };
 
+  // Follow-up gets next seq number with -FU suffix
+  const { data: maxRow } = await auth.supabase
+    .from("hospital_claims").select("claim_seq")
+    .eq("clinic_id", auth.clinicId)
+    .order("claim_seq", { ascending: false })
+    .limit(1).single();
+  const seq = (maxRow?.claim_seq ?? 0) + 1;
   const year = new Date().getFullYear();
-  const { count } = await auth.supabase
-    .from("hospital_claims").select("id", { count: "exact", head: true })
-    .eq("clinic_id", auth.clinicId);
-
-  const claimNumber = `CLM-${year}-${String((count ?? 0) + 1).padStart(3, "0")}-FU`;
+  const claimNumber = `CLM-${year}-${String(seq).padStart(3, "0")}-FU`;
 
   const { data: claim, error } = await auth.supabase
     .from("hospital_claims").insert({
-      clinic_id:     auth.clinicId,
-      hospital_id:   original.hospital_id,
-      doctor_id:     auth.userId,
-      claim_number:  claimNumber,
-      from_date:     original.from_date,
-      to_date:       original.to_date,
-      total_claimed: remainingAmount,
-      notes:         `Follow-up to ${original.claim_number}. Original claimed: ${original.total_claimed} JOD, Paid: ${original.total_paid ?? 0} JOD, Outstanding: ${remainingAmount} JOD`,
+      clinic_id:      auth.clinicId,
+      hospital_id:    original.hospital_id,
+      doctor_id:      auth.userId,
+      claim_number:   claimNumber,
+      claim_seq:      seq,
+      parent_claim_id: originalClaimId,
+      is_followup:    true,
+      from_date:      original.from_date,
+      to_date:        original.to_date,
+      // Follow-up only claims the OUTSTANDING amount — not duplicating the original
+      total_claimed:  outstanding,
+      notes:          `Follow-up to ${original.claim_number}. Original: ${original.total_claimed} JOD | Paid: ${original.total_paid ?? 0} JOD | Outstanding: ${outstanding} JOD`,
       status:        "submitted",
     }).select("id").single();
 
@@ -181,11 +230,19 @@ export async function deleteClaim(claimId: string): Promise<{ success: boolean; 
   const auth = await getAuth();
   if (!auth.ok) return { success: false, error: auth.error };
 
+  // If deleting a follow-up, revert parent to submitted
+  const { data: claim } = await auth.supabase
+    .from("hospital_claims").select("is_followup, parent_claim_id").eq("id", claimId).single();
+
+  if (claim?.is_followup && claim?.parent_claim_id) {
+    await auth.supabase.from("hospital_claims")
+      .update({ status: "submitted", updated_at: new Date().toISOString() })
+      .eq("id", claim.parent_claim_id);
+  }
+
   const { error } = await auth.supabase
-    .from("hospital_claims")
-    .delete()
-    .eq("id", claimId)
-    .eq("clinic_id", auth.clinicId);
+    .from("hospital_claims").delete()
+    .eq("id", claimId).eq("clinic_id", auth.clinicId);
 
   if (error) return { success: false, error: error.message };
   revalidatePath("/doctor/claims");

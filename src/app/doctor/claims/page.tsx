@@ -19,7 +19,7 @@ export default async function DoctorClaimsPage() {
 
   const { data: claims } = await supabase
     .from("hospital_claims")
-    .select("id, claim_number, from_date, to_date, total_claimed, total_paid, paid_date, status, notes, created_at, hospitals(name)")
+    .select("id, claim_number, claim_seq, from_date, to_date, total_claimed, total_paid, paid_date, status, notes, created_at, is_followup, parent_claim_id, hospitals(name)")
     .eq("clinic_id", profile?.clinic_id ?? "")
     .eq("doctor_id", profile?.id ?? "")
     .order("created_at", { ascending: false });
@@ -42,6 +42,8 @@ export default async function DoctorClaimsPage() {
         claims={(claims ?? []).map(c => ({
           ...c,
           hospitalName: (Array.isArray(c.hospitals) ? c.hospitals[0] : c.hospitals as { name: string } | null)?.name ?? "—",
+          is_followup: c.is_followup ?? false,
+          parent_claim_id: c.parent_claim_id ?? null,
         }))}
         currency={currency}
         doctorId={profile?.id ?? ""}

@@ -17,6 +17,8 @@ interface Claim {
   notes: string | null;
   created_at: string;
   hospitalName: string;
+  is_followup?: boolean;
+  parent_claim_id?: string | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -104,8 +106,10 @@ export function ClaimsManager({
     router.refresh();
   }
 
-  const totalClaimed = initialClaims.reduce((s, c) => s + (c.total_claimed ?? 0), 0);
-  const totalPaid    = initialClaims.reduce((s, c) => s + (c.total_paid ?? 0), 0);
+  // Exclude follow-up claims from total to avoid double-counting
+  const originalClaims = initialClaims.filter(c => !c.is_followup);
+  const totalClaimed = originalClaims.reduce((s, c) => s + (c.total_claimed ?? 0), 0);
+  const totalPaid    = originalClaims.reduce((s, c) => s + (c.total_paid ?? 0), 0);
   const outstanding  = totalClaimed - totalPaid;
 
   return (
@@ -202,7 +206,12 @@ export function ClaimsManager({
               {initialClaims.map(c => (
                 <React.Fragment key={c.id}>
                   <tr className="hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-neutral-900">{c.claim_number}</td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold text-neutral-900">
+                      {c.claim_number}
+                      {c.is_followup && (
+                        <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">follow-up</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs font-medium text-neutral-800">{c.hospitalName}</td>
                     <td className="px-4 py-3 text-xs text-neutral-600">{c.from_date} – {c.to_date}</td>
                     <td className="px-4 py-3 text-right font-mono text-sm font-medium text-neutral-800">
