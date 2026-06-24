@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClaim, updateClaimPayment } from "@/lib/actions/claims";
 
@@ -175,8 +175,8 @@ export function ClaimsManager({
             </thead>
             <tbody className="divide-y divide-neutral-50">
               {initialClaims.map(c => (
-                <>
-                  <tr key={c.id} className="hover:bg-neutral-50">
+                <React.Fragment key={c.id}>
+                  <tr className="hover:bg-neutral-50">
                     <td className="px-4 py-3 font-mono text-xs font-semibold text-neutral-900">{c.claim_number}</td>
                     <td className="px-4 py-3 text-xs font-medium text-neutral-800">{c.hospitalName}</td>
                     <td className="px-4 py-3 text-xs text-neutral-600">{c.from_date} – {c.to_date}</td>
@@ -240,7 +240,7 @@ export function ClaimsManager({
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
