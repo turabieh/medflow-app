@@ -38,10 +38,12 @@ export function ScheduleManager({
   doctors,
   initialWorkingHours,
   initialBlocks,
+  showWorkingHours = true,
 }: {
   doctors: Doctor[];
   initialWorkingHours: WorkingHourRow[];
   initialBlocks: BlockRow[];
+  showWorkingHours?: boolean;
 }) {
   const [selectedDoctorId, setSelectedDoctorId] = useState(doctors[0]?.id ?? "");
   const [workingHours, setWorkingHours] = useState(initialWorkingHours);
@@ -200,6 +202,7 @@ export function ScheduleManager({
         <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
+      {showWorkingHours && (
       <div className="mb-6 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-medium text-neutral-900">Weekly working hours</h2>
         <div className="space-y-2">
@@ -256,6 +259,7 @@ export function ScheduleManager({
           })}
         </div>
       </div>
+      )}
 
       <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-medium text-neutral-900">One-off closures</h2>
