@@ -78,6 +78,24 @@ export async function createClaim(input: {
   const auth = await getAuth();
   if (!auth.ok) return { success: false, error: auth.error };
 
+  // Check for overlapping claims for same hospital (excluding follow-ups)
+  const { data: existing } = await auth.supabase
+    .from("hospital_claims")
+    .select("claim_number, from_date, to_date")
+    .eq("clinic_id", auth.clinicId)
+    .eq("hospital_id", input.hospitalId)
+    .eq("is_followup", false)
+    .lte("from_date", input.toDate)
+    .gte("to_date", input.fromDate);
+
+  if (existing && existing.length > 0) {
+    const overlap = existing[0];
+    return {
+      success: false,
+      error: `Overlapping claim exists: ${overlap.claim_number} covers ${overlap.from_date} → ${overlap.to_date}. Delete it first or choose a non-overlapping period.`,
+    };
+  }
+
   const total = await computeClaimTotal(auth.supabase, auth.clinicId, auth.userId, input.hospitalId, input.fromDate, input.toDate);
 
   // Simple sequential number: max existing seq + 1 (safe without RPC)
