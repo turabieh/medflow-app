@@ -109,10 +109,9 @@ export function InpatientActions({
           </button>
         )}
 
-        <a href={`/print/inpatient-claim?inpatientId=${inpatientId}&currency=${currency}`}
-          target="_blank" rel="noreferrer"
+        <a href="/doctor/claims"
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
-          🧾 Claim ({visits} visits · {totalFee.toFixed(2)} {currency})
+          🧾 Hospital Claims →
         </a>
 
         {status === "active" && (

@@ -59,8 +59,7 @@ export async function saveVisitSymptoms(visitId: string, symptomIds: string[]) {
   if (symptomIds.length > 0) {
     const { error } = await auth.supabase.from("visit_symptoms").insert(
       symptomIds.map((sid) => ({
-        visit_id:  visitId,
-        clinic_id: auth.clinicId,
+        visit_id:   visitId,
         symptom_id: sid,
       }))
     );
