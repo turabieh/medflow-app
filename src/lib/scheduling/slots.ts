@@ -486,3 +486,34 @@ export function isConfirmationCallDueToday(
 ): boolean {
   return getConfirmationCallDueDate(appointmentDateStr, settings) === todayStr;
 }
+
+/**
+ * Returns ALL time slots for a doctor's working day with how many
+ * appointments are already booked at each slot.
+ * Used for overbooking — secretary can see which slots have 0, 1, or 2 bookings.
+ * Slots with 2 bookings are fully blocked (no more overbooking allowed).
+ */
+export function getAllSlotsWithBookingCount(
+  doctorId: string,
+  dateStr: string,
+  workingHours: DoctorWorkingHours[],
+  bookedSlots: { doctorId: string; date: string; startTime: string }[]
+): { time: string; count: number }[] {
+  const schedule = getDoctorScheduleForDate(doctorId, dateStr, workingHours);
+  if (!schedule) return [];
+
+  const allSlots = buildAllSlots(schedule);
+
+  // Count existing bookings per slot for this doctor/date
+  const countMap = new Map<string, number>();
+  for (const b of bookedSlots) {
+    if (b.doctorId !== doctorId || b.date !== dateStr) continue;
+    const t = b.startTime.slice(0, 5);
+    countMap.set(t, (countMap.get(t) ?? 0) + 1);
+  }
+
+  return allSlots.map(time => ({
+    time,
+    count: countMap.get(time) ?? 0,
+  }));
+}

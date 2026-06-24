@@ -478,6 +478,7 @@ export interface BookWalkInInput {
   visitType: VisitType;
   secretaryNotes?: string;
   symptomIds: string[];
+  isOverbooked?: boolean;
 }
 
 /**
@@ -514,6 +515,7 @@ export async function bookWalkInAppointment(
       visit_type: input.visitType,
       status: "booked",
       heard_from: "walk_in",
+      is_overbooked: input.isOverbooked ?? false,
       secretary_notes: input.secretaryNotes?.trim() || null,
     })
     .select("id")
