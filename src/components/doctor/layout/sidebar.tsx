@@ -109,6 +109,12 @@ export function DoctorSidebarNav({
       {/* Fixed bottom nav — always visible */}
       <div className="flex-shrink-0 border-t border-neutral-100">
         <div className="px-3 py-2 space-y-0.5">
+          <Link href="/doctor/inpatients"
+            className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
+              pathname.startsWith("/doctor/inpatients") ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-700"
+            }`}>
+            🏨 Inpatients
+          </Link>
           <Link href="/doctor/patients"
             className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
               pathname.startsWith("/doctor/patients") ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-700"

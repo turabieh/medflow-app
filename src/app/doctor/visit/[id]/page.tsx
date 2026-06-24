@@ -19,7 +19,7 @@ export default async function VisitPage({
   const { data: visit, error } = await supabase
     .from("visits")
     .select(`
-      id, visit_date, visit_type, status,
+      id, visit_date, visit_type, status, visit_context, inpatient_id,
       blood_pressure, heart_rate, temperature, oxygen_saturation,
       weight_kg, height_cm, resp_rate,
       subjective, objective, assessment, plan,
@@ -113,7 +113,7 @@ export default async function VisitPage({
   // Past visits for this patient (excluding current)
   const { data: pastVisitRows } = await supabase
     .from("visits")
-    .select("id, visit_date, visit_type, status, clinical_note, voice_notes, key_clinical_points")
+    .select("id, visit_date, visit_type, status, visit_context, inpatient_id, clinical_note, voice_notes, key_clinical_points")
     .eq("patient_id", visit.patient_id)
     .neq("id", visit.id)
     .order("visit_date", { ascending: false });
@@ -177,6 +177,12 @@ export default async function VisitPage({
             }`}>
               {visit.status === "in_progress" ? "In progress" : visit.status}
             </span>
+            {visit.visit_context === "inpatient" && visit.inpatient_id && (
+              <a href={`/doctor/inpatients/${visit.inpatient_id}`}
+                className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-200">
+                🏨 Inpatient Visit →
+              </a>
+            )}
           </div>
         </div>
       </div>
