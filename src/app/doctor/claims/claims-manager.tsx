@@ -81,8 +81,8 @@ export function ClaimsManager({
     router.refresh();
   }
 
-  async function handleFollowUp(claimId: string, remaining: number) {
-    const result = await createFollowUpClaim(claimId, remaining);
+  async function handleFollowUp(claimId: string) {
+    const result = await createFollowUpClaim(claimId);
     if (!result.success) { setError(result.error ?? "Failed."); return; }
     setFollowUpId(null);
     setNewClaimId(result.claimId!);
@@ -283,7 +283,7 @@ export function ClaimsManager({
                             </p>
                           </div>
                           <button
-                            onClick={() => handleFollowUp(c.id, Math.max(0, c.total_claimed - (c.total_paid ?? 0)))}
+                            onClick={() => handleFollowUp(c.id)}
                             className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
                             Generate Follow-up for {(Math.max(0, c.total_claimed - (c.total_paid ?? 0))).toFixed(2)} {currency}
                           </button>

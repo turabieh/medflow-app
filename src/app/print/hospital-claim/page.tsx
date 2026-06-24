@@ -220,6 +220,28 @@ export default function HospitalClaimPrintPage() {
           </div>
         </div>
 
+        {/* Follow-up claim context */}
+        {claim.notes && claim.claim_number.includes("-FU") && (
+          <div style={{ marginBottom:"20px", padding:"12px 16px", background:"#fffbeb", border:"1px solid #fde68a", borderRadius:"6px" }}>
+            <div style={{ fontSize:"10px", fontWeight:"700", textTransform:"uppercase", color:"#92400e", letterSpacing:"1px", marginBottom:"8px" }}>
+              Follow-up Claim — Outstanding Balance
+            </div>
+            <p style={{ fontSize:"12px", color:"#78350f" }}>{claim.notes}</p>
+            <div style={{ marginTop:"10px", display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px" }}>
+              {[
+                { label:"Original Claimed", value: claim.notes.match(/Original claimed: ([\d.]+)/)?.[1] },
+                { label:"Previously Paid",  value: claim.notes.match(/Paid: ([\d.]+)/)?.[1] },
+                { label:"This Claim (Outstanding)", value: claim.total_claimed?.toFixed(2) },
+              ].map(f => f.value ? (
+                <div key={f.label}>
+                  <div style={{ fontSize:"9px", color:"#92400e", textTransform:"uppercase", letterSpacing:"0.5px", marginBottom:"2px" }}>{f.label}</div>
+                  <div style={{ fontSize:"14px", fontWeight:"800", color:"#78350f" }}>{f.value} {currency}</div>
+                </div>
+              ) : null)}
+            </div>
+          </div>
+        )}
+
         {/* Visits table */}
         <div style={{ marginBottom:"24px" }}>
           {rows.length === 0 ? (
