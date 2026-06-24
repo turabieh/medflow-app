@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/ui/logout-button";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", icon: "⊞" },
+  { href: "/admin/patients", label: "Patient Management", icon: "🗂" },
   { href: "/admin/settings/clinic", label: "Clinic Settings", icon: "⚙" },
   { href: "/admin/settings/users", label: "User Management", icon: "👥" },
   { href: "/admin/settings/schedules", label: "Schedule Settings", icon: "📅" },
