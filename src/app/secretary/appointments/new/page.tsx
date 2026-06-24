@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getVisitDurations } from "@/lib/actions/visit-durations";
 import { NewAppointmentForm } from "@/components/secretary/new-appointment-form";
 import Link from "next/link";
 
@@ -47,6 +48,8 @@ export default async function NewAppointmentPage({
     preloadedPatient = data;
   }
 
+  const visitDurations = await getVisitDurations(profile?.clinic_id ?? "");
+
   // Fetch upcoming booked appointments for conflict detection (next 90 days)
   const today = new Date().toISOString().split("T")[0];
   const future = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().split("T")[0];
@@ -87,6 +90,7 @@ export default async function NewAppointmentPage({
         }))}
         symptoms={symptoms ?? []}
         preloadedPatient={preloadedPatient}
+        visitDurations={visitDurations}
         bookedSlots={(bookedSlots ?? []).map(b => ({
           doctorId: b.doctor_id,
           date: b.appt_date,

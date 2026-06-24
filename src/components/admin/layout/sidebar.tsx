@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/admin/settings/clinic", label: "Clinic Settings", icon: "⚙" },
   { href: "/admin/settings/users", label: "User Management", icon: "👥" },
   { href: "/admin/settings/schedules", label: "Schedule Settings", icon: "📅" },
+  { href: "/admin/settings/visit-durations", label: "Visit Durations", icon: "⏱" },
   { href: "/admin/settings/medications", label: "Medications & Symptoms", icon: "💊" },
   { href: "/admin/settings/insurance", label: "Insurance & Procedures", icon: "🏥" },
   { href: "/admin/finance", label: "Finance & Reports", icon: "💰" },

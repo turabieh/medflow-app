@@ -27,6 +27,7 @@ export function NewAppointmentForm({
   symptoms,
   preloadedPatient,
   bookedSlots = [],
+  visitDurations = {},
 }: {
   clinicId: string;
   doctors: Doctor[];
@@ -35,6 +36,7 @@ export function NewAppointmentForm({
   symptoms: Symptom[];
   preloadedPatient: { id: string; full_name: string; phone: string } | null;
   bookedSlots?: BookedSlot[];
+  visitDurations?: Record<string, number>;
 }) {
   const router = useRouter();
 
@@ -71,16 +73,19 @@ export function NewAppointmentForm({
   }
 
   const doctorDays = workingHours.filter(wh => wh.doctorId === doctorId).map(wh => wh.dayOfWeek);
-  const effectiveSettings = doctorDays.length > 0
-    ? { ...DEFAULT_SCHEDULE_SETTINGS, workingDays: doctorDays }
-    : DEFAULT_SCHEDULE_SETTINGS;
+  const effectiveSettings = useMemo(() => {
+    const base = doctorDays.length > 0
+      ? { ...DEFAULT_SCHEDULE_SETTINGS, workingDays: doctorDays }
+      : DEFAULT_SCHEDULE_SETTINGS;
+    return Object.keys(visitDurations).length > 0 ? { ...base, visitDurations } : base;
+  }, [doctorDays, visitDurations]);
   const dateCheck = apptDate ? isDateAllowed(apptDate, effectiveSettings) : { allowed: true };
 
   // Normal available slots
   const availableSlots = useMemo(() => {
     if (!apptDate || !doctorId || !dateCheck.allowed) return [];
-    return getAvailableSlotsForDoctor(doctorId, apptDate, visitType, workingHours, blocks, []);
-  }, [doctorId, apptDate, visitType, workingHours, blocks, dateCheck.allowed]);
+    return getAvailableSlotsForDoctor(doctorId, apptDate, visitType, workingHours, blocks, [], undefined, effectiveSettings);
+  }, [doctorId, apptDate, visitType, workingHours, blocks, dateCheck.allowed, effectiveSettings]);
 
   // All slots with booking counts (for overbook mode)
   const allSlotsWithCount = useMemo(() => {
@@ -191,9 +196,10 @@ export function NewAppointmentForm({
           <label className="mb-1 block text-xs font-medium text-neutral-700">Visit type</label>
           <select value={visitType} onChange={e => setVisitType(e.target.value as VisitType)}
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-            <option value="new">New patient</option>
-            <option value="follow_up">Follow-up</option>
-            <option value="urgent">Urgent</option>
+            <option value="new">New patient{visitDurations.new ? ` (${visitDurations.new} min)` : " (45 min)"}</option>
+            <option value="follow_up">Follow-up{visitDurations.follow_up ? ` (${visitDurations.follow_up} min)` : " (30 min)"}</option>
+            <option value="urgent">Urgent{visitDurations.urgent ? ` (${visitDurations.urgent} min)` : " (15 min)"}</option>
+            <option value="consultation">Consultation{visitDurations.consultation ? ` (${visitDurations.consultation} min)` : " (30 min)"}</option>
           </select>
         </div>
       </div>

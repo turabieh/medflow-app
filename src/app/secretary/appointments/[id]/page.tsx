@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getVisitDurations } from "@/lib/actions/visit-durations";
 import { AppointmentEditForm } from "@/components/secretary/appointment-edit-form";
 
 export default async function AppointmentEditPage({
@@ -52,6 +53,20 @@ export default async function AppointmentEditPage({
     .from("doctor_schedule_blocks")
     .select("doctor_id, block_date, start_time, end_time, reason");
 
+  const visitDurations = await getVisitDurations(profile?.clinic_id ?? "");
+
+  // Fetch booked slots for conflict detection on edit
+  const today2 = new Date().toISOString().split("T")[0];
+  const future2 = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().split("T")[0];
+  const { data: bookedSlots } = await supabase
+    .from("appointments")
+    .select("doctor_id, appt_date, start_time, end_time, patient_id, patients(full_name)")
+    .eq("clinic_id", profile?.clinic_id ?? "")
+    .in("status", ["booked", "confirmed", "arrived", "with_doctor"])
+    .gte("appt_date", today2)
+    .lte("appt_date", future2)
+    .neq("id", id); // exclude current appointment
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
@@ -90,7 +105,16 @@ export default async function AppointmentEditPage({
           breakStart: wh.break_start ?? undefined,
           breakEnd: wh.break_end ?? undefined,
         }))}
+        visitDurations={visitDurations}
+        bookedSlots={(bookedSlots ?? []).map(b => ({
+          doctorId: b.doctor_id,
+          date: b.appt_date,
+          startTime: b.start_time,
+          endTime: b.end_time,
+          patientName: Array.isArray(b.patients) ? b.patients[0]?.full_name : (b.patients as {full_name?: string} | null)?.full_name ?? "Another patient",
+        }))}
         blocks={(blocks ?? []).map((b) => ({
+
           doctorId: b.doctor_id,
           blockDate: b.block_date,
           startTime: b.start_time,

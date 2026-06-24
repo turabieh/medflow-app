@@ -252,7 +252,8 @@ export async function rescheduleAppointment(
   appointmentId: string,
   newDate: string,
   newStartTime: string,
-  visitType: VisitType
+  visitType: VisitType,
+  isOverbooked?: boolean
 ): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
 
@@ -268,16 +269,14 @@ export async function rescheduleAppointment(
       appt_date: newDate,
       start_time: newStartTime,
       end_time: endTime,
-      status: "booked", // reset to booked -- a moved appointment needs reconfirming
+      is_overbooked: isOverbooked ?? false,
+      status: "booked",
       confirmation_call_attempts: 0,
       confirmation_last_call_at: null,
     })
     .eq("id", appointmentId);
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
+  if (error) return { success: false, error: error.message };
   revalidatePath("/dashboard");
   return { success: true };
 }

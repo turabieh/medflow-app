@@ -13,6 +13,8 @@
  */
 
 export interface ClinicScheduleSettings {
+  /** Custom visit durations in minutes — overrides slot-based calculation */
+  visitDurations?: Record<string, number>;
   openTime: string; // "HH:MM"
   closeTime: string; // "HH:MM"
   hasBreak: boolean;
@@ -68,7 +70,7 @@ export function isDateAllowed(
   return { allowed: true };
 }
 
-export type VisitType = "new" | "followup" | "review";
+export type VisitType = "new" | "follow_up" | "followup" | "urgent" | "consultation" | "review";
 
 function parseTime(hhmm: string): { hour: number; minute: number } {
   const [hour, minute] = hhmm.split(":").map(Number);
@@ -91,13 +93,20 @@ export function slotsNeeded(
   visitType: VisitType,
   settings: ClinicScheduleSettings
 ): number {
+  // Use custom durations from DB if available
+  if (settings.visitDurations) {
+    const minutes = settings.visitDurations[visitType];
+    if (minutes) return Math.max(1, Math.ceil(minutes / 15));
+  }
+  // Legacy defaults
   switch (visitType) {
-    case "new":
-      return settings.slotsNewPatient;
-    case "followup":
-      return settings.slotsFollowUp;
-    case "review":
-      return settings.slotsReview;
+    case "new":         return settings.slotsNewPatient;
+    case "followup":    return settings.slotsFollowUp;
+    case "follow_up":   return settings.slotsFollowUp;
+    case "urgent":      return 1; // 15 min
+    case "consultation":return 2; // 30 min
+    case "review":      return settings.slotsReview;
+    default:            return 2;
   }
 }
 
@@ -383,12 +392,15 @@ export function getAvailableSlotsForDoctor(
   workingHours: DoctorWorkingHours[],
   blocks: DoctorScheduleBlock[],
   existingAppointments: ExistingAppointmentForSlots[],
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
+  overrideSettings?: Partial<ClinicScheduleSettings>
 ): string[] {
   const schedule = getDoctorScheduleForDate(doctorId, dateStr, workingHours);
   if (!schedule) return []; // doctor doesn't work this day
 
-  const dateCheck = isDateAllowed(dateStr, schedule);
+  const mergedSchedule = overrideSettings ? { ...schedule, ...overrideSettings } : schedule;
+
+  const dateCheck = isDateAllowed(dateStr, mergedSchedule);
   if (!dateCheck.allowed) return [];
 
   const doctorAppointments = existingAppointments.filter(
@@ -398,7 +410,7 @@ export function getAvailableSlotsForDoctor(
   const baseSlots = getAvailableSlots(
     visitType,
     doctorAppointments,
-    schedule,
+    mergedSchedule,
     excludeAppointmentId,
     dateStr
   );
