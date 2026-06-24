@@ -48,10 +48,12 @@ async function computeInsuranceTotal(
     .gte("appt_date", fromDate).lte("appt_date", toDate)
     .in("status", ["finalized", "done"]);
 
-  const apptIds = (appts ?? []).map(a => a.id);
+  // Only count appointments where insurance actually owes money
+  const billableAppts = (appts ?? []).filter(a => (a.insurance_fee ?? 0) > 0 || (a.payment_amount ?? 0) > 0);
+  const apptIds = billableAppts.map(a => a.id);
 
   // Visit fees
-  const visitFeeTotal = (appts ?? []).reduce((s, a) => s + (a.insurance_fee ?? a.payment_amount ?? 0), 0);
+  const visitFeeTotal = billableAppts.reduce((s, a) => s + (a.insurance_fee ?? a.payment_amount ?? 0), 0);
 
   // Approved procedures
   let procTotal = 0;

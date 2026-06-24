@@ -6,7 +6,7 @@ export default async function InsuranceSettingsPage() {
 
   const { data: companies, error } = await supabase
     .from("insurance_companies")
-    .select("id, name, name_ar, portal_url, phone, email, notes, is_covered, is_active")
+    .select("id, name, name_ar, address, portal_url, phone, email, notes, is_covered, is_active")
     .order("name");
 
   return (

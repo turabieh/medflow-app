@@ -28,6 +28,7 @@ async function requireStaffAccess() {
 export interface AddInsuranceCompanyInput {
   name: string;
   nameAr?: string;
+  address?: string;
   portalUrl?: string;
   phone?: string;
   email?: string;
@@ -47,6 +48,7 @@ export async function addInsuranceCompany(input: AddInsuranceCompanyInput) {
     clinic_id: auth.clinicId,
     name: input.name.trim(),
     name_ar: input.nameAr?.trim() || null,
+    address: input.address?.trim() || null,
     portal_url: input.portalUrl?.trim() || null,
     phone: input.phone?.trim() || null,
     email: input.email?.trim() || null,
@@ -83,6 +85,7 @@ export async function toggleInsuranceCompanyActive(companyId: string, isActive: 
 export async function updateInsuranceCompany(id: string, input: {
   name: string;
   nameAr?: string;
+  address?: string;
   portalUrl?: string;
   phone?: string;
   email?: string;
@@ -98,6 +101,7 @@ export async function updateInsuranceCompany(id: string, input: {
     .update({
       name: input.name.trim(),
       name_ar: input.nameAr?.trim() || null,
+      address: input.address?.trim() || null,
       portal_url: input.portalUrl?.trim() || null,
       phone: input.phone?.trim() || null,
       email: input.email?.trim() || null,

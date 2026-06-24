@@ -35,7 +35,7 @@ export default function InsuranceClaimPrintPage() {
 
       const { data: claim, error: claimError } = await supabase
         .from("insurance_claims")
-        .select("*, insurance_companies(name, phone, email, portal_url, notes)")
+        .select("*, insurance_companies(name, address, phone, email, portal_url, notes)")
         .eq("id", claimId).single();
 
       if (!claim) {
@@ -65,7 +65,12 @@ export default function InsuranceClaimPrintPage() {
         .in("status", ["finalized", "done"])
         .order("appt_date") : { data: [] };
 
-      const apptIds = (appts ?? []).map((a: { id: string }) => a.id);
+      // Only include visits where insurance owes money
+      const filteredAppts = (appts ?? []).filter((a: {insurance_fee: number|null; payment_amount: number|null}) =>
+        (a.insurance_fee ?? 0) > 0 || (a.payment_amount ?? 0) > 0
+      );
+
+      const apptIds = filteredAppts.map((a: { id: string }) => a.id);
 
       // Get approved procedures for these appointments
       let procs: { appointment_id: string; procedure_name: string; price: number; auth_number: string | null; auth_date: string | null; auth_status: string }[] = [];
@@ -84,13 +89,14 @@ export default function InsuranceClaimPrintPage() {
         procsByAppt.set(p.appointment_id, arr);
       }
 
+      // Build rows only from filtered appointments
       const patientMap = new Map((patients ?? []).map((p: { id: string; full_name: string; dob: string | null; gender: string | null; insurance_policy_number: string | null }) => [p.id, p]));
 
       // Build rows
       let grandTotal = 0;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rows: any[] = [];
-      for (const a of appts ?? []) {
+      for (const a of filteredAppts) {
         const pt = patientMap.get(a.patient_id);
         const apptProcs = procsByAppt.get(a.id) ?? [];
         const visitFee = a.insurance_fee ?? a.payment_amount ?? 0;
@@ -181,7 +187,8 @@ export default function InsuranceClaimPrintPage() {
           <div>
             <div style={{ ...s.fLbl, marginBottom:"6px" }}>Billed To</div>
             <div style={{ fontSize:"14px", fontWeight:"700" }}>{insurance?.name}</div>
-            {insurance?.phone   && <div style={{ fontSize:"11px", color:"#666", marginTop:"2px" }}>Tel: {insurance.phone}</div>}
+            {insurance?.address && <div style={{ fontSize:"11px", color:"#666", marginTop:"2px" }}>{insurance.address}</div>}
+            {insurance?.phone   && <div style={{ fontSize:"11px", color:"#666" }}>Tel: {insurance.phone}</div>}
             {insurance?.email   && <div style={{ fontSize:"11px", color:"#666" }}>{insurance.email}</div>}
             {insurance?.portal_url && <div style={{ fontSize:"11px", color:"#3b82f6" }}>{insurance.portal_url}</div>}
           </div>

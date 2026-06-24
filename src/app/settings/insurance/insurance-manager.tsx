@@ -2,21 +2,21 @@
 import { useState } from "react";
 import { addInsuranceCompany, toggleInsuranceCompanyActive, updateInsuranceCompany } from "@/lib/actions/insurance";
 
-interface Company { id: string; name: string; name_ar: string|null; portal_url: string|null; phone: string|null; email: string|null; notes: string|null; is_covered: boolean; is_active: boolean; }
+interface Company { id: string; name: string; name_ar: string|null; address: string|null; portal_url: string|null; phone: string|null; email: string|null; notes: string|null; is_covered: boolean; is_active: boolean; }
 
 export function InsuranceManager({ initialCompanies }: { initialCompanies: Company[] }) {
   const [companies, setCompanies] = useState(initialCompanies);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string|null>(null);
-  const [name, setName] = useState(""); const [portalUrl, setPortalUrl] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState(""); const [notes, setNotes] = useState(""); const [isCovered, setIsCovered] = useState(true);
+  const [name, setName] = useState(""); const [address, setAddress] = useState(""); const [portalUrl, setPortalUrl] = useState(""); const [phone, setPhone] = useState(""); const [email, setEmail] = useState(""); const [notes, setNotes] = useState(""); const [isCovered, setIsCovered] = useState(true);
   const [loading, setLoading] = useState(false); const [error, setError] = useState<string|null>(null);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setError(null);
-    const r = await addInsuranceCompany({ name, portalUrl: portalUrl||undefined, phone: phone||undefined, email: email||undefined, notes: notes||undefined, isCovered });
+    const r = await addInsuranceCompany({ name, address: address||undefined, portalUrl: portalUrl||undefined, phone: phone||undefined, email: email||undefined, notes: notes||undefined, isCovered });
     setLoading(false);
     if (!r.success) { setError(r.error??'Error'); return; }
-    setCompanies(prev=>[...prev,{id:crypto.randomUUID(),name:name.trim(),name_ar:null,portal_url:portalUrl||null,phone:phone||null,email:email||null,notes:notes||null,is_covered:isCovered,is_active:true}].sort((a,b)=>a.name.localeCompare(b.name)));
+    setCompanies(prev=>[...prev,{id:crypto.randomUUID(),name:name.trim(),name_ar:null,address:address||null,portal_url:portalUrl||null,phone:phone||null,email:email||null,notes:notes||null,is_covered:isCovered,is_active:true}].sort((a,b)=>a.name.localeCompare(b.name)));
     setShowForm(false); setName(""); setPortalUrl(""); setPhone(""); setEmail(""); setNotes("");
   }
 
@@ -34,6 +34,7 @@ export function InsuranceManager({ initialCompanies }: { initialCompanies: Compa
             <div><label className="mb-1 block text-xs text-neutral-600">Portal / Website</label><input value={portalUrl} onChange={e=>setPortalUrl(e.target.value)} placeholder="https://..." className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            <div><label className="mb-1 block text-xs text-neutral-600">Address</label><input value={address} onChange={e=>setAddress(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
             <div><label className="mb-1 block text-xs text-neutral-600">Phone</label><input value={phone} onChange={e=>setPhone(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
             <div><label className="mb-1 block text-xs text-neutral-600">Email</label><input value={email} onChange={e=>setEmail(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
           </div>
@@ -49,7 +50,7 @@ export function InsuranceManager({ initialCompanies }: { initialCompanies: Compa
               <InsuranceRow key={c.id} company={c}
                 editing={editing===c.id}
                 onEdit={()=>setEditing(editing===c.id?null:c.id)}
-                onSave={async(data)=>{ const r=await updateInsuranceCompany(c.id,data); if(r.success){setCompanies(prev=>prev.map(x=>x.id===c.id?{...x,...data,name_ar:null,portal_url:data.portalUrl??null,phone:data.phone??null,email:data.email??null,notes:data.notes??null}:x)); setEditing(null);} else setError(r.error??'Error'); }}
+                onSave={async(data)=>{ const r=await updateInsuranceCompany(c.id,data); if(r.success){setCompanies(prev=>prev.map(x=>x.id===c.id?{...x,...data,name_ar:null,address:data.address??null,portal_url:data.portalUrl??null,phone:data.phone??null,email:data.email??null,notes:data.notes??null}:x)); setEditing(null);} else setError(r.error??'Error'); }}
                 onToggle={async()=>{ setCompanies(prev=>prev.map(x=>x.id===c.id?{...x,is_active:!c.is_active}:x)); await toggleInsuranceCompanyActive(c.id,!c.is_active); }} />
             ))}
           </ul>
@@ -59,8 +60,8 @@ export function InsuranceManager({ initialCompanies }: { initialCompanies: Compa
   );
 }
 
-function InsuranceRow({company,editing,onEdit,onSave,onToggle}:{company:Company;editing:boolean;onEdit:()=>void;onSave:(d:{name:string;portalUrl?:string;phone?:string;email?:string;notes?:string;isCovered:boolean})=>Promise<void>;onToggle:()=>void;}) {
-  const [name,setName]=useState(company.name); const [portal,setPortal]=useState(company.portal_url??''); const [phone,setPhone]=useState(company.phone??''); const [email,setEmail]=useState(company.email??''); const [notes,setNotes]=useState(company.notes??''); const [covered,setCovered]=useState(company.is_covered); const [saving,setSaving]=useState(false);
+function InsuranceRow({company,editing,onEdit,onSave,onToggle}:{company:Company;editing:boolean;onEdit:()=>void;onSave:(d:{name:string;address?:string;portalUrl?:string;phone?:string;email?:string;notes?:string;isCovered:boolean})=>Promise<void>;onToggle:()=>void;}) {
+  const [name,setName]=useState(company.name); const [address,setAddress]=useState(company.address??''); const [portal,setPortal]=useState(company.portal_url??''); const [phone,setPhone]=useState(company.phone??''); const [email,setEmail]=useState(company.email??''); const [notes,setNotes]=useState(company.notes??''); const [covered,setCovered]=useState(company.is_covered); const [saving,setSaving]=useState(false);
   return (
     <li className="px-4 py-2.5">
       {editing?(
@@ -70,13 +71,14 @@ function InsuranceRow({company,editing,onEdit,onSave,onToggle}:{company:Company;
             <input value={portal} onChange={e=>setPortal(e.target.value)} placeholder="Portal URL" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
           </div>
           <div className="grid grid-cols-2 gap-2">
+            <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Address" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm col-span-2"/>
             <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="Phone" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
             <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
           </div>
           <input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Notes" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
           <label className="flex items-center gap-2 text-xs text-neutral-700"><input type="checkbox" checked={covered} onChange={e=>setCovered(e.target.checked)}/>Clinic accepts this insurance</label>
           <div className="flex gap-2">
-            <button onClick={async()=>{setSaving(true);await onSave({name,portalUrl:portal||undefined,phone:phone||undefined,email:email||undefined,notes:notes||undefined,isCovered:covered});setSaving(false);}} disabled={saving} className="rounded-md bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50">{saving?"Saving...":"Save"}</button>
+            <button onClick={async()=>{setSaving(true);await onSave({name,address:address||undefined,portalUrl:portal||undefined,phone:phone||undefined,email:email||undefined,notes:notes||undefined,isCovered:covered});setSaving(false);}} disabled={saving} className="rounded-md bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50">{saving?"Saving...":"Save"}</button>
             <button onClick={onEdit} className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600">Cancel</button>
           </div>
         </div>

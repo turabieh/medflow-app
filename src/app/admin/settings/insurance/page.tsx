@@ -7,7 +7,7 @@ export default async function InsuranceProceduresPage() {
 
   const [{ data: companies }, { data: procedures }] = await Promise.all([
     supabase.from("insurance_companies")
-      .select("id, name, name_ar, portal_url, phone, email, notes, is_covered, is_active")
+      .select("id, name, name_ar, address, portal_url, phone, email, notes, is_covered, is_active")
       .order("name"),
     supabase.from("procedures_catalog")
       .select("id, name, name_ar, category, outpatient_price, inpatient_price, duration_minutes, notes, is_active")
