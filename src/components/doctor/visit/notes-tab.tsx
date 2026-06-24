@@ -16,6 +16,7 @@ interface Diagnosis { id: string; icd_code: string | null; description: string; 
 
 export function NotesTab({
   visitId,
+  appointmentId,
   voiceNotes,
   keyPoints,
   prescriptions,
@@ -23,6 +24,7 @@ export function NotesTab({
   diagnoses,
 }: {
   visitId: string;
+  appointmentId: string;
   voiceNotes: string | null;
   keyPoints: string | null;
   prescriptions: Prescription[];
@@ -280,6 +282,118 @@ export function NotesTab({
           </form>
         </div>
       </section>
+
+      {/* Insurance Procedures (pre-authorization) */}
+      <InsuranceProceduresSection visitId={visitId} appointmentId={appointmentId} />
     </div>
+  );
+}
+
+// ── Insurance Procedures sub-component ────────────────────────────────────────
+function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: string; appointmentId: string }) {
+  const router = useRouter();
+  const [procs, setProcs] = useState<{id:string;procedure_name:string;price:number;auth_number:string|null;auth_date:string|null;auth_status:string}[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [procName, setProcName] = useState("");
+  const [procPrice, setProcPrice] = useState("");
+  const [authNum, setAuthNum] = useState("");
+  const [authDate, setAuthDate] = useState("");
+  const [authStatus, setAuthStatus] = useState<"pending"|"approved"|"not_required">("pending");
+  const [adding, setAdding] = useState(false);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (!show || loaded) return;
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const supabase = createClient();
+      supabase.from("outpatient_procedure_claims")
+        .select("id, procedure_name, price, auth_number, auth_date, auth_status")
+        .eq("visit_id", visitId)
+        .then(({ data }) => { setProcs(data ?? []); setLoaded(true); });
+    });
+  }, [show, visitId, loaded]);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!procName.trim()) return;
+    setAdding(true);
+    const { saveOutpatientProcedure } = await import("@/lib/actions/insurance-claims");
+    await saveOutpatientProcedure({
+      visitId, appointmentId,
+      procedureName: procName, price: parseFloat(procPrice || "0"),
+      authNumber: authNum || undefined, authDate: authDate || undefined, authStatus,
+    });
+    setAdding(false); setLoaded(false); setProcName(""); setProcPrice(""); setAuthNum(""); setAuthDate("");
+    router.refresh();
+  }
+
+  async function handleDelete(id: string) {
+    const { deleteOutpatientProcedure } = await import("@/lib/actions/insurance-claims");
+    await deleteOutpatientProcedure(id);
+    setProcs(p => p.filter(x => x.id !== id));
+  }
+
+  const AUTH_LABELS: Record<string, string> = { pending: "⏳ Pending", approved: "✓ Approved", rejected: "✗ Rejected", not_required: "N/A" };
+  const AUTH_COLORS: Record<string, string> = { pending: "text-amber-600", approved: "text-green-600", rejected: "text-red-600", not_required: "text-neutral-400" };
+
+  return (
+    <section className="rounded-lg border border-neutral-200 bg-white shadow-sm">
+      <button type="button" onClick={() => setShow(s => !s)}
+        className="w-full flex items-center justify-between border-b border-neutral-100 px-4 py-3 hover:bg-neutral-50">
+        <h2 className="text-sm font-medium text-neutral-900">Insurance Procedures &amp; Pre-Authorization</h2>
+        <span className="text-xs text-neutral-400">{show ? "▲ Hide" : "▼ Show"}</span>
+      </button>
+      {show && (
+        <div className="p-4 space-y-3">
+          {procs.length > 0 && (
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-neutral-500 border-b border-neutral-100">
+                <th className="py-1.5 pr-3">Procedure</th>
+                <th className="py-1.5 pr-3 text-right">Price</th>
+                <th className="py-1.5 pr-3">Auth #</th>
+                <th className="py-1.5 pr-3">Status</th>
+                <th />
+              </tr></thead>
+              <tbody className="divide-y divide-neutral-50">
+                {procs.map(p => (
+                  <tr key={p.id}>
+                    <td className="py-1.5 pr-3 font-medium">{p.procedure_name}</td>
+                    <td className="py-1.5 pr-3 text-right font-mono text-xs">{p.price.toFixed(2)}</td>
+                    <td className="py-1.5 pr-3 font-mono text-xs text-neutral-600">{p.auth_number ?? "—"}</td>
+                    <td className={`py-1.5 pr-3 text-xs font-medium ${AUTH_COLORS[p.auth_status] ?? ""}`}>{AUTH_LABELS[p.auth_status] ?? p.auth_status}</td>
+                    <td><button onClick={() => handleDelete(p.id)} className="text-xs text-red-400 hover:text-red-600">Remove</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <form onSubmit={handleAdd} className="rounded-md border border-dashed border-neutral-300 p-3 space-y-2">
+            <p className="text-xs font-medium text-neutral-600">+ Add Insurance Procedure</p>
+            <div className="grid grid-cols-4 gap-2">
+              <input value={procName} onChange={e => setProcName(e.target.value)} required
+                placeholder="Procedure name" className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              <input type="number" min="0" step="0.01" value={procPrice} onChange={e => setProcPrice(e.target.value)}
+                placeholder="Price" className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              <select value={authStatus} onChange={e => setAuthStatus(e.target.value as typeof authStatus)}
+                className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs">
+                <option value="pending">Pending auth</option>
+                <option value="approved">Approved</option>
+                <option value="not_required">Not required</option>
+              </select>
+              {authStatus === "approved" && (<>
+                <input value={authNum} onChange={e => setAuthNum(e.target.value)}
+                  placeholder="Auth / Referral #" className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+                <input type="date" value={authDate} onChange={e => setAuthDate(e.target.value)}
+                  className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              </>)}
+            </div>
+            <button type="submit" disabled={adding}
+              className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
+              {adding ? "Adding..." : "+ Add"}
+            </button>
+          </form>
+        </div>
+      )}
+    </section>
   );
 }

@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/secretary/appointments", label: "Appointments", icon: "📅" },
   { href: "/secretary/schedule", label: "Schedule", icon: "🗓" },
   { href: "/secretary/reports", label: "Reports & Print", icon: "🖨" },
+  { href: "/secretary/insurance-claims", label: "Insurance Claims", icon: "🏦" },
   { href: "/secretary/settings/schedules", label: "Settings", icon: "⚙" },
 ];
 

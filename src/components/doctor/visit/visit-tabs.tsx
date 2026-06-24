@@ -158,6 +158,7 @@ export function VisitTabs(props: VisitTabsProps) {
         {activeTab === "notes" && (
           <NotesTab
             visitId={props.visitId}
+            appointmentId={props.appointmentId}
             voiceNotes={props.voiceNotes}
             keyPoints={props.keyPoints}
             prescriptions={props.prescriptions}
