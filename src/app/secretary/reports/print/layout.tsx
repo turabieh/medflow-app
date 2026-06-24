@@ -1,12 +1,14 @@
-// The print page opens in a new tab and renders raw HTML for the
-// browser's print dialog. It must NOT include the secretary sidebar
-// layout, so we override the layout for this route specifically by
-// providing a minimal wrapper that lets the page render as a full
-// standalone document.
-export default function PrintLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return children;
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: " " };
+
+// Completely bypass the secretary layout — print page is standalone
+export default function PrintLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body style={{ margin: 0, padding: 0, background: "#fff" }}>
+        {children}
+      </body>
+    </html>
+  );
 }
