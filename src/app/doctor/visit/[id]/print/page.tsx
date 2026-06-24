@@ -306,9 +306,18 @@ export default function VisitPrintPage() {
             <div style={{ marginTop: "4px", color: "#aaa" }}>Date: {printDate}</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={s.sigLine}>
-              <div style={{ fontWeight: "700", fontSize: "11px", color: "#333" }}>{doctor?.full_name as string}</div>
-              {(doctor?.specialty as string) && <div style={{ fontSize: "10px", color: "#888" }}>{(doctor as Record<string,unknown>)?.specialty as string}</div>}
+            {(doctor?.signature_url as string) && (
+              <img
+                src={doctor.signature_url as string}
+                alt="Signature"
+                style={{ height: "56px", maxWidth: "200px", objectFit: "contain", display: "block", margin: "0 auto 0" }}
+              />
+            )}
+            <div style={{ width: "220px", borderTop: "1px solid #222", paddingTop: "5px", marginTop: (doctor?.signature_url as string) ? "4px" : "48px" }}>
+              <div style={{ fontWeight: "700", fontSize: "11px", color: "#222" }}>{doctor?.full_name as string}</div>
+              {(doctor?.specialty as string) && (
+                <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>{(doctor as Record<string,unknown>)?.specialty as string}</div>
+              )}
             </div>
           </div>
         </div>
