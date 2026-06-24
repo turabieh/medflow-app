@@ -16,7 +16,7 @@ import { bookWalkInAppointment } from "@/lib/actions/appointments";
 function formatSlot(t: string) { const [h,m] = t.split(':'); const hr = parseInt(h); return `${hr > 12 ? hr-12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`; }
 
 interface Doctor { id: string; full_name: string; }
-interface Symptom { id: string; name: string; name_ar: string | null; }
+interface Symptom { id: string; name: string; name_ar: string | null; category: string; }
 interface BookedSlot { doctorId: string; date: string; startTime: string; endTime: string; patientName: string; }
 
 export function NewAppointmentForm({
@@ -328,11 +328,11 @@ export function NewAppointmentForm({
       )}
 
       {/* Symptoms */}
-      {symptoms.length > 0 && (
+      {symptoms.filter(s => s.category === "basic").length > 0 && (
         <div>
           <label className="mb-2 block text-xs font-medium text-neutral-700">Symptoms (optional)</label>
           <div className="grid grid-cols-2 gap-1.5">
-            {symptoms.map(s => (
+            {symptoms.filter(s => s.category === "basic").map(s => (
               <label key={s.id} className="flex items-center gap-2 text-xs text-neutral-700 cursor-pointer">
                 <input type="checkbox" checked={symptomIds.has(s.id)} onChange={() => toggleSymptom(s.id)}
                   className="accent-red-500" />

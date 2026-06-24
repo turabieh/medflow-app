@@ -33,7 +33,7 @@ export default async function NewAppointmentPage({
 
   const { data: symptoms } = await supabase
     .from("symptoms_catalog")
-    .select("id, name, name_ar")
+    .select("id, name, name_ar, category")
     .eq("is_active", true)
     .order("name");
 
