@@ -35,7 +35,7 @@ export default function InsuranceClaimPrintPage() {
 
       const { data: claim, error: claimError } = await supabase
         .from("insurance_claims")
-        .select("*, insurance_companies(name, address, phone, email, portal_url)")
+        .select("*, insurance_companies(name, phone, email, portal_url, notes)")
         .eq("id", claimId).single();
 
       if (!claim) {
@@ -181,8 +181,7 @@ export default function InsuranceClaimPrintPage() {
           <div>
             <div style={{ ...s.fLbl, marginBottom:"6px" }}>Billed To</div>
             <div style={{ fontSize:"14px", fontWeight:"700" }}>{insurance?.name}</div>
-            {insurance?.address && <div style={{ fontSize:"11px", color:"#666", marginTop:"2px" }}>{insurance.address}</div>}
-            {insurance?.phone   && <div style={{ fontSize:"11px", color:"#666" }}>Tel: {insurance.phone}</div>}
+            {insurance?.phone   && <div style={{ fontSize:"11px", color:"#666", marginTop:"2px" }}>Tel: {insurance.phone}</div>}
             {insurance?.email   && <div style={{ fontSize:"11px", color:"#666" }}>{insurance.email}</div>}
             {insurance?.portal_url && <div style={{ fontSize:"11px", color:"#3b82f6" }}>{insurance.portal_url}</div>}
           </div>
