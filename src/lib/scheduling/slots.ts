@@ -138,6 +138,7 @@ export function buildAllSlots(settings: ClinicScheduleSettings): string[] {
 export interface ExistingAppointmentForSlots {
   id: string;
   start_time: string | null; // "HH:MM:SS" or "HH:MM"
+  end_time?: string | null;  // if provided, blocks all slots from start to end
   visit_type: VisitType;
   status: string;
   doctor_id?: string | null;
@@ -173,12 +174,21 @@ export function getAvailableSlots(
     if (!appt.start_time) continue;
     if (appt.status === "cancelled" || appt.status === "no_show") continue;
 
-    const normalizedTime = appt.start_time.slice(0, 5); // "HH:MM:SS" -> "HH:MM"
-    const startIdx = allSlots.indexOf(normalizedTime);
+    const normalizedStart = appt.start_time.slice(0, 5);
+    const startIdx = allSlots.indexOf(normalizedStart);
     if (startIdx === -1) continue;
 
-    const apptNeeded = slotsNeeded(appt.visit_type, settings);
-    for (let i = 0; i < apptNeeded; i++) {
+    let apptSlots: number;
+    if (appt.end_time) {
+      // Use actual end_time for precise blocking
+      const normalizedEnd = appt.end_time.slice(0, 5);
+      const endIdx = allSlots.indexOf(normalizedEnd);
+      apptSlots = endIdx > startIdx ? endIdx - startIdx : slotsNeeded(appt.visit_type, settings);
+    } else {
+      apptSlots = slotsNeeded(appt.visit_type, settings);
+    }
+
+    for (let i = 0; i < apptSlots; i++) {
       const idx = startIdx + i;
       if (idx < allSlots.length) {
         occupied.add(allSlots[idx]);
@@ -509,23 +519,37 @@ export function getAllSlotsWithBookingCount(
   doctorId: string,
   dateStr: string,
   workingHours: DoctorWorkingHours[],
-  bookedSlots: { doctorId: string; date: string; startTime: string }[]
-): { time: string; count: number }[] {
+  bookedSlots: { doctorId: string; date: string; startTime: string; endTime: string }[]
+): { time: string; count: number; bookedStartTimes: string[] }[] {
   const schedule = getDoctorScheduleForDate(doctorId, dateStr, workingHours);
   if (!schedule) return [];
 
   const allSlots = buildAllSlots(schedule);
 
-  // Count existing bookings per slot for this doctor/date
-  const countMap = new Map<string, number>();
+  // For each slot, collect all appointments whose time RANGE overlaps this slot
+  // count = number of appointments overlapping; bookedStartTimes for display
+  const slotMap = new Map<string, { count: number; starts: string[] }>();
+
   for (const b of bookedSlots) {
     if (b.doctorId !== doctorId || b.date !== dateStr) continue;
-    const t = b.startTime.slice(0, 5);
-    countMap.set(t, (countMap.get(t) ?? 0) + 1);
+    const startMins = timeToMinutes(b.startTime.slice(0, 5));
+    const endMins   = timeToMinutes(b.endTime.slice(0, 5));
+    for (const slot of allSlots) {
+      const slotMins = timeToMinutes(slot);
+      if (slotMins >= startMins && slotMins < endMins) {
+        const entry = slotMap.get(slot) ?? { count: 0, starts: [] };
+        entry.count++;
+        if (!entry.starts.includes(b.startTime.slice(0, 5))) {
+          entry.starts.push(b.startTime.slice(0, 5));
+        }
+        slotMap.set(slot, entry);
+      }
+    }
   }
 
   return allSlots.map(time => ({
     time,
-    count: countMap.get(time) ?? 0,
+    count: slotMap.get(time)?.count ?? 0,
+    bookedStartTimes: slotMap.get(time)?.starts ?? [],
   }));
 }

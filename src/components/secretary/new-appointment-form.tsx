@@ -84,8 +84,18 @@ export function NewAppointmentForm({
   // Normal available slots
   const availableSlots = useMemo(() => {
     if (!apptDate || !doctorId || !dateCheck.allowed) return [];
-    return getAvailableSlotsForDoctor(doctorId, apptDate, visitType, workingHours, blocks, [], undefined, effectiveSettings);
-  }, [doctorId, apptDate, visitType, workingHours, blocks, dateCheck.allowed, effectiveSettings]);
+    const existing = bookedSlots
+      .filter(b => b.doctorId === doctorId && b.date === apptDate)
+      .map(b => ({
+        id: `${b.doctorId}-${b.date}-${b.startTime}`,
+        start_time: b.startTime,
+        end_time: b.endTime,
+        visit_type: "follow_up" as VisitType,
+        status: "booked",
+        doctor_id: b.doctorId,
+      }));
+    return getAvailableSlotsForDoctor(doctorId, apptDate, visitType, workingHours, blocks, existing, undefined, effectiveSettings);
+  }, [doctorId, apptDate, visitType, workingHours, blocks, dateCheck.allowed, bookedSlots, effectiveSettings]);
 
   // All slots with booking counts (for overbook mode)
   const allSlotsWithCount = useMemo(() => {
