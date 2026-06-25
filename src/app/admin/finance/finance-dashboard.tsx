@@ -441,9 +441,11 @@ export function FinanceDashboard({
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
             <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3 flex justify-between items-center">
               <p className="text-sm font-semibold text-neutral-900">Profit &amp; Loss — {fromDate} to {toDate}</p>
-              <button onClick={() => window.print()} className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
+              <a href={`/print/finance-report?from=${fromDate}&to=${toDate}&currency=${currency}`}
+                target="_blank" rel="noreferrer"
+                className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
                 Print Report
-              </button>
+              </a>
             </div>
             <div className="p-4">
               <table className="w-full text-sm">

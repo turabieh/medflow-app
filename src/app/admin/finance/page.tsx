@@ -84,13 +84,31 @@ export default async function AdminFinancePage({
   function computeOutstanding(claims: { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]) {
     const originals = claims.filter(c => !c.is_followup);
     const followUps = claims.filter(c => c.is_followup);
-    // For each original: outstanding = claimed - (original paid + sum of follow-up paid linked to it)
+
     return originals.reduce((sum, orig) => {
-      if (orig.status === "paid") return sum; // fully resolved
       const origPaid = orig.total_paid ?? 0;
-      const fuPaid   = followUps.filter(fu => fu.parent_claim_id === orig.id).reduce((s, fu) => s + (fu.total_paid ?? 0), 0);
-      const outstanding = Math.max(0, orig.total_claimed - origPaid - fuPaid);
-      return sum + outstanding;
+      // Sum all follow-up payments linked to this original
+      const linkedFUs = followUps.filter(fu => fu.parent_claim_id === orig.id);
+      const fuPaid    = linkedFUs.reduce((s, fu) => s + (fu.total_paid ?? 0), 0);
+      // Outstanding on the original side
+      const origOutstanding = Math.max(0, orig.total_claimed - origPaid - fuPaid);
+
+      // Also add any outstanding on open follow-up claims
+      // (follow-up was partially paid and still open)
+      const fuOutstanding = linkedFUs.reduce((s, fu) => {
+        if (fu.status === "paid") return s;
+        return s + Math.max(0, (fu.total_claimed ?? 0) - (fu.total_paid ?? 0));
+      }, 0);
+
+      // If original is fully covered by origPaid + fuPaid, no outstanding
+      // But if a follow-up is still partially paid, that remainder is outstanding
+      const totalCovered = origPaid + fuPaid;
+      if (totalCovered >= orig.total_claimed) {
+        // Original fully paid — check if follow-up itself has uncollected balance
+        return sum + fuOutstanding;
+      }
+      // Original not fully covered — outstanding is the gap
+      return sum + origOutstanding;
     }, 0);
   }
 
