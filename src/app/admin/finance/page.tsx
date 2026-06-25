@@ -201,6 +201,92 @@ export default async function AdminFinancePage({
     methodBreakdown[m] = (methodBreakdown[m] ?? 0) + (p.payment_amount ?? 0);
   }
 
+  // ── UNCLAIMED REVENUE ────────────────────────────────────────────────────
+  // Insurance: finalized appointments with insurance_fee > 0 not yet in any claim
+  const { data: allInsuranceClaims } = await supabase
+    .from("insurance_claims")
+    .select("insurance_company_id, from_date, to_date")
+    .eq("clinic_id", clinicId)
+    .eq("is_followup", false);
+
+  // Get all finalized appointments with insurance fees
+  const { data: insAppts } = await supabase
+    .from("appointments")
+    .select("id, appt_date, insurance_fee, payment_amount, patient_id, patients(insurance_company_id, insurance_companies(id, name))")
+    .eq("clinic_id", clinicId)
+    .in("status", ["finalized", "done"])
+    .or("insurance_fee.gt.0,payment_amount.gt.0");
+
+  // Find unclaimed insurance appointments
+  const unclaimedInsMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
+  for (const a of insAppts ?? []) {
+    const pt = Array.isArray(a.patients) ? a.patients[0] : a.patients as { insurance_company_id: string | null; insurance_companies: { id: string; name: string } | { id: string; name: string }[] | null } | null;
+    const ins = pt?.insurance_companies ? (Array.isArray(pt.insurance_companies) ? pt.insurance_companies[0] : pt.insurance_companies) as { id: string; name: string } | null : null;
+    if (!ins || !a.appt_date) continue;
+    // Check if this appointment's date is covered by an existing claim
+    const isClaimed = (allInsuranceClaims ?? []).some(c =>
+      c.insurance_company_id === ins.id &&
+      a.appt_date >= c.from_date &&
+      a.appt_date <= c.to_date
+    );
+    if (isClaimed) continue;
+    const fee = (a.insurance_fee ?? 0) > 0 ? a.insurance_fee : a.payment_amount;
+    const entry = unclaimedInsMap.get(ins.id) ?? { id: ins.id, name: ins.name, amount: 0, count: 0, earliestDate: a.appt_date, latestDate: a.appt_date };
+    entry.amount += fee ?? 0;
+    entry.count++;
+    if (a.appt_date < entry.earliestDate) entry.earliestDate = a.appt_date;
+    if (a.appt_date > entry.latestDate)   entry.latestDate   = a.appt_date;
+    unclaimedInsMap.set(ins.id, entry);
+  }
+  const unclaimedInsurance = Array.from(unclaimedInsMap.values()).sort((a, b) => b.amount - a.amount);
+
+  // Hospital: inpatient visits not yet in any claim
+  const { data: allHospClaimsUnclaimed } = await supabase
+    .from("hospital_claims")
+    .select("hospital_id, from_date, to_date")
+    .eq("clinic_id", clinicId)
+    .eq("is_followup", false);
+
+  const { data: inpatientsList } = await supabase
+    .from("inpatients")
+    .select("id, hospital_id, hospitals(id, name)")
+    .eq("clinic_id", clinicId);
+
+  const inpatientHospMap = new Map((inpatientsList ?? []).map(ip => [ip.id, ip]));
+
+  const { data: hospVisits } = await supabase
+    .from("visits")
+    .select("id, visit_date, visit_fee, inpatient_id")
+    .eq("visit_context", "inpatient")
+    .in("status", ["done", "finalized"])
+    .not("visit_fee", "is", null)
+    .gt("visit_fee", 0);
+
+  const unclaimedHospMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
+  for (const v of hospVisits ?? []) {
+    if (!v.inpatient_id || !v.visit_date) continue;
+    const ip   = inpatientHospMap.get(v.inpatient_id);
+    if (!ip?.hospital_id) continue;
+    const hosp = Array.isArray(ip.hospitals) ? ip.hospitals[0] : ip.hospitals as { id: string; name: string } | null;
+    if (!hosp) continue;
+    // Check if this visit's date is covered by a hospital claim
+    const isClaimed = (allHospClaimsUnclaimed ?? []).some(c =>
+      c.hospital_id === hosp.id &&
+      v.visit_date >= c.from_date &&
+      v.visit_date <= c.to_date
+    );
+    if (isClaimed) continue;
+    const entry = unclaimedHospMap.get(hosp.id) ?? { id: hosp.id, name: hosp.name, amount: 0, count: 0, earliestDate: v.visit_date, latestDate: v.visit_date };
+    entry.amount += v.visit_fee ?? 0;
+    entry.count++;
+    if (v.visit_date < entry.earliestDate) entry.earliestDate = v.visit_date;
+    if (v.visit_date > entry.latestDate)   entry.latestDate   = v.visit_date;
+    unclaimedHospMap.set(hosp.id, entry);
+  }
+  const unclaimedHospital = Array.from(unclaimedHospMap.values()).sort((a, b) => b.amount - a.amount);
+
+  const totalUnclaimed = [...unclaimedInsurance, ...unclaimedHospital].reduce((s, x) => s + x.amount, 0);
+
   return (
     <div>
       <h1 className="mb-1 text-lg font-medium text-neutral-900">Finance &amp; Reports</h1>
@@ -232,6 +318,9 @@ export default async function AdminFinancePage({
         staff={staff ?? []}
         latestSalaries={Array.from(latestSalaryMap.values())}
         clinicId={clinicId}
+        unclaimedInsurance={unclaimedInsurance}
+        unclaimedHospital={unclaimedHospital}
+        totalUnclaimed={totalUnclaimed}
       />
     </div>
   );

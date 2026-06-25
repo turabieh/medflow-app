@@ -17,6 +17,7 @@ type Expense = { id: string; expense_date: string; category: string; description
 type StaffMember = { id: string; full_name: string; role: string };
 type SalaryEntry = { name: string; role: string; salary: number };
 type MonthlyPoint = { month: string; revenue: number; expenses: number; profit: number };
+type UnclaimedEntry = { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string };
 
 function fmt(n: number, currency: string) { return `${n.toFixed(2)} ${currency}`; }
 
@@ -93,6 +94,7 @@ export function FinanceDashboard({
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
   staff, latestSalaries, clinicId,
+  unclaimedInsurance, unclaimedHospital, totalUnclaimed,
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
@@ -101,6 +103,7 @@ export function FinanceDashboard({
   totalSalaries: number; totalCosts: number; netProfit: number;
   monthlyTrend: MonthlyPoint[];
   staff: StaffMember[]; latestSalaries: SalaryEntry[]; clinicId: string;
+  unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tab);
@@ -128,6 +131,7 @@ export function FinanceDashboard({
     { id:"expenses",  label:"Expenses" },
     { id:"salaries",  label:"Staff & Salaries" },
     { id:"reports",   label:"Reports" },
+    { id:"unclaimed",  label:"Unclaimed Revenue 🔴" },
   ];
 
   async function handleAddExpense(e: React.FormEvent) {
@@ -191,7 +195,7 @@ export function FinanceDashboard({
             <StatCard label="Total Revenue" value={fmt(totalRevenue, currency)} color="text-green-700" />
             <StatCard label="Total Costs"   value={fmt(totalCosts, currency)}   color="text-red-600" />
             <StatCard label="Net Profit"    value={fmt(netProfit, currency)}    color={netProfit >= 0 ? "text-emerald-700" : "text-red-700"} highlight={netProfit < 0} />
-            <StatCard label="Outstanding (claims)" value={fmt(hospOutstanding + insOutstanding, currency)} color="text-amber-700" sub="Not yet received" />
+            <StatCard label="Unclaimed Revenue" value={fmt(totalUnclaimed, currency)} color="text-red-600" sub="Not yet invoiced" highlight={totalUnclaimed > 0} />
           </div>
 
           {/* Revenue breakdown */}
@@ -595,6 +599,100 @@ export function FinanceDashboard({
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── UNCLAIMED REVENUE TAB ── */}
+      {activeTab === "unclaimed" && (
+        <div className="space-y-5">
+          <div className={`rounded-xl border p-4 shadow-sm ${totalUnclaimed > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}>
+            <p className={`text-2xl font-bold ${totalUnclaimed > 0 ? "text-red-700" : "text-green-700"}`}>{fmt(totalUnclaimed, currency)}</p>
+            <p className="text-sm font-medium text-neutral-700 mt-0.5">{totalUnclaimed > 0 ? "Total unclaimed revenue — ready to generate claims" : "All revenue is claimed ✓"}</p>
+          </div>
+
+          {unclaimedInsurance.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                <p className="text-sm font-semibold text-neutral-900">🏦 Insurance Companies — Unclaimed</p>
+                <p className="text-xs text-neutral-400 mt-0.5">Finalized outpatient visits not yet included in any claim</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-neutral-100 text-left">
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Insurance</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Period</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-center">Visits</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-right">Amount</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr></thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {unclaimedInsurance.map(e => (
+                    <tr key={e.id} className="hover:bg-amber-50/30">
+                      <td className="px-4 py-3 font-semibold text-neutral-900">{e.name}</td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">{e.earliestDate} → {e.latestDate}</td>
+                      <td className="px-4 py-3 text-center"><span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">{e.count}</span></td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-amber-700">{fmt(e.amount, currency)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <a href={`/secretary/insurance-claims`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+                          Generate Claim →
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot><tr className="border-t border-neutral-200 bg-neutral-50">
+                  <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-right text-neutral-600">Total unclaimed (insurance)</td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-amber-700">{fmt(unclaimedInsurance.reduce((s, e) => s + e.amount, 0), currency)}</td>
+                  <td />
+                </tr></tfoot>
+              </table>
+            </div>
+          )}
+
+          {unclaimedHospital.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                <p className="text-sm font-semibold text-neutral-900">🏨 Hospitals — Unclaimed</p>
+                <p className="text-xs text-neutral-400 mt-0.5">Completed inpatient visits not yet included in any claim</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-neutral-100 text-left">
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Hospital</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Period</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-center">Visits</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-right">Amount</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr></thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {unclaimedHospital.map(e => (
+                    <tr key={e.id} className="hover:bg-blue-50/30">
+                      <td className="px-4 py-3 font-semibold text-neutral-900">{e.name}</td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">{e.earliestDate} → {e.latestDate}</td>
+                      <td className="px-4 py-3 text-center"><span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">{e.count}</span></td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-blue-700">{fmt(e.amount, currency)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <a href={`/doctor/claims`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+                          Generate Claim →
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot><tr className="border-t border-neutral-200 bg-neutral-50">
+                  <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-right text-neutral-600">Total unclaimed (hospitals)</td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-blue-700">{fmt(unclaimedHospital.reduce((s, e) => s + e.amount, 0), currency)}</td>
+                  <td />
+                </tr></tfoot>
+              </table>
+            </div>
+          )}
+
+          {unclaimedInsurance.length === 0 && unclaimedHospital.length === 0 && (
+            <div className="rounded-xl border border-dashed border-neutral-300 p-12 text-center">
+              <p className="text-2xl mb-2">✅</p>
+              <p className="text-sm font-medium text-neutral-700">All revenue has been claimed</p>
+              <p className="text-xs text-neutral-400 mt-1">No outstanding unclaimed visits found</p>
             </div>
           )}
         </div>
