@@ -26,7 +26,7 @@ export default async function PortalPatientPage({ params }: { params: Promise<{ 
 
   const { data: visits } = await supabase
     .from("visits")
-    .select("id, visit_date, visit_type, status, visit_fee, symptoms")
+    .select("id, visit_date, visit_type, status, visit_fee, subjective")
     .eq("inpatient_id", id)
     .order("visit_date", { ascending: false })
     .limit(20);
@@ -126,7 +126,7 @@ export default async function PortalPatientPage({ params }: { params: Promise<{ 
                     {v.visit_type?.replace("_"," ")} {v.visit_date===today && "· Today"}
                   </div>
                   <div style={{ fontSize:"12px", color:"#64748b", marginTop:"2px" }}>{v.visit_date}</div>
-                  {v.symptoms && <div style={{ fontSize:"11px", color:"#475569", marginTop:"3px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"200px" }}>{v.symptoms}</div>}
+                  {v.subjective && <div style={{ fontSize:"11px", color:"#475569", marginTop:"3px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:"200px" }}>{v.subjective}</div>}
                 </div>
                 <div style={{ textAlign:"right" }}>
                   {v.visit_fee && <div style={{ fontSize:"14px", fontWeight:"700", color:"#34d399" }}>{v.visit_fee} JOD</div>}
