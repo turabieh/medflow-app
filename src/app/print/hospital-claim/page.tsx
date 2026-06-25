@@ -35,6 +35,16 @@ export default function HospitalClaimPrintPage() {
 
       if (!claim) { setData({ error: `Claim not found. ${claimError?.message ?? ""}` }); setLoading(false); return; }
 
+      // For follow-up: fetch parent claim to show original amount + paid breakdown
+      let parentClaim = null;
+      if (claim.is_followup && claim.parent_claim_id) {
+        const { data: pc } = await supabase
+          .from("hospital_claims")
+          .select("claim_number, total_claimed, total_paid")
+          .eq("id", claim.parent_claim_id).single();
+        parentClaim = pc;
+      }
+
       const { data: clinic } = await supabase
         .from("clinics").select("name, name_ar, tagline, logo_url, address, phone, email").limit(1).single();
 
@@ -106,7 +116,7 @@ export default function HospitalClaimPrintPage() {
       // For follow-up: display claim.total_claimed (the outstanding), not the sum of all visits
       const displayTotal = claim.is_followup ? claim.total_claimed : computedTotal;
 
-      setData({ claim, clinic, rows, displayTotal });
+      setData({ claim, clinic, rows, displayTotal, parentClaim });
       setLoading(false);
     }
     load();
@@ -118,7 +128,7 @@ export default function HospitalClaimPrintPage() {
   if (data?.error) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00", flexDirection:"column" as const, gap:"8px" }}><div>Error</div><div style={{fontSize:"12px"}}>{data.error}</div></div>;
   if (!data?.claim) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>Claim not found.</div>;
 
-  const { claim, clinic, rows, displayTotal } = data;
+  const { claim, clinic, rows, displayTotal, parentClaim } = data;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hospital = Array.isArray(claim.hospitals) ? claim.hospitals[0] : claim.hospitals as any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -246,14 +256,43 @@ export default function HospitalClaimPrintPage() {
             })}
           </tbody>
           <tfoot>
-            <tr style={{ background:"#f0f0f0" }}>
-              <td colSpan={10} style={{ padding:"7px", textAlign:"right", fontWeight:"700", fontSize:"12px", border:"1px solid #ccc", paddingRight:"10px" }}>
-                {claim.is_followup ? "Outstanding Amount" : `Total Claimed (${rows.length} visit${rows.length !== 1 ? "s" : ""})`}
-              </td>
-              <td style={{ padding:"7px 10px", textAlign:"right", fontWeight:"800", fontSize:"14px", fontFamily:"monospace", border:"1px solid #ccc", color:"#111" }}>
-                {(displayTotal ?? 0).toFixed(2)} {currency}
-              </td>
-            </tr>
+            {claim.is_followup && parentClaim ? (
+              <>
+                <tr style={{ background:"#f8f8f8" }}>
+                  <td colSpan={10} style={{ padding:"6px 10px", textAlign:"right", fontSize:"10px", color:"#555", border:"1px solid #ddd" }}>
+                    Original Claim ({parentClaim.claim_number})
+                  </td>
+                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"monospace", fontSize:"11px", color:"#555", border:"1px solid #ddd" }}>
+                    {(parentClaim.total_claimed ?? 0).toFixed(2)} {currency}
+                  </td>
+                </tr>
+                <tr style={{ background:"#f0fdf4" }}>
+                  <td colSpan={10} style={{ padding:"6px 10px", textAlign:"right", fontSize:"10px", color:"#15803d", border:"1px solid #ddd" }}>
+                    Previously Paid
+                  </td>
+                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"monospace", fontSize:"11px", color:"#15803d", border:"1px solid #ddd" }}>
+                    − {(parentClaim.total_paid ?? 0).toFixed(2)} {currency}
+                  </td>
+                </tr>
+                <tr style={{ background:"#fef9c3", borderTop:"2px solid #ca8a04" }}>
+                  <td colSpan={10} style={{ padding:"8px 10px", textAlign:"right", fontWeight:"800", fontSize:"13px", color:"#92400e", border:"1px solid #ca8a04" }}>
+                    Outstanding Balance Due
+                  </td>
+                  <td style={{ padding:"8px 10px", textAlign:"right", fontWeight:"900", fontSize:"16px", fontFamily:"monospace", color:"#92400e", border:"1px solid #ca8a04" }}>
+                    {(displayTotal ?? 0).toFixed(2)} {currency}
+                  </td>
+                </tr>
+              </>
+            ) : (
+              <tr style={{ background:"#f0f0f0" }}>
+                <td colSpan={10} style={{ padding:"7px", textAlign:"right", fontWeight:"700", fontSize:"12px", border:"1px solid #ccc", paddingRight:"10px" }}>
+                  {`Total Claimed (${rows.length} visit${rows.length !== 1 ? "s" : ""})`}
+                </td>
+                <td style={{ padding:"7px 10px", textAlign:"right", fontWeight:"800", fontSize:"14px", fontFamily:"monospace", border:"1px solid #ccc", color:"#111" }}>
+                  {(displayTotal ?? 0).toFixed(2)} {currency}
+                </td>
+              </tr>
+            )}
           </tfoot>
         </table>
 

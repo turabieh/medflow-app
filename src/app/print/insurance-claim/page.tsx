@@ -44,6 +44,15 @@ export default function InsuranceClaimPrintPage() {
         return;
       }
 
+      let parentClaim = null;
+      if (claim.is_followup && claim.parent_claim_id) {
+        const { data: pc } = await supabase
+          .from("insurance_claims")
+          .select("claim_number, total_claimed, total_paid")
+          .eq("id", claim.parent_claim_id).single();
+        parentClaim = pc;
+      }
+
       const { data: clinic } = await supabase
         .from("clinics").select("name, name_ar, tagline, logo_url, address, phone, email").limit(1).single();
 
@@ -111,7 +120,7 @@ export default function InsuranceClaimPrintPage() {
         await supabase.from("insurance_claims").update({ total_claimed: grandTotal }).eq("id", claimId);
       }
 
-      setData({ claim, clinic, rows, grandTotal });
+      setData({ claim, clinic, rows, grandTotal, parentClaim });
       setLoading(false);
     }
     load();
@@ -123,7 +132,7 @@ export default function InsuranceClaimPrintPage() {
   if (data?.error) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00", flexDirection:"column" as const, gap:"8px" }}><div>Error loading claim</div><div style={{fontSize:"12px"}}>{data.error}</div></div>;
   if (!data?.claim) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>Claim not found.</div>;
 
-  const { claim, clinic, rows, grandTotal } = data as { claim: any; clinic: any; rows: any[]; grandTotal: number };
+  const { claim, clinic, rows, grandTotal, parentClaim } = data as { claim: any; clinic: any; rows: any[]; grandTotal: number; parentClaim: any };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const insurance = Array.isArray(claim.insurance_companies) ? claim.insurance_companies[0] : claim.insurance_companies as any;
 
@@ -255,14 +264,43 @@ export default function InsuranceClaimPrintPage() {
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ background:"#f8f8f8" }}>
-                  <td colSpan={8} style={{ ...s.td, fontWeight:"700", textAlign:"right", fontSize:"13px", paddingRight:"16px" }}>
-                    Total Claimed ({rows.length} visits)
-                  </td>
-                  <td style={{ ...s.tdR, fontWeight:"800", fontSize:"16px", color:"#111" }}>
-                    {grandTotal.toFixed(2)} {currency}
-                  </td>
-                </tr>
+                {claim.is_followup && parentClaim ? (
+                  <>
+                    <tr style={{ background:"#f8f8f8" }}>
+                      <td colSpan={8} style={{ ...s.td, textAlign:"right", fontSize:"10px", color:"#555" }}>
+                        Original Claim ({parentClaim.claim_number})
+                      </td>
+                      <td style={{ ...s.tdR, fontSize:"11px", color:"#555" }}>
+                        {(parentClaim.total_claimed ?? 0).toFixed(2)} {currency}
+                      </td>
+                    </tr>
+                    <tr style={{ background:"#f0fdf4" }}>
+                      <td colSpan={8} style={{ ...s.td, textAlign:"right", fontSize:"10px", color:"#15803d" }}>
+                        Previously Paid
+                      </td>
+                      <td style={{ ...s.tdR, fontSize:"11px", color:"#15803d" }}>
+                        − {(parentClaim.total_paid ?? 0).toFixed(2)} {currency}
+                      </td>
+                    </tr>
+                    <tr style={{ background:"#fef9c3" }}>
+                      <td colSpan={8} style={{ ...s.td, fontWeight:"800", textAlign:"right", fontSize:"13px", color:"#92400e", borderTop:"2px solid #ca8a04" }}>
+                        Outstanding Balance Due
+                      </td>
+                      <td style={{ ...s.tdR, fontWeight:"900", fontSize:"16px", color:"#92400e", borderTop:"2px solid #ca8a04" }}>
+                        {grandTotal.toFixed(2)} {currency}
+                      </td>
+                    </tr>
+                  </>
+                ) : (
+                  <tr style={{ background:"#f8f8f8" }}>
+                    <td colSpan={8} style={{ ...s.td, fontWeight:"700", textAlign:"right", fontSize:"13px", paddingRight:"16px" }}>
+                      Total Claimed ({rows.length} visits)
+                    </td>
+                    <td style={{ ...s.tdR, fontWeight:"800", fontSize:"16px", color:"#111" }}>
+                      {grandTotal.toFixed(2)} {currency}
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             </table>
           )}
