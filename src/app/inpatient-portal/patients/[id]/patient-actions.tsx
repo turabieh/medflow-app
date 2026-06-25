@@ -45,7 +45,7 @@ export function PortalPatientActions({
     });
     setSaving(false);
     if (!result.success) { setError(result.error ?? "Failed to save visit."); return; }
-    router.push(`/doctor/visit/${result.visitId}`);
+    router.push(`/inpatient-portal/visit/${result.visitId}`);
   }
 
   async function saveLocation() {
@@ -73,7 +73,7 @@ export function PortalPatientActions({
             </button>
           )}
           {todayVisitId && (
-            <button onClick={() => router.push(`/doctor/visit/${todayVisitId}`)}
+            <button onClick={() => router.push(`/inpatient-portal/visit/${todayVisitId}`)}
               style={{ background:"#1d4ed8", color:"#93c5fd", border:"none", borderRadius:"14px",
                 padding:"16px", fontSize:"15px", fontWeight:"700", cursor:"pointer", fontFamily:"inherit" }}>
               Open Today&apos;s Visit Notes →

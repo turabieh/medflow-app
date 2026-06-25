@@ -39,10 +39,8 @@ export function PortalAdmitForm({
       patientId:          selectedPatient.id,
       hospitalId,
       hospitalPatientId:  mrn.trim().toUpperCase(),
-      location:           location.trim(),
+      location:           location.trim() || "",
       admissionDate:      admitDate,
-      diagnosisSummary:   "",
-      feePerVisit:        undefined,
     });
 
     setSaving(false);

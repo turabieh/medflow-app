@@ -89,7 +89,7 @@ export default async function PortalPatientPage({ params }: { params: Promise<{ 
               <div style={{ fontSize:"13px", fontWeight:"700", color:"#86efac" }}>✓ Visited Today</div>
               <div style={{ fontSize:"12px", color:"#4ade80", marginTop:"2px", textTransform:"capitalize" }}>{todayVisit.visit_type?.replace("_"," ")}</div>
             </div>
-            <Link href={`/doctor/visit/${todayVisit.id}`}
+            <Link href={`/inpatient-portal/visit/${todayVisit.id}`}
               style={{ background:"rgba(255,255,255,0.15)", borderRadius:"8px", padding:"8px 12px", fontSize:"12px", fontWeight:"600", color:"#86efac", textDecoration:"none" }}>
               Open Notes →
             </Link>
@@ -119,7 +119,7 @@ export default async function PortalPatientPage({ params }: { params: Promise<{ 
           {(visits ?? []).length === 0 ? (
             <div style={{ textAlign:"center", padding:"20px", color:"#475569", fontSize:"13px" }}>No visits yet</div>
           ) : (visits ?? []).map(v => (
-            <Link key={v.id} href={`/doctor/visit/${v.id}`} style={{ textDecoration:"none" }}>
+            <Link key={v.id} href={`/inpatient-portal/visit/${v.id}`} style={{ textDecoration:"none" }}>
               <div style={{ background:"#1e293b", borderRadius:"12px", padding:"12px 14px", marginBottom:"8px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                 <div>
                   <div style={{ fontSize:"14px", fontWeight:"600", color:v.visit_date===today?"#60a5fa":"#f1f5f9", textTransform:"capitalize" }}>
