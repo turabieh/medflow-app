@@ -292,20 +292,34 @@ export default async function AdminFinancePage({
   // All appointment IDs to check
   const allApptIds = new Set([...(allInsPatientAppts ?? []).map(a => a.id), ...apptIdsWithProcs]);
 
+  // Pre-compute which appointments were actually billed in existing claims.
+  // A claim covers a date range, but only includes appointments that had
+  // insurance_fee > 0 OR had approved procedures — same logic as computeInsuranceTotal.
+  // We must replicate that filter here so we don't mark truly-unbilled appts as claimed.
+  const claimedApptIds = new Set<string>();
+  for (const c of allInsuranceClaims ?? []) {
+    for (const [apptId, a] of apptDetailMap) {
+      const ins = apptInsMap.get(apptId);
+      if (!ins || ins.id !== c.insurance_company_id) continue;
+      if (!a.appt_date || a.appt_date < c.from_date || a.appt_date > c.to_date) continue;
+      // Only mark as claimed if it was actually billable (fee set OR has procedures)
+      const visitFee = (a as {insurance_fee?: number|null}).insurance_fee ?? 0;
+      const procFee  = procFeeByAppt.get(apptId) ?? 0;
+      if (visitFee > 0 || procFee > 0) {
+        claimedApptIds.add(apptId);
+      }
+    }
+  }
+
   const unclaimedInsMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
   for (const apptId of allApptIds) {
     const a   = apptDetailMap.get(apptId);
     const ins = apptInsMap.get(apptId);
     if (!a || !ins || !a.appt_date) continue;
 
-    const isClaimed = (allInsuranceClaims ?? []).some(c =>
-      c.insurance_company_id === ins.id &&
-      a.appt_date >= c.from_date &&
-      a.appt_date <= c.to_date
-    );
-    if (isClaimed) continue;
+    if (claimedApptIds.has(apptId)) continue;
 
-    const visitFee = a.insurance_fee ?? 0;
+    const visitFee = (a as {insurance_fee?: number|null}).insurance_fee ?? 0;
     const procFee  = procFeeByAppt.get(apptId) ?? 0;
     const total    = visitFee + procFee;
     if (total <= 0) continue;
