@@ -316,7 +316,21 @@ export default async function AdminFinancePage({
     if (a.appt_date > entry.latestDate)   entry.latestDate   = a.appt_date;
     unclaimedInsMap.set(ins.id, entry);
   }
-  const unclaimedInsurance = Array.from(unclaimedInsMap.values()).sort((a, b) => b.amount - a.amount);
+  // Merge any duplicates by company name (safety net in case same company has different UUIDs)
+  const mergedInsMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
+  for (const entry of unclaimedInsMap.values()) {
+    const key = entry.name.toLowerCase().trim();
+    const existing = mergedInsMap.get(key);
+    if (existing) {
+      existing.amount += entry.amount;
+      existing.count  += entry.count;
+      if (entry.earliestDate < existing.earliestDate) existing.earliestDate = entry.earliestDate;
+      if (entry.latestDate   > existing.latestDate)   existing.latestDate   = entry.latestDate;
+    } else {
+      mergedInsMap.set(key, { ...entry });
+    }
+  }
+  const unclaimedInsurance = Array.from(mergedInsMap.values()).sort((a, b) => b.amount - a.amount);
 
   const debugData = {
     claimedApptIdSetSize: claimedApptIdSet.size,

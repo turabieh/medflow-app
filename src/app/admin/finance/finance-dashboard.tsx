@@ -663,34 +663,43 @@ export function FinanceDashboard({
             <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
               <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
                 <p className="text-sm font-semibold text-neutral-900">🏦 Insurance Companies — Unclaimed</p>
-                <p className="text-xs text-neutral-400 mt-0.5">Finalized outpatient visits not yet included in any claim</p>
+                <p className="text-xs text-neutral-400 mt-0.5">Grouped by company · one claim per company covers all unclaimed visits</p>
               </div>
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-neutral-100 text-left">
-                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Insurance</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Period</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Insurance Company</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Unclaimed Period</th>
                   <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-center">Visits</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-right">Amount</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-right">Total to Claim</th>
                   <th className="px-4 py-2.5"></th>
                 </tr></thead>
                 <tbody className="divide-y divide-neutral-50">
                   {unclaimedInsurance.map(e => (
                     <tr key={e.id} className="hover:bg-amber-50/30">
-                      <td className="px-4 py-3 font-semibold text-neutral-900">{e.name}</td>
-                      <td className="px-4 py-3 text-xs text-neutral-500">{e.earliestDate} → {e.latestDate}</td>
-                      <td className="px-4 py-3 text-center"><span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">{e.count}</span></td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-amber-700">{fmt(e.amount, currency)}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-neutral-900">{e.name}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">
+                        {e.earliestDate} → {e.latestDate}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">{e.count} visits</span>
+                      </td>
                       <td className="px-4 py-3 text-right">
-                        <a href={`/secretary/insurance-claims`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+                        <span className="font-mono text-lg font-bold text-amber-700">{fmt(e.amount, currency)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <a href="/secretary/insurance-claims"
+                          className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 whitespace-nowrap">
                           Generate Claim →
                         </a>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot><tr className="border-t border-neutral-200 bg-neutral-50">
-                  <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-right text-neutral-600">Total unclaimed (insurance)</td>
-                  <td className="px-4 py-2.5 text-right font-mono font-bold text-amber-700">{fmt(unclaimedInsurance.reduce((s, e) => s + e.amount, 0), currency)}</td>
+                <tfoot><tr className="border-t-2 border-neutral-200 bg-neutral-50">
+                  <td colSpan={3} className="px-4 py-3 text-sm font-bold text-neutral-700 text-right">Total unclaimed from insurance</td>
+                  <td className="px-4 py-3 text-right font-mono text-lg font-bold text-amber-700">{fmt(unclaimedInsurance.reduce((s, e) => s + e.amount, 0), currency)}</td>
                   <td />
                 </tr></tfoot>
               </table>
