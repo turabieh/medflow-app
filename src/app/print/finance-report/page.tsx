@@ -28,7 +28,10 @@ export default function FinanceReportPrintPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setData({ error: "Not authenticated." }); setLoading(false); return; }
 
-      const clinicId = session.user.user_metadata?.clinic_id;
+      // Fetch clinic_id from users table (not session metadata which may be empty)
+      const { data: profile } = await supabase
+        .from("users").select("clinic_id").eq("id", session.user.id).single();
+      const clinicId = profile?.clinic_id;
 
       // Clinic info
       const { data: clinic } = await supabase.from("clinics")
@@ -47,15 +50,21 @@ export default function FinanceReportPrintPage() {
         byMethod[m] = (byMethod[m] ?? 0) + (p.payment_amount ?? 0);
       }
 
-      // Hospital claims paid in period
+      // Hospital claims paid — filter by period
       const { data: hospClaims } = await supabase.from("hospital_claims")
-        .select("total_claimed, total_paid, status, is_followup, parent_claim_id, id, hospitals(name)")
-        .eq("clinic_id", clinicId ?? "").in("status", ["paid","partial"]);
+        .select("total_claimed, total_paid, status, is_followup, parent_claim_id, id, paid_date")
+        .eq("clinic_id", clinicId ?? "")
+        .in("status", ["paid","partial"])
+        .or(`paid_date.gte.${fromDate},paid_date.is.null`)
+        .lte("to_date", toDate).gte("from_date", fromDate);
 
-      // Insurance claims paid in period
+      // Insurance claims paid — filter by period
       const { data: insClaims } = await supabase.from("insurance_claims")
-        .select("total_claimed, total_paid, status, is_followup, parent_claim_id, id, insurance_companies(name)")
-        .eq("clinic_id", clinicId ?? "").in("status", ["paid","partial"]);
+        .select("total_claimed, total_paid, status, is_followup, parent_claim_id, id, paid_date")
+        .eq("clinic_id", clinicId ?? "")
+        .in("status", ["paid","partial"])
+        .or(`paid_date.gte.${fromDate},paid_date.is.null`)
+        .lte("to_date", toDate).gte("from_date", fromDate);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const hospPaid = (hospClaims ?? []).reduce((s: number, c: any) => s + (c.total_paid ?? 0), 0);
