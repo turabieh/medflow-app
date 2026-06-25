@@ -32,8 +32,7 @@ export function PortalAdmitForm({
     )
     .slice(0, 8);
 
-  async function handleAdmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleAdmit() {
     if (!selectedPatient) { setError("Please select a patient."); return; }
     if (!hospitalId)       { setError("Please select a hospital."); return; }
     if (!mrn.trim())       { setError("Please enter the hospital MRN."); return; }
@@ -104,9 +103,9 @@ export function PortalAdmitForm({
   };
 
   return (
-    <form onSubmit={handleAdmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:"16px" }}>
       {error && (
-        <div style={{ background: "#450a0a", border: "1px solid #dc2626", borderRadius: "10px", padding: "12px 14px", color: "#fca5a5", fontSize: "13px", lineHeight: "1.5" }}>
+        <div style={{ background:"#450a0a", border:"1px solid #dc2626", borderRadius:"10px", padding:"12px 14px", color:"#fca5a5", fontSize:"13px", lineHeight:"1.5" }}>
           ⚠ {error}
         </div>
       )}
@@ -196,11 +195,15 @@ export function PortalAdmitForm({
         />
       </div>
 
+      <div style={{ fontSize:"11px", color:"#475569", marginBottom:"8px", fontFamily:"monospace" }}>
+        Debug: patient={selectedPatient ? `✓ ${selectedPatient.full_name}` : "✗ none"} | mrn={mrn || "✗ empty"} | saving={String(saving)}
+      </div>
+
       <button
-        type="submit"
-        disabled={saving || !selectedPatient || !mrn.trim()}
+        type="button"
+        onClick={handleAdmit}
         style={{
-          background: (saving || !selectedPatient || !mrn.trim()) ? "#334155" : "#3b82f6",
+          background: "#3b82f6",
           color: "#fff",
           border: "none",
           borderRadius: "14px",
@@ -210,9 +213,10 @@ export function PortalAdmitForm({
           cursor: "pointer",
           fontFamily: "inherit",
           marginTop: "4px",
+          opacity: (saving || !selectedPatient || !mrn.trim()) ? 0.5 : 1,
         }}>
         {saving ? "Admitting..." : "✓ Admit Patient"}
       </button>
-    </form>
+    </div>
   );
 }
