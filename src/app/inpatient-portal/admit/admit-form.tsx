@@ -33,9 +33,9 @@ export function PortalAdmitForm({
     .slice(0, 8);
 
   async function handleAdmit() {
-    if (!selectedPatient) { setError("Please select a patient."); return; }
-    if (!hospitalId)       { setError("Please select a hospital."); return; }
-    if (!mrn.trim())       { setError("Please enter the hospital MRN."); return; }
+    if (!patientSearch.trim()) { setError("Please enter a patient name."); return; }
+    if (!hospitalId)            { setError("Please select a hospital."); return; }
+    if (!mrn.trim())            { setError("Please enter the hospital MRN."); return; }
 
     setSaving(true);
     setError(null);
@@ -43,12 +43,34 @@ export function PortalAdmitForm({
     try {
       const supabase = createClient();
 
+      // Use existing patient or create new one
+      let patientId = selectedPatient?.id ?? null;
+
+      if (!patientId) {
+        // Create new patient record
+        const { data: newPt, error: ptErr } = await supabase
+          .from("patients")
+          .insert({
+            clinic_id: clinicId,
+            full_name: patientSearch.trim(),
+          })
+          .select("id")
+          .single();
+
+        if (ptErr || !newPt) {
+          setError(`Could not create patient: ${ptErr?.message ?? "unknown error"}`);
+          setSaving(false);
+          return;
+        }
+        patientId = newPt.id;
+      }
+
       const { data: ip, error: ie } = await supabase
         .from("inpatients")
         .insert({
           clinic_id:           clinicId,
           doctor_id:           doctorId,
-          patient_id:          selectedPatient.id,
+          patient_id:          patientId,
           hospital_id:         hospitalId,
           hospital_patient_id: mrn.trim().toUpperCase(),
           location:            location.trim() || null,
@@ -110,44 +132,43 @@ export function PortalAdmitForm({
         </div>
       )}
 
-      {/* Patient search */}
+      {/* Patient — search existing or enter new name */}
       <div>
-        <label style={labelStyle}>Patient *</label>
-        {selectedPatient ? (
-          <div style={{ background: "#0f172a", border: "1.5px solid #3b82f6", borderRadius: "12px", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: "15px", fontWeight: "700", color: "#f1f5f9" }}>{selectedPatient.full_name}</div>
-            <button
-              type="button"
-              onClick={() => { setSelectedPatient(null); setPatientSearch(""); }}
-              style={{ background: "none", border: "none", color: "#64748b", fontSize: "20px", cursor: "pointer", padding: "0 0 0 8px" }}>
-              ✕
-            </button>
+        <label style={labelStyle}>Patient Name *</label>
+        <input
+          value={patientSearch}
+          onChange={e => { setPatientSearch(e.target.value); setSelectedPatient(null); }}
+          placeholder="Type patient name..."
+          autoComplete="off"
+          style={inputStyle}
+        />
+        {/* Dropdown for existing matches */}
+        {patientSearch.length > 1 && filtered.length > 0 && !selectedPatient && (
+          <div style={{ background:"#0f172a", border:"1px solid #3b82f6", borderRadius:"10px", overflow:"hidden", marginTop:"4px" }}>
+            <div style={{ padding:"6px 12px", fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", borderBottom:"1px solid #1e293b" }}>
+              Existing patients — tap to select
+            </div>
+            {filtered.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); setSelectedPatient(p); setPatientSearch(p.full_name); }}
+                style={{ width:"100%", background:"none", border:"none", borderBottom:"1px solid #1e293b", padding:"10px 14px", textAlign:"left", cursor:"pointer", color:"#f1f5f9", fontFamily:"inherit" }}>
+                <div style={{ fontSize:"14px", fontWeight:"600" }}>{p.full_name}</div>
+                {p.full_name_ar && <div style={{ fontSize:"12px", color:"#64748b", direction:"rtl" }}>{p.full_name_ar}</div>}
+              </button>
+            ))}
           </div>
-        ) : (
-          <div>
-            <input
-              value={patientSearch}
-              onChange={e => setPatientSearch(e.target.value)}
-              placeholder="Type patient name to search..."
-              autoComplete="off"
-              style={{ ...inputStyle, marginBottom: patientSearch ? "6px" : "0" }}
-            />
-            {patientSearch.length > 0 && (
-              <div style={{ background: "#0f172a", border: "1px solid #334155", borderRadius: "10px", overflow: "hidden" }}>
-                {filtered.length === 0 ? (
-                  <div style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>No patients found</div>
-                ) : filtered.map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onMouseDown={e => { e.preventDefault(); setSelectedPatient(p); setPatientSearch(""); }}
-                    style={{ width: "100%", background: "none", border: "none", borderBottom: "1px solid #1e293b", padding: "12px 14px", textAlign: "left", cursor: "pointer", color: "#f1f5f9", fontFamily: "inherit" }}>
-                    <div style={{ fontSize: "14px", fontWeight: "600" }}>{p.full_name}</div>
-                    {p.full_name_ar && <div style={{ fontSize: "12px", color: "#64748b", direction: "rtl" }}>{p.full_name_ar}</div>}
-                  </button>
-                ))}
-              </div>
-            )}
+        )}
+        {/* Hint when no match */}
+        {patientSearch.length > 1 && filtered.length === 0 && (
+          <div style={{ padding:"8px 12px", fontSize:"12px", color:"#64748b", marginTop:"4px" }}>
+            New patient — will be registered on admit
+          </div>
+        )}
+        {selectedPatient && (
+          <div style={{ padding:"6px 12px", fontSize:"12px", color:"#22c55e", marginTop:"4px" }}>
+            ✓ Existing patient selected
           </div>
         )}
       </div>
@@ -196,7 +217,7 @@ export function PortalAdmitForm({
       </div>
 
       <div style={{ fontSize:"11px", color:"#475569", marginBottom:"8px", fontFamily:"monospace" }}>
-        Debug: patient={selectedPatient ? `✓ ${selectedPatient.full_name}` : "✗ none"} | mrn={mrn || "✗ empty"} | saving={String(saving)}
+        Debug: name="{patientSearch}" | existing={selectedPatient ? "✓" : "new"} | mrn={mrn || "✗"} | saving={String(saving)}
       </div>
 
       <button
