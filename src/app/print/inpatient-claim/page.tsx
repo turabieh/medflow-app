@@ -83,9 +83,15 @@ export default function InpatientClaimPage() {
 
   return (
     <>
-      <style>{`
-        @page { margin: 0mm; size: A4; }
-        @media print { .no-print { display:none!important; } }
+            <style>{`
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
+        @page { size: A4; margin: 12mm 14mm; }
+        @media print {
+          .no-print { display: none !important; }
+          table { border-collapse: collapse !important; }
+          th, td { border: 1px solid #ccc !important; }
+        }
       `}</style>
 
       <div className="no-print" style={{ position:"fixed", top:"12px", right:"12px", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"6px", zIndex:100 }}>
@@ -94,7 +100,7 @@ export default function InpatientClaimPage() {
           Print / Save PDF
         </button>
         <span style={{ fontSize:"10px", color:"#888", background:"rgba(255,255,255,0.95)", padding:"2px 8px", borderRadius:"4px" }}>
-          Set Margins = None · Uncheck Headers &amp; Footers
+          Enable "Background graphics" in print settings
         </span>
       </div>
 

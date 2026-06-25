@@ -127,13 +127,13 @@ export default function HospitalClaimPrintPage() {
   return (
     <>
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #fff; }
-        @page { margin: 12mm 14mm; size: A4; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
+        @page { size: A4; margin: 12mm 14mm; }
         @media print {
           .no-print { display: none !important; }
           table { border-collapse: collapse !important; }
-          td, th { border: 1px solid #ccc !important; }
+          th, td { border: 1px solid #ccc !important; }
         }
       `}</style>
 

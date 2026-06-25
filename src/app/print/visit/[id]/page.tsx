@@ -119,12 +119,14 @@ export default function VisitPrintPage() {
 
   return (
     <>
-      <style>{`
-        @page { margin: 0mm; size: A4; }
+            <style>{`
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
+        @page { size: A4; margin: 12mm 14mm; }
         @media print {
-          .no-print { display:none!important; }
-          body { background:#fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          nav, aside, header, [class*="sidebar"] { display:none!important; }
+          .no-print { display: none !important; }
+          table { border-collapse: collapse !important; }
+          th, td { border: 1px solid #ccc !important; }
         }
       `}</style>
       <div className="no-print" style={{ position: "fixed", top: "12px", right: "12px", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px", zIndex: 100 }}>

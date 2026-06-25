@@ -140,10 +140,19 @@ export default function InsuranceClaimPrintPage() {
 
   return (
     <>
-      <style>{`@page{margin:0mm;size:A4;} @media print{.no-print{display:none!important;}}`}</style>
+            <style>{`
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
+        @page { size: A4; margin: 12mm 14mm; }
+        @media print {
+          .no-print { display: none !important; }
+          table { border-collapse: collapse !important; }
+          th, td { border: 1px solid #ccc !important; }
+        }
+      `}</style>
       <div className="no-print" style={{ position:"fixed", top:"12px", right:"12px", zIndex:100, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"6px" }}>
         <button onClick={() => window.print()} style={{ background:"#1a1a1a", color:"#fff", border:"none", padding:"10px 20px", borderRadius:"6px", fontSize:"13px", fontWeight:"600", cursor:"pointer" }}>Print / Save PDF</button>
-        <span style={{ fontSize:"10px", color:"#888", background:"rgba(255,255,255,0.95)", padding:"2px 8px", borderRadius:"4px" }}>Set Margins = None · Uncheck Headers &amp; Footers</span>
+        <span style={{ fontSize:"10px", color:"#888", background:"rgba(255,255,255,0.95)", padding:"2px 8px", borderRadius:"4px" }}>Enable "Background graphics" in print settings</span>
       </div>
 
       <div style={s.page}>
