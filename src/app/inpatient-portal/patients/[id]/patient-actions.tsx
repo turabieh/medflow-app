@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const VISIT_TYPES = [
-  { key: "round",        label: "Round"        },
-  { key: "followup",     label: "Follow-up"    },
-  { key: "consultation", label: "Consultation" },
-  { key: "urgent",       label: "Urgent"       },
-  { key: "review",       label: "Review"       },
+  { key: "followup",     label: "Round / Follow-up" },
+  { key: "consultation", label: "Consultation"      },
+  { key: "urgent",       label: "Urgent"            },
+  { key: "review",       label: "Review"            },
+  { key: "new",          label: "New Visit"         },
 ];
 
 export function PortalPatientActions({
@@ -32,8 +32,9 @@ export function PortalPatientActions({
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState<string | null>(null);
 
-  const today     = new Date().toISOString().split("T")[0];
-  const visitTime = new Date().toTimeString().slice(0, 5);
+  const todayStr  = new Date().toISOString().split("T")[0];
+  const [visitDate, setVisitDate] = useState(todayStr);
+  const [visitTime, setVisitTime] = useState(new Date().toTimeString().slice(0, 5));
 
   async function saveVisit() {
     setSaving(true); setError(null);
@@ -46,7 +47,7 @@ export function PortalPatientActions({
           doctor_id:      doctorId,
           patient_id:     patientId,
           inpatient_id:   inpatientId,
-          visit_date:     today,
+          visit_date:     visitDate,
           visit_time:     visitTime,
           visit_type:     visitType,
           visit_fee:      visitFee ? parseFloat(visitFee) : null,
@@ -89,7 +90,7 @@ export function PortalPatientActions({
     const supabase = createClient();
     const { error: de } = await supabase
       .from("inpatients")
-      .update({ status: "discharged", discharge_date: today })
+      .update({ status: "discharged", discharge_date: todayStr })
       .eq("id", inpatientId);
     setSaving(false);
     if (de) { setError(de.message); return; }
@@ -143,10 +144,22 @@ export function PortalPatientActions({
       {panel === "visit" && (
         <div style={{ background: "#1e293b", borderRadius: "16px", padding: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f1f5f9" }}>New Visit — {today}</div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f1f5f9" }}>New Visit — {visitDate}</div>
             <button onClick={() => setPanel("none")} style={{ background: "none", border: "none", color: "#64748b", fontSize: "20px", cursor: "pointer" }}>✕</button>
           </div>
 
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px", marginBottom:"12px" }}>
+            <div>
+              <div style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", marginBottom:"6px" }}>Visit Date</div>
+              <input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)}
+                style={{ width:"100%", background:"#0f172a", border:"1.5px solid #334155", borderRadius:"10px", color:"#f1f5f9", padding:"12px 14px", fontSize:"14px", fontFamily:"inherit", boxSizing:"border-box" }} />
+            </div>
+            <div>
+              <div style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", marginBottom:"6px" }}>Time</div>
+              <input type="time" value={visitTime} onChange={e => setVisitTime(e.target.value)}
+                style={{ width:"100%", background:"#0f172a", border:"1.5px solid #334155", borderRadius:"10px", color:"#f1f5f9", padding:"12px 14px", fontSize:"14px", fontFamily:"inherit", boxSizing:"border-box" }} />
+            </div>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginBottom: "12px" }}>
             {VISIT_TYPES.map(vt => (
               <button key={vt.key} onClick={() => setVisitType(vt.key)}
@@ -189,7 +202,7 @@ export function PortalPatientActions({
         <div style={{ background: "#1e293b", border: "1.5px solid #7f1d1d", borderRadius: "16px", padding: "16px" }}>
           <div style={{ fontSize: "14px", fontWeight: "700", color: "#fca5a5", marginBottom: "8px" }}>Confirm Discharge</div>
           <div style={{ fontSize: "13px", color: "#94a3b8", marginBottom: "14px" }}>
-            This will mark the patient as discharged today ({today}).
+            This will mark the patient as discharged today ({todayStr}).
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <button onClick={() => setPanel("none")}
