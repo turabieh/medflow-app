@@ -53,6 +53,7 @@ export function PortalAdmitForm({
           .insert({
             clinic_id: clinicId,
             full_name: patientSearch.trim(),
+            phone:     "—",  // placeholder — doctor can update later
           })
           .select("id")
           .single();
