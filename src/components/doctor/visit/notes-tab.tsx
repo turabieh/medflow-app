@@ -293,37 +293,63 @@ export function NotesTab({
 function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: string; appointmentId: string }) {
   const router = useRouter();
   const [procs, setProcs] = useState<{id:string;procedure_name:string;price:number;auth_number:string|null;auth_date:string|null;auth_status:string}[]>([]);
+  const [catalog, setCatalog] = useState<{id:string;name:string;price:number|null}[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [procName, setProcName] = useState("");
+  const [show, setShow]     = useState(false);
+
+  // Form state
+  const [mode, setMode]           = useState<"catalog"|"manual">("catalog");
+  const [selectedCatId, setSelectedCatId] = useState("");
+  const [procName, setProcName]   = useState("");
   const [procPrice, setProcPrice] = useState("");
-  const [authNum, setAuthNum] = useState("");
-  const [authDate, setAuthDate] = useState("");
-  const [authStatus, setAuthStatus] = useState<"pending"|"approved"|"not_required">("pending");
-  const [adding, setAdding] = useState(false);
-  const [show, setShow] = useState(false);
+  const [authStatus, setAuthStatus] = useState<"pending"|"approved"|"rejected"|"not_required">("pending");
+  const [authNum, setAuthNum]     = useState("");
+  const [authDate, setAuthDate]   = useState("");
+  const [adding, setAdding]       = useState(false);
 
   useEffect(() => {
     if (!show || loaded) return;
     import("@/lib/supabase/client").then(({ createClient }) => {
       const supabase = createClient();
-      supabase.from("outpatient_procedure_claims")
-        .select("id, procedure_name, price, auth_number, auth_date, auth_status")
-        .eq("visit_id", visitId)
-        .then(({ data }) => { setProcs(data ?? []); setLoaded(true); });
+      Promise.all([
+        supabase.from("outpatient_procedure_claims")
+          .select("id, procedure_name, price, auth_number, auth_date, auth_status")
+          .eq("visit_id", visitId),
+        supabase.from("procedures_catalog")
+          .select("id, name, price")
+          .eq("is_active", true)
+          .order("name"),
+      ]).then(([procsRes, catRes]) => {
+        setProcs(procsRes.data ?? []);
+        setCatalog(catRes.data ?? []);
+        setLoaded(true);
+      });
     });
   }, [show, visitId, loaded]);
 
+  // When catalog item selected, auto-fill price
+  function handleCatalogSelect(id: string) {
+    setSelectedCatId(id);
+    const item = catalog.find(c => c.id === id);
+    if (item?.price) setProcPrice(String(item.price));
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!procName.trim()) return;
+    const name  = mode === "catalog" ? catalog.find(c => c.id === selectedCatId)?.name ?? "" : procName.trim();
+    const price = parseFloat(procPrice || "0");
+    if (!name) return;
     setAdding(true);
     const { saveOutpatientProcedure } = await import("@/lib/actions/insurance-claims");
     await saveOutpatientProcedure({
       visitId, appointmentId,
-      procedureName: procName, price: parseFloat(procPrice || "0"),
+      procedureId:   mode === "catalog" ? selectedCatId || undefined : undefined,
+      procedureName: name, price,
       authNumber: authNum || undefined, authDate: authDate || undefined, authStatus,
     });
-    setAdding(false); setLoaded(false); setProcName(""); setProcPrice(""); setAuthNum(""); setAuthDate("");
+    setAdding(false); setLoaded(false);
+    setProcName(""); setProcPrice(""); setAuthNum(""); setAuthDate("");
+    setSelectedCatId(""); setAuthStatus("pending");
     router.refresh();
   }
 
@@ -333,18 +359,46 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
     setProcs(p => p.filter(x => x.id !== id));
   }
 
-  const AUTH_LABELS: Record<string, string> = { pending: "⏳ Pending", approved: "✓ Approved", rejected: "✗ Rejected", not_required: "N/A" };
-  const AUTH_COLORS: Record<string, string> = { pending: "text-amber-600", approved: "text-green-600", rejected: "text-red-600", not_required: "text-neutral-400" };
+  const AUTH_LABELS: Record<string, string> = { pending:"⏳ Pending", approved:"✓ Approved", rejected:"✗ Rejected", not_required:"N/A" };
+  const AUTH_COLORS: Record<string, string> = { pending:"text-amber-600", approved:"text-green-600", rejected:"text-red-600", not_required:"text-neutral-400" };
+
+  const rejectedProcs = procs.filter(p => p.auth_status === "rejected");
+  const approvedTotal = procs.filter(p => p.auth_status === "approved").reduce((s, p) => s + p.price, 0);
 
   return (
     <section className="rounded-lg border border-neutral-200 bg-white shadow-sm">
       <button type="button" onClick={() => setShow(s => !s)}
         className="w-full flex items-center justify-between border-b border-neutral-100 px-4 py-3 hover:bg-neutral-50">
-        <h2 className="text-sm font-medium text-neutral-900">Insurance Procedures &amp; Pre-Authorization</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-medium text-neutral-900">Insurance Procedures &amp; Pre-Authorization</h2>
+          {procs.length > 0 && <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-600">{procs.length}</span>}
+          {rejectedProcs.length > 0 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">⚠ {rejectedProcs.length} rejected</span>}
+        </div>
         <span className="text-xs text-neutral-400">{show ? "▲ Hide" : "▼ Show"}</span>
       </button>
       {show && (
         <div className="p-4 space-y-3">
+          {/* Rejected warning */}
+          {rejectedProcs.length > 0 && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5">
+              <p className="text-xs font-semibold text-red-700 mb-1">⚠ Rejected procedures — collect from patient</p>
+              <p className="text-[10px] text-red-600 mb-1.5">These were not approved by insurance. Charge the patient directly (cash/card):</p>
+              <div className="space-y-1">
+                {rejectedProcs.map(p => (
+                  <div key={p.id} className="flex justify-between text-xs text-red-700">
+                    <span>{p.procedure_name}</span>
+                    <span className="font-mono font-semibold">{p.price.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="border-t border-red-200 pt-1 mt-1 flex justify-between text-xs font-bold text-red-800">
+                  <span>Total to collect from patient</span>
+                  <span className="font-mono">{rejectedProcs.reduce((s, p) => s + p.price, 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Procedures table */}
           {procs.length > 0 && (
             <table className="w-full text-sm">
               <thead><tr className="text-left text-xs text-neutral-500 border-b border-neutral-100">
@@ -356,7 +410,7 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
               </tr></thead>
               <tbody className="divide-y divide-neutral-50">
                 {procs.map(p => (
-                  <tr key={p.id}>
+                  <tr key={p.id} className={p.auth_status === "rejected" ? "bg-red-50/30" : ""}>
                     <td className="py-1.5 pr-3 font-medium">{p.procedure_name}</td>
                     <td className="py-1.5 pr-3 text-right font-mono text-xs">{p.price.toFixed(2)}</td>
                     <td className="py-1.5 pr-3 font-mono text-xs text-neutral-600">{p.auth_number ?? "—"}</td>
@@ -365,21 +419,56 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
                   </tr>
                 ))}
               </tbody>
+              {approvedTotal > 0 && (
+                <tfoot><tr className="border-t border-neutral-200">
+                  <td colSpan={4} className="py-1.5 text-xs font-semibold text-green-700 text-right">Approved total (billable to insurance)</td>
+                  <td className="py-1.5 text-right font-mono text-xs font-bold text-green-700">{approvedTotal.toFixed(2)}</td>
+                </tr></tfoot>
+              )}
             </table>
           )}
+
+          {/* Add form */}
           <form onSubmit={handleAdd} className="rounded-md border border-dashed border-neutral-300 p-3 space-y-2">
-            <p className="text-xs font-medium text-neutral-600">+ Add Insurance Procedure</p>
+            <p className="text-xs font-medium text-neutral-600">+ Add Procedure</p>
+
+            {/* Mode toggle */}
+            <div className="flex gap-3 text-xs mb-2">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" checked={mode === "catalog"} onChange={() => { setMode("catalog"); setProcName(""); }}/>
+                From catalog
+              </label>
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input type="radio" checked={mode === "manual"} onChange={() => { setMode("manual"); setSelectedCatId(""); }}/>
+                Enter manually
+              </label>
+            </div>
+
             <div className="grid grid-cols-4 gap-2">
-              <input value={procName} onChange={e => setProcName(e.target.value)} required
-                placeholder="Procedure name" className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              {mode === "catalog" ? (
+                <select value={selectedCatId} onChange={e => handleCatalogSelect(e.target.value)} required
+                  className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs">
+                  <option value="">— Select procedure —</option>
+                  {catalog.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.price ? ` (${c.price})` : ""}</option>
+                  ))}
+                </select>
+              ) : (
+                <input value={procName} onChange={e => setProcName(e.target.value)} required
+                  placeholder="Procedure name" className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              )}
+
               <input type="number" min="0" step="0.01" value={procPrice} onChange={e => setProcPrice(e.target.value)}
                 placeholder="Price" className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+
               <select value={authStatus} onChange={e => setAuthStatus(e.target.value as typeof authStatus)}
                 className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs">
-                <option value="pending">Pending auth</option>
-                <option value="approved">Approved</option>
-                <option value="not_required">Not required</option>
+                <option value="pending">⏳ Pending</option>
+                <option value="approved">✓ Approved</option>
+                <option value="rejected">✗ Rejected</option>
+                <option value="not_required">N/A</option>
               </select>
+
               {authStatus === "approved" && (<>
                 <input value={authNum} onChange={e => setAuthNum(e.target.value)}
                   placeholder="Auth / Referral #" className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
@@ -387,7 +476,8 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
                   className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
               </>)}
             </div>
-            <button type="submit" disabled={adding}
+
+            <button type="submit" disabled={adding || (mode === "catalog" && !selectedCatId) || (mode === "manual" && !procName.trim())}
               className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50">
               {adding ? "Adding..." : "+ Add"}
             </button>

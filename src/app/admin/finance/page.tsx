@@ -217,13 +217,26 @@ export default async function AdminFinancePage({
     .eq("clinic_id", clinicId)
     .eq("is_followup", false);
 
-  // Get all finalized appointments with insurance fees
+  // Get all finalized appointments with insurance fees + their approved procedures
   const { data: insAppts } = await supabase
     .from("appointments")
     .select("id, appt_date, insurance_fee, payment_amount, patient_id, patients(insurance_company_id, insurance_companies(id, name))")
     .eq("clinic_id", clinicId)
     .in("status", ["finalized", "done"])
     .or("insurance_fee.gt.0,payment_amount.gt.0");
+
+  // Get approved procedure fees for these appointments
+  const insApptIds = (insAppts ?? []).map(a => a.id);
+  const { data: approvedProcs } = insApptIds.length ? await supabase
+    .from("outpatient_procedure_claims")
+    .select("appointment_id, price")
+    .in("appointment_id", insApptIds)
+    .eq("auth_status", "approved") : { data: [] };
+
+  const procFeeByAppt = new Map<string, number>();
+  for (const p of approvedProcs ?? []) {
+    procFeeByAppt.set(p.appointment_id, (procFeeByAppt.get(p.appointment_id) ?? 0) + (p.price ?? 0));
+  }
 
   // Find unclaimed insurance appointments
   const unclaimedInsMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
@@ -238,9 +251,11 @@ export default async function AdminFinancePage({
       a.appt_date <= c.to_date
     );
     if (isClaimed) continue;
-    const fee = (a.insurance_fee ?? 0) > 0 ? a.insurance_fee : a.payment_amount;
+    const fee = ((a.insurance_fee ?? 0) > 0 ? a.insurance_fee : a.payment_amount) ?? 0;
+    const procFee = procFeeByAppt.get(a.id) ?? 0;
+    const total = fee + procFee;
     const entry = unclaimedInsMap.get(ins.id) ?? { id: ins.id, name: ins.name, amount: 0, count: 0, earliestDate: a.appt_date, latestDate: a.appt_date };
-    entry.amount += fee ?? 0;
+    entry.amount += total;
     entry.count++;
     if (a.appt_date < entry.earliestDate) entry.earliestDate = a.appt_date;
     if (a.appt_date > entry.latestDate)   entry.latestDate   = a.appt_date;
