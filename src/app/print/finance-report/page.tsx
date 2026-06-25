@@ -178,7 +178,7 @@ export default function FinanceReportPrintPage() {
             </div>
           </div>
           <div style={{ textAlign:"right" }}>
-            <div style={{ fontSize:"18px", fontWeight:"800", color:"#111" }}>FINANCIAL REPORT</div>
+            <div style={{ fontSize:"14px", fontWeight:"700", color:"#111" }}>FINANCIAL REPORT</div>
             <div style={{ fontSize:"10px", color:"#888", marginTop:"4px" }}>Period: {fromDate} — {toDate}</div>
             <div style={{ fontSize:"9px", color:"#aaa", marginTop:"2px" }}>Generated: {printDate}</div>
           </div>

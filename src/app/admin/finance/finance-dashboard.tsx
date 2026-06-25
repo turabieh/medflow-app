@@ -35,6 +35,57 @@ function StatCard({ label, value, sub, color="text-neutral-900", highlight }: { 
   );
 }
 
+
+function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; toDate: string; activeTab: string }) {
+  const router = useRouter();
+  const [from, setFrom] = useState(fromDate);
+  const [to, setTo]     = useState(toDate);
+  const [open, setOpen] = useState(false);
+
+  function apply() {
+    if (!from || !to) return;
+    router.push(`/admin/finance?tab=${activeTab}&from=${from}&to=${to}`);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative flex items-center gap-2">
+      <span className="text-xs text-neutral-500 font-medium">{fromDate} → {toDate}</span>
+      <button onClick={() => setOpen(o => !o)}
+        className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50">
+        Custom range
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-20 rounded-lg border border-neutral-200 bg-white p-4 shadow-lg space-y-3 w-64">
+          <p className="text-xs font-semibold text-neutral-700">Select date range</p>
+          <div className="space-y-2">
+            <div>
+              <label className="mb-1 block text-[10px] text-neutral-500">From</label>
+              <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] text-neutral-500">To</label>
+              <input type="date" value={to} onChange={e => setTo(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={apply}
+              className="flex-1 rounded-md bg-neutral-900 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+              Apply
+            </button>
+            <button onClick={() => setOpen(false)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FinanceDashboard({
   currency, fromDate, toDate, period, tab,
   cashTotal, hospitalPaid, insurancePaid, totalRevenue,
@@ -117,13 +168,7 @@ export function FinanceDashboard({
             </Link>
           ))}
         </div>
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
-          <Link href={`/admin/finance?tab=${activeTab}&from=${fromDate}&to=${toDate}`}
-            className="rounded-md border border-neutral-300 px-2.5 py-1.5 hover:bg-neutral-50">
-            Custom range
-          </Link>
-          <span className="font-medium text-neutral-700">{fromDate} → {toDate}</span>
-        </div>
+        <CustomRangePicker fromDate={fromDate} toDate={toDate} activeTab={activeTab} />
       </div>
 
       {/* Tabs */}
