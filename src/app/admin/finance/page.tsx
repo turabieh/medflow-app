@@ -219,40 +219,54 @@ export default async function AdminFinancePage({
   }
 
   // ── UNCLAIMED REVENUE ────────────────────────────────────────────────────
-  // Insurance: finalized appointments with insurance_fee > 0 not yet in any claim
   const { data: allInsuranceClaims } = await supabase
     .from("insurance_claims")
     .select("insurance_company_id, from_date, to_date")
     .eq("clinic_id", clinicId)
-    .eq("is_followup", false);
+    .neq("status", "deleted");
 
-  // Get all finalized appointments with insurance fees + their approved procedures
+  // Get ALL finalized appointments for patients who have insurance
+  // (don't filter by fee — fee might be null even if insurance should pay)
   const { data: insAppts } = await supabase
     .from("appointments")
     .select("id, appt_date, insurance_fee, payment_amount, patient_id, patients(insurance_company_id, insurance_companies(id, name))")
     .eq("clinic_id", clinicId)
-    .in("status", ["finalized", "done"])
-    .or("insurance_fee.gt.0,payment_amount.gt.0");
+    .in("status", ["finalized", "done"]);
 
-  // Get approved procedure fees for these appointments
-  const insApptIds = (insAppts ?? []).map(a => a.id);
+  // Only keep appointments where patient actually has insurance assigned
+  const insAppsWithIns = (insAppts ?? []).filter(a => {
+    const pt  = Array.isArray(a.patients) ? a.patients[0] : a.patients as { insurance_company_id: string | null } | null;
+    return !!pt?.insurance_company_id;
+  });
+
+  // Get ALL procedure fees for these appointments (approved = billable to insurance)
+  const insApptIds = insAppsWithIns.map(a => a.id);
   const { data: approvedProcs } = insApptIds.length ? await supabase
     .from("outpatient_procedure_claims")
-    .select("appointment_id, price")
-    .in("appointment_id", insApptIds)
-    .eq("auth_status", "approved") : { data: [] };
+    .select("appointment_id, price, auth_status")
+    .in("appointment_id", insApptIds) : { data: [] };
+
+  // Group procedures by appointment
+  const procsByAppt = new Map<string, { approved: number; rejected: number }>();
+  for (const p of approvedProcs ?? []) {
+    const entry = procsByAppt.get(p.appointment_id) ?? { approved: 0, rejected: 0 };
+    if (p.auth_status === "approved") entry.approved += p.price ?? 0;
+    else if (p.auth_status === "rejected") entry.rejected += p.price ?? 0;
+    procsByAppt.set(p.appointment_id, entry);
+  }
 
   const procFeeByAppt = new Map<string, number>();
-  for (const p of approvedProcs ?? []) {
-    procFeeByAppt.set(p.appointment_id, (procFeeByAppt.get(p.appointment_id) ?? 0) + (p.price ?? 0));
+  for (const [id, fees] of procsByAppt) {
+    procFeeByAppt.set(id, fees.approved);
   }
 
   // Find unclaimed insurance appointments
   const unclaimedInsMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
-  for (const a of insAppts ?? []) {
-    const pt = Array.isArray(a.patients) ? a.patients[0] : a.patients as { insurance_company_id: string | null; insurance_companies: { id: string; name: string } | { id: string; name: string }[] | null } | null;
+  for (const a of insAppsWithIns) {
+    const pt  = Array.isArray(a.patients) ? a.patients[0] : a.patients as { insurance_company_id: string | null; insurance_companies: { id: string; name: string } | { id: string; name: string }[] | null } | null;
     const ins = pt?.insurance_companies ? (Array.isArray(pt.insurance_companies) ? pt.insurance_companies[0] : pt.insurance_companies) as { id: string; name: string } | null : null;
     if (!ins || !a.appt_date) continue;
+
     // Check if this appointment's date is covered by an existing claim
     const isClaimed = (allInsuranceClaims ?? []).some(c =>
       c.insurance_company_id === ins.id &&
@@ -260,9 +274,14 @@ export default async function AdminFinancePage({
       a.appt_date <= c.to_date
     );
     if (isClaimed) continue;
-    const fee = ((a.insurance_fee ?? 0) > 0 ? a.insurance_fee : a.payment_amount) ?? 0;
-    const procFee = procFeeByAppt.get(a.id) ?? 0;
-    const total = fee + procFee;
+
+    // Total = visit fee (insurance portion) + approved procedures
+    const visitFee  = a.insurance_fee ?? 0;
+    const procFee   = procFeeByAppt.get(a.id) ?? 0;
+    const total     = visitFee + procFee;
+
+    // Only include if there's actually money to claim
+    if (total <= 0) continue;
     const entry = unclaimedInsMap.get(ins.id) ?? { id: ins.id, name: ins.name, amount: 0, count: 0, earliestDate: a.appt_date, latestDate: a.appt_date };
     entry.amount += total;
     entry.count++;
