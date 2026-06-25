@@ -39,7 +39,7 @@ export function PortalAdmitForm({
       hospital_id:         hospitalId,
       hospital_patient_id: mrn.trim().toUpperCase(),
       location:            location.trim() || null,
-      admitted_at:         `${admitDate}T00:00:00`,
+      admission_date:      admitDate,
       status:              "active",
     }).select("id").single();
     setSaving(false);

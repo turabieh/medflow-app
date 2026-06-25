@@ -20,11 +20,11 @@ export default async function PortalDashboard() {
   // Active inpatients for this doctor
   const { data: inpatients } = await supabase
     .from("inpatients")
-    .select("id, hospital_patient_id, location, status, admitted_at, hospitals(id,name), patients(id,full_name,dob,blood_type)")
+    .select("id, hospital_patient_id, location, status, admission_date, hospitals(id,name), patients(id,full_name,dob,blood_type)")
     .eq("clinic_id", profile.clinic_id)
     .eq("doctor_id", profile.id)
     .eq("status", "active")
-    .order("admitted_at", { ascending: false });
+    .order("admission_date", { ascending: false });
 
   const inpatientIds = (inpatients ?? []).map(ip => ip.id);
 
