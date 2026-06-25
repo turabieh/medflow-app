@@ -153,7 +153,7 @@ export default async function DoctorDashboardPage({
           <h1 className="text-lg font-medium text-neutral-900">
             {new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" })}
           </h1>
-          <p className="text-sm text-neutral-500">Dr. {profile?.full_name}</p>
+          <p className="text-sm text-neutral-500"> {profile?.full_name}</p>
         </div>
         {/* Period selector */}
         <div className="flex gap-1.5">

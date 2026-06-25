@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/admin/settings/medications", label: "Medications & Symptoms", icon: "💊" },
   { href: "/admin/settings/insurance", label: "Insurance & Procedures", icon: "🏥" },
   { href: "/admin/hospitals", label: "Hospitals", icon: "🏨" },
+  { href: "/admin/nurse-procedures", label: "Nurse Procedures", icon: "🩺" },
   { href: "/admin/finance", label: "Finance & Reports", icon: "💰" },
   { href: "/admin/staff", label: "Staff Performance", icon: "📊" },
 ];
