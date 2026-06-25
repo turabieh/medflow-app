@@ -219,60 +219,84 @@ export default async function AdminFinancePage({
   }
 
   // ── UNCLAIMED REVENUE ────────────────────────────────────────────────────
-  // Fetch all existing insurance claims (to check what's already claimed)
   const { data: allInsuranceClaims } = await supabase
     .from("insurance_claims")
     .select("insurance_company_id, from_date, to_date")
     .eq("clinic_id", clinicId);
 
-  // Step 1: get all patients with insurance in this clinic
+  // Fetch ALL outpatient procedures for this clinic — this is the source of truth
+  const { data: allOutpatientProcs } = await supabase
+    .from("outpatient_procedure_claims")
+    .select("appointment_id, price, auth_status, clinic_id")
+    .eq("clinic_id", clinicId)
+    .neq("auth_status", "rejected");
+
+  const apptIdsWithProcs = [...new Set((allOutpatientProcs ?? []).map(p => p.appointment_id))];
+
+  // Fetch those appointments with their patient's insurance info
+  const { data: apptWithProcs } = apptIdsWithProcs.length ? await supabase
+    .from("appointments")
+    .select("id, appt_date, insurance_fee, patient_id, patients(id, insurance_company_id, insurance_companies(id, name))")
+    .in("id", apptIdsWithProcs) : { data: [] };
+
+  // Also get all insured patients' appointments for visit-fee-only tracking
   const { data: insuredPatients } = await supabase
     .from("patients")
     .select("id, insurance_company_id, insurance_companies(id, name)")
     .eq("clinic_id", clinicId)
     .not("insurance_company_id", "is", null);
 
-  // Build patient→insurance map
   type InsInfo = { id: string; name: string };
   const patientInsMap = new Map<string, InsInfo>();
   for (const p of insuredPatients ?? []) {
     const ins = Array.isArray(p.insurance_companies) ? p.insurance_companies[0] : p.insurance_companies as InsInfo | null;
     if (ins?.id) patientInsMap.set(p.id, ins);
   }
-
-  // Step 2: get ALL appointments for insured patients (any status — procedures may be on non-finalized)
   const insuredPatientIds = Array.from(patientInsMap.keys());
+
   const { data: allInsPatientAppts } = insuredPatientIds.length ? await supabase
     .from("appointments")
     .select("id, appt_date, insurance_fee, patient_id, status")
     .eq("clinic_id", clinicId)
     .in("patient_id", insuredPatientIds) : { data: [] };
 
-  // Step 2b: only finalized/done for revenue purposes
-  const insAppts = (allInsPatientAppts ?? []).filter(a =>
-    ["finalized", "done"].includes(a.status)
-  );
+  const insAppts = (allInsPatientAppts ?? []).filter(a => ["finalized","done"].includes(a.status));
 
-  // Step 3: get ALL procedure fees for ALL insured patient appointments (any status)
-  const allInsPatientApptIds = (allInsPatientAppts ?? []).map(a => a.id);
-  const { data: allProcs } = allInsPatientApptIds.length ? await supabase
-    .from("outpatient_procedure_claims")
-    .select("appointment_id, price, auth_status")
-    .in("appointment_id", allInsPatientApptIds) : { data: [] };
-
+  // Proc fee map
   const procFeeByAppt = new Map<string, number>();
-  for (const p of allProcs ?? []) {
-    if (p.auth_status !== "rejected") {
-      procFeeByAppt.set(p.appointment_id, (procFeeByAppt.get(p.appointment_id) ?? 0) + (p.price ?? 0));
+  for (const p of allOutpatientProcs ?? []) {
+    procFeeByAppt.set(p.appointment_id, (procFeeByAppt.get(p.appointment_id) ?? 0) + (p.price ?? 0));
+  }
+
+  // Insurance map per appointment — from either source
+  const apptInsMap = new Map<string, InsInfo>();
+  for (const a of allInsPatientAppts ?? []) {
+    const ins = patientInsMap.get(a.patient_id);
+    if (ins) apptInsMap.set(a.id, ins);
+  }
+  for (const a of apptWithProcs ?? []) {
+    if (!apptInsMap.has(a.id)) {
+      const pt = Array.isArray(a.patients) ? a.patients[0] : a.patients as { insurance_companies: InsInfo | InsInfo[] | null } | null;
+      const ins = pt?.insurance_companies ? (Array.isArray(pt.insurance_companies) ? pt.insurance_companies[0] : pt.insurance_companies) as InsInfo | null : null;
+      if (ins?.id) apptInsMap.set(a.id, ins);
     }
   }
 
-  // Step 4: find unclaimed — use ALL insured patient appointments (not just finalized)
-  // because procedures may be recorded before appointment is finalized
+  // Appointment details map
+  const apptDetailMap = new Map<string, { appt_date: string; insurance_fee: number | null }>();
+  for (const a of allInsPatientAppts ?? []) apptDetailMap.set(a.id, a);
+  for (const a of apptWithProcs ?? []) {
+    if (!apptDetailMap.has(a.id)) apptDetailMap.set(a.id, { appt_date: a.appt_date, insurance_fee: a.insurance_fee });
+  }
+
+  // All appointment IDs to check
+  const allApptIds = new Set([...(allInsPatientAppts ?? []).map(a => a.id), ...apptIdsWithProcs]);
+
   const unclaimedInsMap = new Map<string, { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string }>();
-  for (const a of allInsPatientAppts ?? []) {
-    const ins = patientInsMap.get(a.patient_id);
-    if (!ins || !a.appt_date) continue;
+  for (const apptId of allApptIds) {
+    const a   = apptDetailMap.get(apptId);
+    const ins = apptInsMap.get(apptId);
+    if (!a || !ins || !a.appt_date) continue;
 
     const isClaimed = (allInsuranceClaims ?? []).some(c =>
       c.insurance_company_id === ins.id &&
@@ -282,9 +306,9 @@ export default async function AdminFinancePage({
     if (isClaimed) continue;
 
     const visitFee = a.insurance_fee ?? 0;
-    const procFee  = procFeeByAppt.get(a.id) ?? 0;
+    const procFee  = procFeeByAppt.get(apptId) ?? 0;
     const total    = visitFee + procFee;
-    if (total <= 0) continue; // nothing to claim for this appointment
+    if (total <= 0) continue;
 
     const entry = unclaimedInsMap.get(ins.id) ?? { id: ins.id, name: ins.name, amount: 0, count: 0, earliestDate: a.appt_date, latestDate: a.appt_date };
     entry.amount += total;
@@ -295,20 +319,25 @@ export default async function AdminFinancePage({
   }
   const unclaimedInsurance = Array.from(unclaimedInsMap.values()).sort((a, b) => b.amount - a.amount);
 
-  // Debug data to expose in UI
   const debugData = {
     insuredPatientCount: insuredPatients?.length ?? 0,
     patientInsMapSize: patientInsMap.size,
-    insuredPatientIds: insuredPatientIds.slice(0, 5),
     allInsPatientApptCount: allInsPatientAppts?.length ?? 0,
-    insApptCount: insAppts?.length ?? 0,
-    insAppts: insAppts.slice(0, 5).map(a => ({ id: a.id, date: a.appt_date, fee: a.insurance_fee, patient: a.patient_id, status: a.status })),
-    procCount: allProcs?.length ?? 0,
-    procs: (allProcs ?? []).slice(0, 10),
+    insApptCount: insAppts.length,
+    apptIdsWithProcsCount: apptIdsWithProcs.length,
+    apptIdsWithProcs: apptIdsWithProcs.slice(0,5),
+    allOutpatientProcsCount: allOutpatientProcs?.length ?? 0,
+    procs: (allOutpatientProcs ?? []).slice(0,10),
+    apptInsMapSize: apptInsMap.size,
+    apptDetailMapSize: apptDetailMap.size,
     unclaimedInsCount: unclaimedInsurance.length,
+    unclaimedInsurance,
     allInsClaimsCount: allInsuranceClaims?.length ?? 0,
-    allInsuranceClaims: allInsuranceClaims?.slice(0, 5),
+    allInsuranceClaims,
   };
+
+  
+  // Hospital: inpatient visits not yet in any claim
   const { data: allHospClaimsUnclaimed } = await supabase
     .from("hospital_claims")
     .select("hospital_id, from_date, to_date")
@@ -337,7 +366,6 @@ export default async function AdminFinancePage({
     if (!ip?.hospital_id) continue;
     const hosp = Array.isArray(ip.hospitals) ? ip.hospitals[0] : ip.hospitals as { id: string; name: string } | null;
     if (!hosp) continue;
-    // Check if this visit's date is covered by a hospital claim
     const isClaimed = (allHospClaimsUnclaimed ?? []).some(c =>
       c.hospital_id === hosp.id &&
       v.visit_date >= c.from_date &&
@@ -365,7 +393,6 @@ export default async function AdminFinancePage({
         toDate={toDate}
         period={period}
         tab={tab}
-        // Revenue
         cashTotal={cashTotal}
         hospitalPaid={hospitalPaid}
         insurancePaid={insurancePaid}
@@ -375,16 +402,13 @@ export default async function AdminFinancePage({
         hospWrittenOff={hospWrittenOff}
         insWrittenOff={insWrittenOff}
         methodBreakdown={methodBreakdown}
-        // Costs
         expenses={expenses ?? []}
         totalExpenses={totalExpenses}
         expByCategory={expByCategory}
         totalSalaries={totalSalaries}
         totalCosts={totalCosts}
         netProfit={netProfit}
-        // Charts
         monthlyTrend={monthlyTrend}
-        // Staff
         staff={staff ?? []}
         latestSalaries={Array.from(latestSalaryMap.values())}
         clinicId={clinicId}
