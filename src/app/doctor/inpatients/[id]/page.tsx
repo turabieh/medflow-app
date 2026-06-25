@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { InpatientActions } from "./inpatient-actions";
+import { NurseProceduresSection } from "./nurse-procedures-section";
 
 export const dynamic = "force-dynamic";
 
@@ -170,48 +171,8 @@ export default async function InpatientDetailPage({
         admissionDate={admission.admission_date}
       />
 
-      {/* Nurse Procedures tab */}
-      <div className="mt-5 rounded-lg border border-neutral-200 bg-white shadow-sm">
-        <div className="border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-neutral-900">🩺 Nurse Procedures</h2>
-          <span className="text-xs text-neutral-400">{(nurseRecords ?? []).length} records</span>
-        </div>
-        {(!nurseRecords || nurseRecords.length === 0) ? (
-          <div className="px-4 py-6 text-center text-sm text-neutral-400">No nurse procedures recorded yet.</div>
-        ) : (
-          <div className="divide-y divide-neutral-50">
-            {nurseRecords.map(r => {
-              const catColors: Record<string, string> = {
-                general:"bg-neutral-100 text-neutral-600", monitoring:"bg-blue-100 text-blue-700",
-                lab:"bg-purple-100 text-purple-700", setup:"bg-amber-100 text-amber-700",
-                medication:"bg-red-100 text-red-700", other:"bg-neutral-100 text-neutral-500"
-              };
-              return (
-                <div key={r.id} className="flex items-start justify-between px-4 py-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-neutral-900">{r.procedure_name}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${catColors[r.category] ?? "bg-neutral-100 text-neutral-600"}`}>
-                        {r.category}
-                      </span>
-                    </div>
-                    {r.notes && <p className="text-xs text-neutral-400 mt-0.5">{r.notes}</p>}
-                    {r.recorded_by_name && <p className="text-xs text-neutral-400 mt-0.5">By: {r.recorded_by_name}</p>}
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-4">
-                    <p className="text-xs font-medium text-neutral-700">
-                      {new Date(r.started_at).toLocaleDateString("en-GB")}
-                    </p>
-                    <p className="text-xs text-neutral-400">
-                      {new Date(r.started_at).toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit" })}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Nurse Procedures — collapsible */}
+      <NurseProceduresSection records={nurseRecords} />
 
       {/* Visits list */}
       <div className="mt-5">
