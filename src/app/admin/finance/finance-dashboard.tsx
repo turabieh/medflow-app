@@ -90,7 +90,7 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
 export function FinanceDashboard({
   currency, fromDate, toDate, period, tab,
   cashTotal, hospitalPaid, insurancePaid, totalRevenue,
-  hospOutstanding, insOutstanding, methodBreakdown,
+  hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, methodBreakdown,
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
   staff, latestSalaries, clinicId,
@@ -98,7 +98,7 @@ export function FinanceDashboard({
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
-  hospOutstanding: number; insOutstanding: number; methodBreakdown: Record<string, number>;
+  hospOutstanding: number; insOutstanding: number; hospWrittenOff: number; insWrittenOff: number; methodBreakdown: Record<string, number>;
   expenses: Expense[]; totalExpenses: number; expByCategory: Record<string, number>;
   totalSalaries: number; totalCosts: number; netProfit: number;
   monthlyTrend: MonthlyPoint[];
@@ -234,22 +234,31 @@ export function FinanceDashboard({
             </div>
 
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 mb-3">Outstanding Claims</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 mb-3">Claims Status</p>
               {[
-                { label:"Hospital claims", value: hospOutstanding, color:"bg-amber-400" },
-                { label:"Insurance claims", value: insOutstanding, color:"bg-orange-400" },
+                { label:"Hospital — outstanding", value: hospOutstanding, color:"bg-amber-400", textColor:"text-amber-700" },
+                { label:"Insurance — outstanding", value: insOutstanding, color:"bg-orange-400", textColor:"text-orange-700" },
               ].map(r => (
                 <div key={r.label} className="mb-3">
                   <div className="flex justify-between text-xs text-neutral-600">
                     <span>{r.label}</span>
-                    <span className="font-medium text-amber-700">{r.value.toFixed(2)} {currency}</span>
+                    <span className={`font-medium ${r.textColor}`}>{r.value.toFixed(2)} {currency}</span>
                   </div>
-                  <MiniBar value={r.value} max={(hospOutstanding + insOutstanding) || 1} color={r.color} />
+                  <MiniBar value={r.value} max={(hospOutstanding + insOutstanding + hospWrittenOff + insWrittenOff) || 1} color={r.color} />
                 </div>
               ))}
-              <div className="mt-3 border-t border-neutral-100 pt-3 text-xs font-semibold text-amber-700">
-                Total: {fmt(hospOutstanding + insOutstanding, currency)}
+              <div className="mt-3 border-t border-neutral-100 pt-3 text-xs font-bold text-amber-700">
+                Outstanding: {fmt(hospOutstanding + insOutstanding, currency)}
               </div>
+              {(hospWrittenOff + insWrittenOff) > 0 && (
+                <div className="mt-2 pt-2 border-t border-dashed border-neutral-100">
+                  <div className="flex justify-between text-xs text-neutral-400">
+                    <span>Closed at partial (written off)</span>
+                    <span className="font-medium">{fmt(hospWrittenOff + insWrittenOff, currency)}</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-300 mt-0.5">Doctor closed — no longer requested</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -309,7 +318,7 @@ export function FinanceDashboard({
 
           {/* Outstanding */}
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-700">Total Outstanding (All Time)</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-700">Outstanding (All Time)</p>
             <div className="grid grid-cols-2 gap-4">
               <div><p className="text-xl font-bold text-amber-800">{fmt(hospOutstanding, currency)}</p><p className="text-xs text-amber-600">Hospital claims</p></div>
               <div><p className="text-xl font-bold text-amber-800">{fmt(insOutstanding, currency)}</p><p className="text-xs text-amber-600">Insurance claims</p></div>
@@ -317,6 +326,18 @@ export function FinanceDashboard({
             <p className="mt-3 text-sm font-bold text-amber-900 border-t border-amber-200 pt-3">
               Total outstanding: {fmt(hospOutstanding + insOutstanding, currency)}
             </p>
+            {(hospWrittenOff + insWrittenOff) > 0 && (
+              <div className="mt-3 border-t border-dashed border-amber-200 pt-3">
+                <p className="text-xs text-amber-700 font-semibold mb-1">Closed at partial — written off</p>
+                <div className="grid grid-cols-2 gap-3 text-xs text-amber-600">
+                  {hospWrittenOff > 0 && <div>Hospital: <strong>{fmt(hospWrittenOff, currency)}</strong></div>}
+                  {insWrittenOff  > 0 && <div>Insurance: <strong>{fmt(insWrittenOff, currency)}</strong></div>}
+                </div>
+                <p className="text-[10px] text-amber-500 mt-2">
+                  These amounts were claimed but doctor closed them — no longer being pursued.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -539,10 +560,16 @@ export function FinanceDashboard({
                       {netProfit >= 0 ? "+" : ""}{fmt(netProfit, currency)}
                     </td>
                   </tr>
-                  <tr className="border-t border-neutral-200">
-                    <td className="py-2 pl-2 text-xs text-neutral-500">Outstanding (uncollected claims)</td>
+                  <tr>
+                    <td className="py-2 pl-2 text-xs text-neutral-500">Outstanding (uncollected)</td>
                     <td className="py-2 text-right font-mono text-xs text-amber-700">{fmt(hospOutstanding + insOutstanding, currency)}</td>
                   </tr>
+                  {(hospWrittenOff + insWrittenOff) > 0 && (
+                    <tr>
+                      <td className="py-2 pl-2 text-xs text-neutral-400">Closed at partial — written off</td>
+                      <td className="py-2 text-right font-mono text-xs text-neutral-400">{fmt(hospWrittenOff + insWrittenOff, currency)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

@@ -81,39 +81,47 @@ export default async function AdminFinancePage({
     .select("id, total_claimed, total_paid, status, is_followup, parent_claim_id")
     .eq("clinic_id", clinicId);
 
-  function computeOutstanding(claims: { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]) {
+  type ClaimRow = { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null };
+
+  function computeClaimSummary(claims: ClaimRow[]) {
     const originals = claims.filter(c => !c.is_followup);
     const followUps = claims.filter(c => c.is_followup);
+    let outstanding = 0;
+    let writtenOff  = 0;
 
-    return originals.reduce((sum, orig) => {
-      const origPaid = orig.total_paid ?? 0;
-      // Sum all follow-up payments linked to this original
+    for (const orig of originals) {
+      const origPaid  = orig.total_paid ?? 0;
       const linkedFUs = followUps.filter(fu => fu.parent_claim_id === orig.id);
       const fuPaid    = linkedFUs.reduce((s, fu) => s + (fu.total_paid ?? 0), 0);
-      // Outstanding on the original side
-      const origOutstanding = Math.max(0, orig.total_claimed - origPaid - fuPaid);
+      const totalPaid = origPaid + fuPaid;
+      const gap       = Math.max(0, orig.total_claimed - totalPaid);
 
-      // Also add any outstanding on open follow-up claims
-      // (follow-up was partially paid and still open)
-      const fuOutstanding = linkedFUs.reduce((s, fu) => {
-        if (fu.status === "paid") return s;
-        return s + Math.max(0, (fu.total_claimed ?? 0) - (fu.total_paid ?? 0));
-      }, 0);
-
-      // If original is fully covered by origPaid + fuPaid, no outstanding
-      // But if a follow-up is still partially paid, that remainder is outstanding
-      const totalCovered = origPaid + fuPaid;
-      if (totalCovered >= orig.total_claimed) {
-        // Original fully paid — check if follow-up itself has uncollected balance
-        return sum + fuOutstanding;
+      if (orig.status === "paid") {
+        // Closed — any remaining gap is written off (doctor chose to close it)
+        writtenOff += gap;
+      } else {
+        // Still open
+        if (totalPaid >= orig.total_claimed) {
+          // Original covered — check open follow-ups
+          for (const fu of linkedFUs) {
+            const fuGap = Math.max(0, (fu.total_claimed ?? 0) - (fu.total_paid ?? 0));
+            if (fu.status === "paid") writtenOff  += fuGap;
+            else                      outstanding += fuGap;
+          }
+        } else {
+          outstanding += gap;
+        }
       }
-      // Original not fully covered — outstanding is the gap
-      return sum + origOutstanding;
-    }, 0);
+    }
+    return { outstanding, writtenOff };
   }
 
-  const hospOutstanding = computeOutstanding((allHospClaims ?? []) as { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]);
-  const insOutstanding  = computeOutstanding((allInsClaims  ?? []) as { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]);
+  const hospSummary     = computeClaimSummary((allHospClaims ?? []) as ClaimRow[]);
+  const insSummary      = computeClaimSummary((allInsClaims  ?? []) as ClaimRow[]);
+  const hospOutstanding = hospSummary.outstanding;
+  const insOutstanding  = insSummary.outstanding;
+  const hospWrittenOff  = hospSummary.writtenOff;
+  const insWrittenOff   = insSummary.writtenOff;
 
   const totalRevenue = cashTotal + hospitalPaid + insurancePaid;
 
@@ -304,6 +312,8 @@ export default async function AdminFinancePage({
         totalRevenue={totalRevenue}
         hospOutstanding={hospOutstanding}
         insOutstanding={insOutstanding}
+        hospWrittenOff={hospWrittenOff}
+        insWrittenOff={insWrittenOff}
         methodBreakdown={methodBreakdown}
         // Costs
         expenses={expenses ?? []}
