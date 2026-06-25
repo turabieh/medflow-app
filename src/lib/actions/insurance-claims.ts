@@ -30,17 +30,15 @@ async function computeInsuranceTotal(
   insuranceCompanyId: string,
   fromDate: string,
   toDate: string
-): Promise<number> {
-  // Get patients with this insurance
+): Promise<{ total: number; apptIds: string[] }> {
   const { data: patients } = await supabase
     .from("patients").select("id")
     .eq("clinic_id", clinicId)
     .eq("insurance_company_id", insuranceCompanyId);
 
   const patientIds = (patients ?? []).map(p => p.id);
-  if (!patientIds.length) return 0;
+  if (!patientIds.length) return { total: 0, apptIds: [] };
 
-  // Get finalized/done appointments in date range
   const { data: appts } = await supabase
     .from("appointments")
     .select("id, insurance_fee, payment_amount")
@@ -48,25 +46,45 @@ async function computeInsuranceTotal(
     .gte("appt_date", fromDate).lte("appt_date", toDate)
     .in("status", ["finalized", "done"]);
 
-  // Only count appointments where insurance actually owes money
   const billableAppts = (appts ?? []).filter(a => (a.insurance_fee ?? 0) > 0 || (a.payment_amount ?? 0) > 0);
   const apptIds = billableAppts.map(a => a.id);
-
-  // Visit fees
   const visitFeeTotal = billableAppts.reduce((s, a) => s + (a.insurance_fee ?? a.payment_amount ?? 0), 0);
 
-  // Approved procedures
   let procTotal = 0;
+  let procApptIds: string[] = [];
   if (apptIds.length) {
     const { data: procs } = await supabase
       .from("outpatient_procedure_claims")
-      .select("price")
+      .select("appointment_id, price")
       .in("appointment_id", apptIds)
       .eq("auth_status", "approved");
     procTotal = (procs ?? []).reduce((s, p) => s + (p.price ?? 0), 0);
+    procApptIds = [...new Set((procs ?? []).map(p => p.appointment_id))];
   }
 
-  return visitFeeTotal + procTotal;
+  // Also include appointments that only have approved procedures (no visit fee set)
+  const { data: procOnlyAppts } = await supabase
+    .from("outpatient_procedure_claims")
+    .select("appointment_id, price, appointments(id, appt_date, patient_id)")
+    .eq("auth_status", "approved")
+    .in("appointments.patient_id", patientIds)
+    .not("appointments", "is", null);
+
+  let extraProcTotal = 0;
+  const extraApptIds: string[] = [];
+  for (const p of procOnlyAppts ?? []) {
+    if (apptIds.includes(p.appointment_id)) continue; // already counted
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appt = Array.isArray(p.appointments) ? p.appointments[0] : p.appointments as any;
+    if (!appt?.appt_date) continue;
+    if (appt.appt_date < fromDate || appt.appt_date > toDate) continue;
+    if (!patientIds.includes(appt.patient_id)) continue;
+    extraProcTotal += p.price ?? 0;
+    if (!extraApptIds.includes(p.appointment_id)) extraApptIds.push(p.appointment_id);
+  }
+
+  const allApptIds = [...new Set([...apptIds, ...extraApptIds])];
+  return { total: visitFeeTotal + procTotal + extraProcTotal, apptIds: allApptIds };
 }
 
 export async function createInsuranceClaim(input: {
@@ -96,7 +114,7 @@ export async function createInsuranceClaim(input: {
     };
   }
 
-  const total = await computeInsuranceTotal(auth.supabase, auth.clinicId, input.insuranceCompanyId, input.fromDate, input.toDate);
+  const { total, apptIds: linkedApptIds } = await computeInsuranceTotal(auth.supabase, auth.clinicId, input.insuranceCompanyId, input.fromDate, input.toDate);
   const { seq, year } = await nextSeq(auth.supabase, auth.clinicId);
   const claimNumber = `INS-${year}-${String(seq).padStart(3, "0")}`;
 
@@ -116,6 +134,14 @@ export async function createInsuranceClaim(input: {
     }).select("id").single();
 
   if (error || !claim) return { success: false, error: error?.message ?? "Failed." };
+
+  // Record which appointments are linked to this claim
+  if (linkedApptIds.length > 0) {
+    await auth.supabase.from("insurance_claim_appointments").insert(
+      linkedApptIds.map(apptId => ({ claim_id: claim.id, appointment_id: apptId }))
+    );
+  }
+
   revalidatePath("/secretary/insurance-claims");
   return { success: true, claimId: claim.id, claimNumber };
 }
