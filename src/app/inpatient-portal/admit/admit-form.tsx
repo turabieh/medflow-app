@@ -35,17 +35,30 @@ export function PortalAdmitForm({
     }
     setSaving(true); setError(null);
 
-    const result = await admitInpatient({
-      patientId:          selectedPatient.id,
-      hospitalId,
-      hospitalPatientId:  mrn.trim().toUpperCase(),
-      location:           location.trim() || "",
-      admissionDate:      admitDate,
-    });
+    try {
+      const result = await admitInpatient({
+        patientId:          selectedPatient.id,
+        hospitalId,
+        hospitalPatientId:  mrn.trim().toUpperCase(),
+        location:           location.trim() || "",
+        admissionDate:      admitDate,
+      });
 
-    setSaving(false);
-    if (!result.success) { setError(result.error ?? "Failed to admit patient."); return; }
-    router.push(`/inpatient-portal/patients/${result.inpatientId}`);
+      setSaving(false);
+      if (!result.success) {
+        setError(result.error ?? "Failed to admit patient. Please try again.");
+        return;
+      }
+      if (!result.inpatientId) {
+        setError("Admitted but could not get patient ID. Check inpatients list.");
+        return;
+      }
+      router.push(`/inpatient-portal/patients/${result.inpatientId}`);
+      router.refresh();
+    } catch (err) {
+      setSaving(false);
+      setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   return (

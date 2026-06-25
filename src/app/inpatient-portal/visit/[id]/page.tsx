@@ -17,10 +17,16 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
 
   const { data: visit } = await supabase
     .from("visits")
-    .select("*, patients(id, full_name, full_name_ar, dob, gender, blood_type, phone, allergies, chronic_conditions, insurance_company_id, insurance_companies(name))")
+    .select("*, patients(id, full_name, full_name_ar, dob, gender, blood_type, phone, allergies, insurance_company_id, insurance_companies(name))")
     .eq("id", id).single();
 
-  if (!visit) redirect("/inpatient-portal");
+  if (!visit) return (
+    <div style={{ padding:"32px 16px", textAlign:"center", fontFamily:"system-ui", color:"#fca5a5" }}>
+      <div style={{ fontSize:"32px", marginBottom:"12px" }}>⚠</div>
+      <div style={{ fontSize:"16px", fontWeight:"600" }}>Visit not found</div>
+      <a href="/inpatient-portal" style={{ display:"inline-block", marginTop:"16px", color:"#3b82f6", fontSize:"14px" }}>← Back to portal</a>
+    </div>
+  );
 
   // Inpatient details if this is an inpatient visit
   let inpatient = null;
@@ -45,13 +51,6 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
   const { data: medications } = await supabase
     .from("prescriptions")
     .select("id, drug_name, dose, frequency, duration, instructions")
-    .eq("visit_id", id)
-    .order("created_at");
-
-  // Procedures
-  const { data: procedures } = await supabase
-    .from("visit_procedures")
-    .select("id, name, notes, cost")
     .eq("visit_id", id)
     .order("created_at");
 
@@ -93,7 +92,6 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
         inpatient={inpatient}
         prevVisits={prevVisits ?? []}
         medications={medications ?? []}
-        procedures={procedures ?? []}
         clinicId={profile.clinic_id}
         doctorId={profile.id}
       />

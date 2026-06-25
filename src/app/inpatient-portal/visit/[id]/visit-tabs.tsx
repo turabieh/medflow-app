@@ -15,13 +15,12 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function MobileVisitTabs({ visit, patient, inpatient, prevVisits, medications, procedures, clinicId, doctorId }: {
+export function MobileVisitTabs({ visit, patient, inpatient, prevVisits, medications, clinicId, doctorId }: {
   visit: Record<string,unknown>;
   patient: Record<string,unknown> | null;
   inpatient: Record<string,unknown> | null;
   prevVisits: Record<string,unknown>[];
   medications: Record<string,unknown>[];
-  procedures: Record<string,unknown>[];
   clinicId: string;
   doctorId: string;
 }) {
@@ -174,11 +173,7 @@ export function MobileVisitTabs({ visit, patient, inpatient, prevVisits, medicat
                 {(patient as {allergies:string}).allergies}
               </div>
             ))}
-            {(patient as {chronic_conditions?:string}|null)?.chronic_conditions && section("Chronic Conditions", (
-              <div style={{ background:"#1e293b", borderRadius:"12px", padding:"12px 14px", color:"#e2e8f0", fontSize:"13px" }}>
-                {(patient as {chronic_conditions:string}).chronic_conditions}
-              </div>
-            ))}
+
           </div>
         )}
 
