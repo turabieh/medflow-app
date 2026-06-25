@@ -1,68 +1,202 @@
 import { createClient } from "@/lib/supabase/server";
-import { FinanceDashboard } from "@/components/admin/finance-dashboard";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { FinanceDashboard } from "./finance-dashboard";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminFinancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ tab?: string; from?: string; to?: string; period?: string }>;
 }) {
   const params = await searchParams;
-  const tab = params.tab ?? "dashboard";
+  const tab    = params.tab    ?? "overview";
+  const period = params.period ?? "month";
+
   const supabase = await createClient();
-
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("users").select("clinic_id").eq("id", user?.id ?? "").single();
+  if (!user) redirect("/login");
+  const { data: profile } = await supabase.from("users").select("clinic_id, role").eq("id", user.id).single();
+  if (profile?.role !== "admin") redirect("/");
 
-  const clinicId = profile?.clinic_id ?? "";
+  const clinicId = profile.clinic_id ?? "";
+  const today    = new Date();
+  const todayStr = today.toISOString().split("T")[0];
 
-  // Get currency setting
-  const { data: currencySetting } = await supabase
-    .from("clinic_settings")
-    .select("value")
-    .eq("clinic_id", clinicId)
-    .eq("key", "currency")
-    .maybeSingle();
-  const currency = currencySetting?.value ?? "JOD";
+  // Date range
+  let fromDate = params.from;
+  let toDate   = params.to ?? todayStr;
+  if (!fromDate) {
+    if (period === "year")  fromDate = `${today.getFullYear()}-01-01`;
+    else if (period === "week") fromDate = new Date(today.getTime() - 7 * 86400000).toISOString().split("T")[0];
+    else fromDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-01`;
+  }
 
-  const today = new Date();
-  const fromDate = params.from ?? `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-  const toDate = params.to ?? today.toISOString().split("T")[0];
+  const { data: currSetting } = await supabase.from("clinic_settings").select("value")
+    .eq("clinic_id", clinicId).eq("key", "currency").maybeSingle();
+  const currency = currSetting?.value ?? "JOD";
 
-  // Fetch confirmed payments in range
-  const { data: payments } = await supabase
+  // ── REVENUE ──────────────────────────────────────────────────────────────
+  // 1. Cash payments (outpatient)
+  const { data: cashPayments } = await supabase
     .from("appointments")
-    .select("id, appt_date, payment_method, payment_amount, payment_confirmed_at, patient_id, users!appointments_doctor_id_fkey(full_name)")
+    .select("appt_date, payment_amount, payment_method")
+    .eq("clinic_id", clinicId)
     .eq("payment_confirmed", true)
-    .gte("appt_date", fromDate)
-    .lte("appt_date", toDate)
-    .order("appt_date", { ascending: false });
+    .gte("appt_date", fromDate).lte("appt_date", toDate);
 
-  const patientIds = [...new Set((payments ?? []).map((p) => p.patient_id))];
-  const { data: patients } = patientIds.length
-    ? await supabase.from("patients").select("id, full_name").in("id", patientIds)
-    : { data: [] };
-  const patientsById = Object.fromEntries((patients ?? []).map((p) => [p.id, p.full_name]));
+  const cashTotal = (cashPayments ?? []).reduce((s, p) => s + (p.payment_amount ?? 0), 0);
 
-  const totalIncome = (payments ?? []).reduce((sum, p) => sum + (p.payment_amount ?? 0), 0);
-  const paymentCount = (payments ?? []).length;
+  // 2. Hospital claim payments received
+  const { data: hospitalClaims } = await supabase
+    .from("hospital_claims")
+    .select("from_date, to_date, total_claimed, total_paid, status, claim_number, hospitals(name)")
+    .eq("clinic_id", clinicId)
+    .in("status", ["paid", "partial"])
+    .gte("to_date", fromDate).lte("from_date", toDate);
 
-  const paymentsWithNames = (payments ?? []).map((p) => ({
-    ...p,
-    patientName: patientsById[p.patient_id] ?? "Unknown",
-    doctorName: Array.isArray(p.users) ? p.users[0]?.full_name : (p.users as { full_name: string } | null)?.full_name ?? "—",
+  const hospitalPaid = (hospitalClaims ?? []).filter(c => !(c as {is_followup?: boolean}).is_followup).reduce((s, c) => s + (c.total_paid ?? 0), 0);
+
+  // 3. Insurance claim payments received
+  const { data: insuranceClaims } = await supabase
+    .from("insurance_claims")
+    .select("from_date, to_date, total_claimed, total_paid, status, claim_number, insurance_companies(name)")
+    .eq("clinic_id", clinicId)
+    .in("status", ["paid", "partial"])
+    .gte("to_date", fromDate).lte("from_date", toDate);
+
+  const insurancePaid = (insuranceClaims ?? []).filter(c => !(c as {is_followup?: boolean}).is_followup).reduce((s, c) => s + (c.total_paid ?? 0), 0);
+
+  // 4. Outstanding claims
+  const { data: allHospClaims } = await supabase
+    .from("hospital_claims").select("total_claimed, total_paid, status, is_followup")
+    .eq("clinic_id", clinicId).eq("is_followup", false);
+
+  const { data: allInsClaims } = await supabase
+    .from("insurance_claims").select("total_claimed, total_paid, status, is_followup")
+    .eq("clinic_id", clinicId).eq("is_followup", false);
+
+  const hospOutstanding = (allHospClaims ?? []).reduce((s, c) => s + Math.max(0, (c.total_claimed ?? 0) - (c.total_paid ?? 0)), 0);
+  const insOutstanding  = (allInsClaims  ?? []).reduce((s, c) => s + Math.max(0, (c.total_claimed ?? 0) - (c.total_paid ?? 0)), 0);
+
+  const totalRevenue = cashTotal + hospitalPaid + insurancePaid;
+
+  // ── EXPENSES ─────────────────────────────────────────────────────────────
+  const { data: expenses } = await supabase
+    .from("expenses")
+    .select("id, expense_date, category, description, amount, notes")
+    .eq("clinic_id", clinicId)
+    .gte("expense_date", fromDate).lte("expense_date", toDate)
+    .order("expense_date", { ascending: false });
+
+  const totalExpenses = (expenses ?? []).reduce((s, e) => s + (e.amount ?? 0), 0);
+
+  // Salary expenses for period (monthly salary × months in range)
+  const { data: salaries } = await supabase
+    .from("staff_salaries")
+    .select("monthly_salary, effective_from, users(full_name, role)")
+    .eq("clinic_id", clinicId)
+    .lte("effective_from", toDate)
+    .order("effective_from", { ascending: false });
+
+  // Latest salary per user
+  const latestSalaryMap = new Map<string, { name: string; role: string; salary: number }>();
+  for (const s of salaries ?? []) {
+    const u = Array.isArray(s.users) ? s.users[0] : s.users as { full_name: string; role: string } | null;
+    if (!u) continue;
+    const key = u.full_name;
+    if (!latestSalaryMap.has(key)) latestSalaryMap.set(key, { name: u.full_name, role: u.role, salary: s.monthly_salary });
+  }
+
+  const from = new Date(fromDate);
+  const to   = new Date(toDate);
+  const months = Math.max(1, Math.round((to.getTime() - from.getTime()) / (30 * 86400000)));
+  const totalSalaries = Array.from(latestSalaryMap.values()).reduce((s, v) => s + v.salary * months, 0);
+
+  const totalCosts   = totalExpenses + totalSalaries;
+  const netProfit    = totalRevenue - totalCosts;
+
+  // ── By-category expense breakdown ────────────────────────────────────────
+  const expByCategory: Record<string, number> = {};
+  for (const e of expenses ?? []) {
+    expByCategory[e.category] = (expByCategory[e.category] ?? 0) + e.amount;
+  }
+
+  // ── Monthly trend (last 12 months) ───────────────────────────────────────
+  const { data: monthlyPayments } = await supabase
+    .from("appointments").select("appt_date, payment_amount")
+    .eq("clinic_id", clinicId).eq("payment_confirmed", true)
+    .gte("appt_date", `${today.getFullYear()-1}-${String(today.getMonth()+1).padStart(2,"0")}-01`)
+    .lte("appt_date", todayStr);
+
+  const { data: monthlyExp } = await supabase
+    .from("expenses").select("expense_date, amount")
+    .eq("clinic_id", clinicId)
+    .gte("expense_date", `${today.getFullYear()-1}-${String(today.getMonth()+1).padStart(2,"0")}-01`)
+    .lte("expense_date", todayStr);
+
+  const monthlyRevMap: Record<string, number> = {};
+  const monthlyExpMap: Record<string, number> = {};
+  for (const p of monthlyPayments ?? []) {
+    const m = p.appt_date?.slice(0, 7) ?? "";
+    if (m) monthlyRevMap[m] = (monthlyRevMap[m] ?? 0) + (p.payment_amount ?? 0);
+  }
+  for (const e of monthlyExp ?? []) {
+    const m = e.expense_date?.slice(0, 7) ?? "";
+    if (m) monthlyExpMap[m] = (monthlyExpMap[m] ?? 0) + (e.amount ?? 0);
+  }
+  const allMonths = [...new Set([...Object.keys(monthlyRevMap), ...Object.keys(monthlyExpMap)])].sort().slice(-12);
+  const monthlyTrend = allMonths.map(m => ({
+    month: m,
+    revenue: monthlyRevMap[m] ?? 0,
+    expenses: monthlyExpMap[m] ?? 0,
+    profit: (monthlyRevMap[m] ?? 0) - (monthlyExpMap[m] ?? 0),
   }));
+
+  // ── Staff for salary management ───────────────────────────────────────────
+  const { data: staff } = await supabase
+    .from("users").select("id, full_name, role")
+    .eq("clinic_id", clinicId).in("role", ["doctor","secretary","admin"]).order("full_name");
+
+  // ── Payment method breakdown ──────────────────────────────────────────────
+  const methodBreakdown: Record<string, number> = {};
+  for (const p of cashPayments ?? []) {
+    const m = p.payment_method ?? "cash";
+    methodBreakdown[m] = (methodBreakdown[m] ?? 0) + (p.payment_amount ?? 0);
+  }
 
   return (
     <div>
-      <h1 className="mb-6 text-lg font-medium text-neutral-900">💰 Finance &amp; Reports</h1>
+      <h1 className="mb-1 text-lg font-medium text-neutral-900">Finance &amp; Reports</h1>
+      <p className="mb-5 text-sm text-neutral-500">Full financial overview, expenses, and performance reports.</p>
       <FinanceDashboard
         currency={currency}
         fromDate={fromDate}
         toDate={toDate}
-        totalIncome={totalIncome}
-        paymentCount={paymentCount}
-        payments={paymentsWithNames}
+        period={period}
+        tab={tab}
+        // Revenue
+        cashTotal={cashTotal}
+        hospitalPaid={hospitalPaid}
+        insurancePaid={insurancePaid}
+        totalRevenue={totalRevenue}
+        hospOutstanding={hospOutstanding}
+        insOutstanding={insOutstanding}
+        methodBreakdown={methodBreakdown}
+        // Costs
+        expenses={expenses ?? []}
+        totalExpenses={totalExpenses}
+        expByCategory={expByCategory}
+        totalSalaries={totalSalaries}
+        totalCosts={totalCosts}
+        netProfit={netProfit}
+        // Charts
+        monthlyTrend={monthlyTrend}
+        // Staff
+        staff={staff ?? []}
+        latestSalaries={Array.from(latestSalaryMap.values())}
+        clinicId={clinicId}
       />
     </div>
   );
