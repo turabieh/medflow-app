@@ -195,8 +195,35 @@ export function FinanceDashboard({
             <StatCard label="Total Revenue" value={fmt(totalRevenue, currency)} color="text-green-700" />
             <StatCard label="Total Costs"   value={fmt(totalCosts, currency)}   color="text-red-600" />
             <StatCard label="Net Profit"    value={fmt(netProfit, currency)}    color={netProfit >= 0 ? "text-emerald-700" : "text-red-700"} highlight={netProfit < 0} />
-            <StatCard label="Unclaimed Revenue" value={fmt(totalUnclaimed, currency)} color="text-red-600" sub="Not yet invoiced" highlight={totalUnclaimed > 0} />
+            <div className={`rounded-xl border p-4 shadow-sm ${(hospOutstanding + insOutstanding + totalUnclaimed) > 0 ? "border-amber-200 bg-amber-50" : "border-neutral-200 bg-white"}`}>
+              <p className={`text-xl font-bold ${(hospOutstanding + insOutstanding) > 0 ? "text-amber-700" : "text-neutral-400"}`}>
+                {fmt(hospOutstanding + insOutstanding, currency)}
+              </p>
+              <p className="text-xs font-medium text-neutral-700 mt-0.5">Outstanding Claims</p>
+              <p className="text-[10px] text-neutral-400">Claimed but not yet paid</p>
+              {totalUnclaimed > 0 && (
+                <div className="mt-2 pt-2 border-t border-amber-200">
+                  <p className="text-xs font-bold text-red-600">{fmt(totalUnclaimed, currency)}</p>
+                  <p className="text-[10px] text-red-500">+ Not yet invoiced</p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Debug info — remove after confirming numbers */}
+          <details className="rounded-lg border border-neutral-200 bg-white p-3 text-xs text-neutral-500">
+            <summary className="cursor-pointer font-medium">Debug: raw claim data</summary>
+            <div className="mt-2 space-y-1 font-mono">
+              <div>hospOutstanding: {hospOutstanding.toFixed(2)}</div>
+              <div>insOutstanding: {insOutstanding.toFixed(2)}</div>
+              <div>hospWrittenOff: {hospWrittenOff.toFixed(2)}</div>
+              <div>insWrittenOff: {insWrittenOff.toFixed(2)}</div>
+              <div>totalUnclaimed: {totalUnclaimed.toFixed(2)}</div>
+              <div>cashTotal: {cashTotal.toFixed(2)}</div>
+              <div>hospitalPaid: {hospitalPaid.toFixed(2)}</div>
+              <div>insurancePaid: {insurancePaid.toFixed(2)}</div>
+            </div>
+          </details>
 
           {/* Revenue breakdown */}
           <div className="grid grid-cols-3 gap-3">

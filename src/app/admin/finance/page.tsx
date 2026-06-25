@@ -81,11 +81,12 @@ export default async function AdminFinancePage({
     .select("id, total_claimed, total_paid, status, is_followup, parent_claim_id")
     .eq("clinic_id", clinicId);
 
-  type ClaimRow = { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null };
+  type ClaimRow = { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean | null; parent_claim_id: string | null };
 
   function computeClaimSummary(claims: ClaimRow[]) {
-    const originals = claims.filter(c => !c.is_followup);
-    const followUps = claims.filter(c => c.is_followup);
+    // Treat null is_followup as false (original claim)
+    const originals = claims.filter(c => !c.is_followup && !c.parent_claim_id);
+    const followUps = claims.filter(c => c.is_followup || !!c.parent_claim_id);
     let outstanding = 0;
     let writtenOff  = 0;
 
@@ -94,15 +95,12 @@ export default async function AdminFinancePage({
       const linkedFUs = followUps.filter(fu => fu.parent_claim_id === orig.id);
       const fuPaid    = linkedFUs.reduce((s, fu) => s + (fu.total_paid ?? 0), 0);
       const totalPaid = origPaid + fuPaid;
-      const gap       = Math.max(0, orig.total_claimed - totalPaid);
+      const gap       = Math.max(0, (orig.total_claimed ?? 0) - totalPaid);
 
       if (orig.status === "paid") {
-        // Closed — any remaining gap is written off (doctor chose to close it)
         writtenOff += gap;
       } else {
-        // Still open
-        if (totalPaid >= orig.total_claimed) {
-          // Original covered — check open follow-ups
+        if (totalPaid >= (orig.total_claimed ?? 0)) {
           for (const fu of linkedFUs) {
             const fuGap = Math.max(0, (fu.total_claimed ?? 0) - (fu.total_paid ?? 0));
             if (fu.status === "paid") writtenOff  += fuGap;
@@ -113,6 +111,17 @@ export default async function AdminFinancePage({
         }
       }
     }
+
+    // Safety: if no originals found (old schema without is_followup column),
+    // fall back to simple sum of all non-paid claims
+    if (originals.length === 0 && claims.length > 0) {
+      for (const c of claims) {
+        const gap = Math.max(0, (c.total_claimed ?? 0) - (c.total_paid ?? 0));
+        if (c.status === "paid") writtenOff += gap;
+        else outstanding += gap;
+      }
+    }
+
     return { outstanding, writtenOff };
   }
 
