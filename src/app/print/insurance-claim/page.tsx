@@ -128,7 +128,7 @@ export default function InsuranceClaimPrintPage() {
   const insurance = Array.isArray(claim.insurance_companies) ? claim.insurance_companies[0] : claim.insurance_companies as any;
 
   const s = {
-    page:  { maxWidth:"780px", margin:"0 auto", padding:"32px 40px", fontFamily:"Arial, sans-serif", fontSize:"12px", color:"#1a1a1a" } as React.CSSProperties,
+    page:  { maxWidth:"780px", margin:"0 auto", padding:"14mm 14mm 8mm 14mm", fontFamily:"Arial, sans-serif", fontSize:"12px", color:"#1a1a1a" } as React.CSSProperties,
     th:    { background:"#1a1a1a", color:"#fff", fontSize:"10px", textTransform:"uppercase" as const, letterSpacing:"0.5px", padding:"7px 10px", textAlign:"left" as const, fontWeight:"600" as const },
     thR:   { background:"#1a1a1a", color:"#fff", fontSize:"10px", textTransform:"uppercase" as const, letterSpacing:"0.5px", padding:"7px 10px", textAlign:"right" as const, fontWeight:"600" as const },
     td:    { padding:"7px 10px", borderBottom:"1px solid #f0f0f0", fontSize:"11px" },
@@ -141,13 +141,11 @@ export default function InsuranceClaimPrintPage() {
   return (
     <>
             <style>{`
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
-        @page { size: A4; margin: 12mm 14mm; }
+        @page { size: A4; margin: 0; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         @media print {
           .no-print { display: none !important; }
-          table { border-collapse: collapse !important; }
-          th, td { border: 1px solid #ccc !important; }
+          table.data-table th, table.data-table td { border: 1px solid #ccc !important; }
         }
       `}</style>
       <div className="no-print" style={{ position:"fixed", top:"12px", right:"12px", zIndex:100, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"6px" }}>
@@ -216,7 +214,7 @@ export default function InsuranceClaimPrintPage() {
               No finalized visits found for this insurance company in the selected period.
             </div>
           ) : (
-            <table style={s.table}>
+            <table className="data-table" style={s.table}>
               <thead>
                 <tr>
                   <th style={s.th}>#</th>

@@ -81,7 +81,7 @@ export default function InpatientVisitPrintPage() {
     .map((l: string) => l.replace("[MANUAL_SYMPTOM:", "").replace("]", "").trim());
 
   const s = {
-    page:    { maxWidth:"750px", margin:"0 auto", padding:"32px 40px", fontFamily:"Arial, sans-serif", fontSize:"12px", color:"#1a1a1a" } as React.CSSProperties,
+    page:    { maxWidth:"750px", margin:"0 auto", padding:"14mm 14mm 8mm 14mm", fontFamily:"Arial, sans-serif", fontSize:"12px", color:"#1a1a1a" } as React.CSSProperties,
     fLabel:  { fontSize:"9px", textTransform:"uppercase" as const, letterSpacing:"0.5px", color:"#999", marginBottom:"2px" },
     fValue:  { fontSize:"12px", fontWeight:"600" as const, color:"#111" },
     secTitle:{ fontSize:"9px", fontWeight:"700" as const, textTransform:"uppercase" as const, letterSpacing:"1.5px", color:"#777", paddingBottom:"5px", borderBottom:"1px solid #e0e0e0", marginBottom:"10px" },
@@ -95,13 +95,11 @@ export default function InpatientVisitPrintPage() {
   return (
     <>
             <style>{`
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
-        @page { size: A4; margin: 12mm 14mm; }
+        @page { size: A4; margin: 0; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         @media print {
           .no-print { display: none !important; }
-          table { border-collapse: collapse !important; }
-          th, td { border: 1px solid #ccc !important; }
+          table.data-table th, table.data-table td { border: 1px solid #ccc !important; }
         }
       `}</style>
       <div className="no-print" style={{ position:"fixed", top:"12px", right:"12px", zIndex:100, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:"6px" }}>
@@ -210,7 +208,7 @@ export default function InpatientVisitPrintPage() {
         {procs.length > 0 && (
           <div style={{ marginBottom:"20px" }}>
             <div style={s.secTitle}>Procedures Performed</div>
-            <table style={s.table}>
+            <table className="data-table" style={s.table}>
               <thead><tr>
                 <th style={s.th}>Procedure</th>
                 <th style={s.th}>Notes</th>

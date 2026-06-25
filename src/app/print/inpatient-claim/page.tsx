@@ -84,13 +84,11 @@ export default function InpatientClaimPage() {
   return (
     <>
             <style>{`
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
-        @page { size: A4; margin: 12mm 14mm; }
+        @page { size: A4; margin: 0; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         @media print {
           .no-print { display: none !important; }
-          table { border-collapse: collapse !important; }
-          th, td { border: 1px solid #ccc !important; }
+          table.data-table th, table.data-table td { border: 1px solid #ccc !important; }
         }
       `}</style>
 
@@ -162,7 +160,7 @@ export default function InpatientClaimPage() {
         {/* Visits table */}
         <div style={{ marginBottom:"24px" }}>
           <div style={s.secTitle}>Visit Log</div>
-          <table style={s.table}>
+          <table className="data-table" style={s.table}>
             <thead>
               <tr>
                 <th style={s.th}>#</th>

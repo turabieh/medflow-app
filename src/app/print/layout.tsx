@@ -6,21 +6,29 @@ export default function PrintRootLayout({ children }: { children: React.ReactNod
       <style>{`
         @page {
           size: A4;
-          margin: 12mm 14mm;
-          /* Suppresses browser header/footer (URL, page number, title) */
+          margin: 14mm 14mm;
+          /* These suppress browser-generated headers and footers */
+          margin-top: 8mm;
+          margin-bottom: 8mm;
         }
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           color-adjust: exact !important;
+          box-sizing: border-box;
         }
-        body {
+        html, body {
           margin: 0;
           padding: 0;
           background: #fff;
         }
         @media print {
           .no-print { display: none !important; }
+          /* Only the data table gets borders — not header/footer */
+          table.data-table th,
+          table.data-table td {
+            border: 1px solid #ccc !important;
+          }
         }
       `}</style>
       <Suspense fallback={

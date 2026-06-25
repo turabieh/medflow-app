@@ -127,13 +127,11 @@ export default function HospitalClaimPrintPage() {
   return (
     <>
       <style>{`
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
-        @page { size: A4; margin: 12mm 14mm; }
+        @page { size: A4; margin: 0; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         @media print {
           .no-print { display: none !important; }
-          table { border-collapse: collapse !important; }
-          th, td { border: 1px solid #ccc !important; }
+          table.data-table th, table.data-table td { border: 1px solid #ccc !important; }
         }
       `}</style>
 
@@ -147,7 +145,7 @@ export default function HospitalClaimPrintPage() {
         </span>
       </div>
 
-      <div style={{ maxWidth:"760px", margin:"0 auto", padding:"24px 28px", fontFamily:"Arial, sans-serif", fontSize:"11px", color:"#111", background:"#fff" }}>
+      <div style={{ maxWidth:"760px", margin:"0 auto", padding:"14mm 14mm 8mm 14mm", fontFamily:"Arial, sans-serif", fontSize:"11px", color:"#111", background:"#fff" }}>
 
         {/* ── Header ── */}
         <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"16px" }}>
@@ -191,9 +189,9 @@ export default function HospitalClaimPrintPage() {
         )}
 
         {/* Billed to / From */}
-        <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"14px", border:"1px solid #ddd" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"14px" }}>
           <tbody><tr>
-            <td style={{ width:"50%", padding:"10px 12px", verticalAlign:"top", borderRight:"1px solid #ddd" }}>
+            <td style={{ width:"50%", padding:"10px 12px", verticalAlign:"top" }}>
               <div style={{ fontSize:"8px", fontWeight:"700", textTransform:"uppercase", color:"#999", letterSpacing:"1px", marginBottom:"5px" }}>Billed To</div>
               <div style={{ fontSize:"13px", fontWeight:"700" }}>{hospital?.name}</div>
               {hospital?.address && <div style={{ fontSize:"10px", color:"#555", marginTop:"3px" }}>{hospital.address}</div>}
@@ -209,7 +207,7 @@ export default function HospitalClaimPrintPage() {
         </table>
 
         {/* Visit table */}
-        <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"16px", border:"1px solid #ccc" }}>
+        <table className="data-table" style={{ width:"100%", borderCollapse:"collapse", marginBottom:"16px" }}>
           <thead>
             <tr style={{ background:"#1a1a1a", color:"#fff" }}>
               {["#","Patient","MRN","Location","Date","Time","Type","Procedures","Visit Fee","Proc. Fee","Total"].map((h,i) => (
@@ -224,7 +222,7 @@ export default function HospitalClaimPrintPage() {
             {rows.map((row: {patientName:string;mrn:string;location:string;visitDate:string;visitTime:string;visitType:string;visitFee:number;procedures:{procedure_name:string;price:number}[];visitTotal:number}, idx: number) => {
               const procTotal = row.procedures.reduce((s,p) => s + p.price, 0);
               const bg = idx % 2 === 0 ? "#fff" : "#f8f8f8";
-              const td = { padding:"5px 7px", fontSize:"10px", border:"1px solid #ddd", background:bg, verticalAlign:"top" as const };
+              const td = { padding:"5px 7px", fontSize:"10px", background:bg, verticalAlign:"top" as const };
               const tdR = { ...td, textAlign:"right" as const, fontFamily:"monospace" };
               return (
                 <tr key={idx}>
@@ -267,7 +265,7 @@ export default function HospitalClaimPrintPage() {
         )}
 
         {/* Footer / Signature */}
-        <table style={{ width:"100%", borderCollapse:"collapse", marginTop:"28px", borderTop:"1px solid #ddd", paddingTop:"12px" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", marginTop:"28px" }}>
           <tbody><tr>
             <td style={{ verticalAlign:"bottom", fontSize:"9px", color:"#666", lineHeight:"1.7", paddingTop:"12px" }}>
               <div style={{ fontWeight:"600" }}>{clinic?.name}</div>
