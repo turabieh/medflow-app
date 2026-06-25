@@ -51,34 +51,51 @@ export default async function AdminFinancePage({
   // 2. Hospital claim payments received
   const { data: hospitalClaims } = await supabase
     .from("hospital_claims")
-    .select("from_date, to_date, total_claimed, total_paid, status, claim_number, hospitals(name)")
+    .select("from_date, to_date, total_claimed, total_paid, status, claim_number, is_followup, hospitals(name)")
     .eq("clinic_id", clinicId)
     .in("status", ["paid", "partial"])
     .gte("to_date", fromDate).lte("from_date", toDate);
 
-  const hospitalPaid = (hospitalClaims ?? []).filter(c => !(c as {is_followup?: boolean}).is_followup).reduce((s, c) => s + (c.total_paid ?? 0), 0);
+  // Total paid = all payments received (original + follow-ups) within the period
+  const hospitalPaid = (hospitalClaims ?? []).reduce((s, c) => s + (c.total_paid ?? 0), 0);
 
   // 3. Insurance claim payments received
   const { data: insuranceClaims } = await supabase
     .from("insurance_claims")
-    .select("from_date, to_date, total_claimed, total_paid, status, claim_number, insurance_companies(name)")
+    .select("from_date, to_date, total_claimed, total_paid, status, claim_number, is_followup, insurance_companies(name)")
     .eq("clinic_id", clinicId)
     .in("status", ["paid", "partial"])
     .gte("to_date", fromDate).lte("from_date", toDate);
 
-  const insurancePaid = (insuranceClaims ?? []).filter(c => !(c as {is_followup?: boolean}).is_followup).reduce((s, c) => s + (c.total_paid ?? 0), 0);
+  const insurancePaid = (insuranceClaims ?? []).reduce((s, c) => s + (c.total_paid ?? 0), 0);
 
   // 4. Outstanding claims
+  // Outstanding = original claimed − (original paid + all follow-up paid)
   const { data: allHospClaims } = await supabase
-    .from("hospital_claims").select("total_claimed, total_paid, status, is_followup")
-    .eq("clinic_id", clinicId).eq("is_followup", false);
+    .from("hospital_claims")
+    .select("id, total_claimed, total_paid, status, is_followup, parent_claim_id")
+    .eq("clinic_id", clinicId);
 
   const { data: allInsClaims } = await supabase
-    .from("insurance_claims").select("total_claimed, total_paid, status, is_followup")
-    .eq("clinic_id", clinicId).eq("is_followup", false);
+    .from("insurance_claims")
+    .select("id, total_claimed, total_paid, status, is_followup, parent_claim_id")
+    .eq("clinic_id", clinicId);
 
-  const hospOutstanding = (allHospClaims ?? []).reduce((s, c) => s + Math.max(0, (c.total_claimed ?? 0) - (c.total_paid ?? 0)), 0);
-  const insOutstanding  = (allInsClaims  ?? []).reduce((s, c) => s + Math.max(0, (c.total_claimed ?? 0) - (c.total_paid ?? 0)), 0);
+  function computeOutstanding(claims: { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]) {
+    const originals = claims.filter(c => !c.is_followup);
+    const followUps = claims.filter(c => c.is_followup);
+    // For each original: outstanding = claimed - (original paid + sum of follow-up paid linked to it)
+    return originals.reduce((sum, orig) => {
+      if (orig.status === "paid") return sum; // fully resolved
+      const origPaid = orig.total_paid ?? 0;
+      const fuPaid   = followUps.filter(fu => fu.parent_claim_id === orig.id).reduce((s, fu) => s + (fu.total_paid ?? 0), 0);
+      const outstanding = Math.max(0, orig.total_claimed - origPaid - fuPaid);
+      return sum + outstanding;
+    }, 0);
+  }
+
+  const hospOutstanding = computeOutstanding((allHospClaims ?? []) as { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]);
+  const insOutstanding  = computeOutstanding((allInsClaims  ?? []) as { id: string; total_claimed: number; total_paid: number | null; status: string; is_followup: boolean; parent_claim_id: string | null }[]);
 
   const totalRevenue = cashTotal + hospitalPaid + insurancePaid;
 
