@@ -116,7 +116,10 @@ export default function InsuranceClaimPrintPage() {
       }
 
       // Only update total for original claims
-      if (!claim.is_followup && grandTotal > 0 && grandTotal !== claim.total_claimed) {
+      // For follow-up: use the stored total_claimed (the outstanding amount), not the sum of all visits
+      if (claim.is_followup) {
+        grandTotal = claim.total_claimed ?? 0;
+      } else if (grandTotal > 0 && grandTotal !== claim.total_claimed) {
         await supabase.from("insurance_claims").update({ total_claimed: grandTotal }).eq("id", claimId);
       }
 
