@@ -73,8 +73,7 @@ export function NursePage() {
     const { data, error } = await supabase
       .from("inpatients")
       .select("id, clinic_id, location, status, hospital_patient_id, patients(full_name, full_name_ar, dob, blood_type), hospitals(name)")
-      .eq("hospital_patient_id", mrn.trim())
-      .eq("status", "active")
+      .ilike("hospital_patient_id", mrn.trim())
       .maybeSingle();
 
     setSearching(false);
@@ -92,7 +91,7 @@ export function NursePage() {
     const pt   = Array.isArray(data.patients) ? data.patients[0] : data.patients as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hosp = Array.isArray(data.hospitals) ? data.hospitals[0] : data.hospitals as any;
-    setPatient({ ...pt, hospitalName: hosp?.name, location: data.location });
+    setPatient({ ...pt, hospitalName: hosp?.name, location: data.location, status: data.status });
     setInpatientId(data.id);
     setClinicId(data.clinic_id);
     setIsUnregistered(false);
@@ -269,7 +268,10 @@ export function NursePage() {
                 <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"16px" }}>
                   <div style={{ width:"52px", height:"52px", background:"#e0f2fe", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"26px", flexShrink:0 }}>👤</div>
                   <div>
-                    <div style={{ fontSize:"18px", fontWeight:"800", color:"#1e293b" }}>{patient?.full_name}</div>
+                    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                      <span style={{ fontSize:"18px", fontWeight:"800", color:"#1e293b" }}>{patient?.full_name}</span>
+                      {patient?.status === "discharged" && <span style={{ fontSize:"11px", background:"#fef3c7", color:"#92400e", borderRadius:"6px", padding:"2px 8px", fontWeight:"600" }}>Discharged</span>}
+                    </div>
                     {patient?.full_name_ar && <div style={{ fontSize:"13px", color:"#64748b", direction:"rtl" }}>{patient.full_name_ar}</div>}
                   </div>
                 </div>
