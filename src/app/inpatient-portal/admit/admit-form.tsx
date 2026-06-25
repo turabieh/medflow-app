@@ -140,7 +140,7 @@ export function PortalAdmitForm({
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => { setSelectedPatient(p); setPatientSearch(""); }}
+                    onMouseDown={e => { e.preventDefault(); setSelectedPatient(p); setPatientSearch(""); }}
                     style={{ width: "100%", background: "none", border: "none", borderBottom: "1px solid #1e293b", padding: "12px 14px", textAlign: "left", cursor: "pointer", color: "#f1f5f9", fontFamily: "inherit" }}>
                     <div style={{ fontSize: "14px", fontWeight: "600" }}>{p.full_name}</div>
                     {p.full_name_ar && <div style={{ fontSize: "12px", color: "#64748b", direction: "rtl" }}>{p.full_name_ar}</div>}
