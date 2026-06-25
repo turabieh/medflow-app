@@ -26,11 +26,23 @@ export default async function InpatientDetailPage({
 
   if (!admission) notFound();
 
-  const { data: nurseRecords } = await supabase
+  // Fetch nurse records: either linked to this inpatient OR matching by MRN in notes
+  const { data: linkedRecords } = await supabase
     .from("nurse_procedure_records")
-    .select("id, procedure_name, category, started_at, notes, recorded_by_name")
+    .select("id, procedure_name, category, started_at, notes, recorded_by_name, inpatient_id")
     .eq("inpatient_id", id)
     .order("started_at", { ascending: false });
+
+  // Also fetch unlinked records that mention this patient's hospital MRN
+  const hospMrn = admission.hospital_patient_id;
+  const { data: mrnRecords } = hospMrn ? await supabase
+    .from("nurse_procedure_records")
+    .select("id, procedure_name, category, started_at, notes, recorded_by_name, inpatient_id")
+    .is("inpatient_id", null)
+    .ilike("notes", `%MRN: ${hospMrn}%`)
+    .order("started_at", { ascending: false }) : { data: [] };
+
+  const nurseRecords = [...(linkedRecords ?? []), ...(mrnRecords ?? [])];
 
   const { data: visits } = await supabase
     .from("visits")
