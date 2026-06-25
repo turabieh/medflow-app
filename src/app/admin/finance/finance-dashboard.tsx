@@ -94,7 +94,7 @@ export function FinanceDashboard({
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
   staff, latestSalaries, clinicId,
-  unclaimedInsurance, unclaimedHospital, totalUnclaimed,
+  unclaimedInsurance, unclaimedHospital, totalUnclaimed, debugData,
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
@@ -104,6 +104,8 @@ export function FinanceDashboard({
   monthlyTrend: MonthlyPoint[];
   staff: StaffMember[]; latestSalaries: SalaryEntry[]; clinicId: string;
   unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  debugData: any;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tab);
@@ -210,19 +212,10 @@ export function FinanceDashboard({
             </div>
           </div>
 
-          {/* Debug info — remove after confirming numbers */}
-          <details className="rounded-lg border border-neutral-200 bg-white p-3 text-xs text-neutral-500">
-            <summary className="cursor-pointer font-medium">Debug: raw claim data</summary>
-            <div className="mt-2 space-y-1 font-mono">
-              <div>hospOutstanding: {hospOutstanding.toFixed(2)}</div>
-              <div>insOutstanding: {insOutstanding.toFixed(2)}</div>
-              <div>hospWrittenOff: {hospWrittenOff.toFixed(2)}</div>
-              <div>insWrittenOff: {insWrittenOff.toFixed(2)}</div>
-              <div>totalUnclaimed: {totalUnclaimed.toFixed(2)}</div>
-              <div>cashTotal: {cashTotal.toFixed(2)}</div>
-              <div>hospitalPaid: {hospitalPaid.toFixed(2)}</div>
-              <div>insurancePaid: {insurancePaid.toFixed(2)}</div>
-            </div>
+          {/* Debug — remove after confirming */}
+          <details className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-neutral-600">
+            <summary className="cursor-pointer font-medium text-blue-800">🔍 Debug data (click to expand)</summary>
+            <pre className="mt-2 text-[10px] overflow-auto whitespace-pre-wrap">{JSON.stringify({ hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, totalUnclaimed, cashTotal, hospitalPaid, insurancePaid, ...debugData }, null, 2)}</pre>
           </details>
 
           {/* Revenue breakdown */}

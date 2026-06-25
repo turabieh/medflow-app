@@ -291,7 +291,19 @@ export default async function AdminFinancePage({
     unclaimedInsMap.set(ins.id, entry);
   }
   const unclaimedInsurance = Array.from(unclaimedInsMap.values()).sort((a, b) => b.amount - a.amount);
-  // Hospital: inpatient visits not yet in any claim
+
+  // Debug data to expose in UI
+  const debugData = {
+    insuredPatientCount: insuredPatients?.length ?? 0,
+    patientInsMapSize: patientInsMap.size,
+    insuredPatientIds: insuredPatientIds.slice(0, 5),
+    insApptCount: insAppts?.length ?? 0,
+    insAppts: (insAppts ?? []).slice(0, 5).map(a => ({ id: a.id, date: a.appt_date, fee: a.insurance_fee, patient: a.patient_id })),
+    procCount: allProcs?.length ?? 0,
+    procs: (allProcs ?? []).slice(0, 5),
+    unclaimedInsCount: unclaimedInsurance.length,
+    allInsClaimsCount: allInsuranceClaims?.length ?? 0,
+  };
   const { data: allHospClaimsUnclaimed } = await supabase
     .from("hospital_claims")
     .select("hospital_id, from_date, to_date")
@@ -374,6 +386,7 @@ export default async function AdminFinancePage({
         unclaimedInsurance={unclaimedInsurance}
         unclaimedHospital={unclaimedHospital}
         totalUnclaimed={totalUnclaimed}
+        debugData={debugData}
       />
     </div>
   );
