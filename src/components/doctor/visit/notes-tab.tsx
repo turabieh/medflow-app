@@ -18,6 +18,7 @@ export function NotesTab({
   visitId,
   appointmentId,
   visitContext,
+  clinicId,
   voiceNotes,
   keyPoints,
   prescriptions,
@@ -27,6 +28,7 @@ export function NotesTab({
   visitId: string;
   appointmentId: string;
   visitContext?: string | null;
+  clinicId: string;
   voiceNotes: string | null;
   keyPoints: string | null;
   prescriptions: Prescription[];
@@ -286,13 +288,13 @@ export function NotesTab({
       </section>
 
       {/* Insurance Procedures (pre-authorization) */}
-      <InsuranceProceduresSection visitId={visitId} appointmentId={appointmentId} isInpatient={visitContext === "inpatient"} />
+      <InsuranceProceduresSection visitId={visitId} appointmentId={appointmentId} isInpatient={visitContext === "inpatient"} clinicId={clinicId} />
     </div>
   );
 }
 
 // ── Insurance Procedures sub-component ────────────────────────────────────────
-function InsuranceProceduresSection({ visitId, appointmentId, isInpatient }: { visitId: string; appointmentId: string; isInpatient?: boolean }) {
+function InsuranceProceduresSection({ visitId, appointmentId, isInpatient, clinicId }: { visitId: string; appointmentId: string; isInpatient?: boolean; clinicId: string }) {
   const router = useRouter();
   const [procs, setProcs] = useState<{id:string;procedure_name:string;price:number;auth_number:string|null;auth_date:string|null;auth_status:string}[]>([]);
   const [catalog, setCatalog] = useState<{id:string;name:string;name_ar:string|null;outpatient_price:number;inpatient_price:number|null;category:string|null}[]>([]);
@@ -314,11 +316,22 @@ function InsuranceProceduresSection({ visitId, appointmentId, isInpatient }: { v
   const [editAuthDate, setEditAuthDate] = useState("");
 
   async function handleUpdateAuth(id: string) {
-    const { updateProcedureAuth } = await import("@/lib/actions/insurance-claims");
-    await updateProcedureAuth(id, editAuthNum || "", editAuthDate || "", editStatus);
-    setProcs(prev => prev.map(p => p.id === id ? { ...p, auth_status: editStatus, auth_number: editAuthNum || null, auth_date: editAuthDate || null } : p));
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("outpatient_procedure_claims")
+      .update({
+        auth_status: editStatus,
+        auth_number: editAuthNum || null,
+        auth_date:   editAuthDate || null,
+      })
+      .eq("id", id);
+    if (error) { console.error("Update failed:", error.message); return; }
+    setProcs(prev => prev.map(p => p.id === id
+      ? { ...p, auth_status: editStatus, auth_number: editAuthNum || null, auth_date: editAuthDate || null }
+      : p
+    ));
     setEditingId(null);
-    router.refresh();
   }
 
   function startEdit(p: {id:string;auth_status:string;auth_number:string|null;auth_date:string|null}) {
@@ -364,22 +377,32 @@ function InsuranceProceduresSection({ visitId, appointmentId, isInpatient }: { v
     const price = parseFloat(procPrice || "0");
     if (!name) return;
     setAdding(true);
-    const { saveOutpatientProcedure } = await import("@/lib/actions/insurance-claims");
-    await saveOutpatientProcedure({
-      visitId, appointmentId,
-      procedureId:   mode === "catalog" ? selectedCatId || undefined : undefined,
-      procedureName: name, price,
-      authNumber: authNum || undefined, authDate: authDate || undefined, authStatus,
-    });
-    setAdding(false); setLoaded(false);
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    const { data: newProc } = await supabase
+      .from("outpatient_procedure_claims")
+      .insert({
+        clinic_id:      clinicId,
+        visit_id:       visitId,
+        appointment_id: appointmentId || null,
+        procedure_name: name,
+        price,
+        auth_status:    authStatus,
+        auth_number:    authNum || null,
+        auth_date:      authDate || null,
+      })
+      .select("id, procedure_name, price, auth_number, auth_date, auth_status")
+      .single();
+    setAdding(false);
+    if (newProc) setProcs(prev => [...prev, newProc]);
     setProcName(""); setProcPrice(""); setAuthNum(""); setAuthDate("");
     setSelectedCatId(""); setAuthStatus("pending");
-    router.refresh();
   }
 
   async function handleDelete(id: string) {
-    const { deleteOutpatientProcedure } = await import("@/lib/actions/insurance-claims");
-    await deleteOutpatientProcedure(id);
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase.from("outpatient_procedure_claims").delete().eq("id", id);
     setProcs(p => p.filter(x => x.id !== id));
   }
 

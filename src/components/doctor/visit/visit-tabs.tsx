@@ -161,6 +161,7 @@ export function VisitTabs(props: VisitTabsProps) {
             visitId={props.visitId}
             appointmentId={props.appointmentId}
             visitContext={props.visitContext}
+            clinicId={props.clinicId}
             voiceNotes={props.voiceNotes}
             keyPoints={props.keyPoints}
             prescriptions={props.prescriptions}
