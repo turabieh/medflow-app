@@ -10,20 +10,21 @@ export default async function BackupPage() {
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
-    .from("users").select("id, clinic_id, role, full_name").eq("id", user.id).single();
+    .from("users").select("id, clinic_id, role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/");
 
-  // Get row counts for display
   const tables = [
     "patients", "appointments", "visits", "prescriptions",
-    "inpatients", "insurance_claims", "outpatient_procedure_claims",
     "visit_diagnoses", "visit_labs", "visit_symptoms",
+    "inpatients", "inpatient_visit_procedures",
+    "insurance_claims", "hospital_claims", "outpatient_procedure_claims",
     "expenses", "staff_salaries",
   ];
 
   const counts: Record<string, number> = {};
   await Promise.all(tables.map(async t => {
-    const { count } = await supabase.from(t).select("*", { count:"exact", head:true })
+    const { count } = await supabase.from(t)
+      .select("*", { count:"exact", head:true })
       .eq("clinic_id", profile.clinic_id);
     counts[t] = count ?? 0;
   }));
@@ -32,7 +33,7 @@ export default async function BackupPage() {
     <div>
       <h1 className="mb-1 text-lg font-medium text-neutral-900">Data Backup</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Download your clinic data as CSV files. Keep regular backups for your records.
+        Download your clinic data as CSV. Recommended weekly for full records.
       </p>
       <BackupClient clinicId={profile.clinic_id} counts={counts} />
     </div>
