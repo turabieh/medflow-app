@@ -293,7 +293,7 @@ export function NotesTab({
 function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: string; appointmentId: string }) {
   const router = useRouter();
   const [procs, setProcs] = useState<{id:string;procedure_name:string;price:number;auth_number:string|null;auth_date:string|null;auth_status:string}[]>([]);
-  const [catalog, setCatalog] = useState<{id:string;name:string;price:number|null}[]>([]);
+  const [catalog, setCatalog] = useState<{id:string;name:string;name_ar:string|null;outpatient_price:number;inpatient_price:number|null;category:string|null}[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [show, setShow]     = useState(false);
 
@@ -318,9 +318,9 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
           .eq("visit_id", visitId)
           .order("created_at"),
         supabase.from("procedures_catalog")
-          .select("id, name, price")
+          .select("id, name, name_ar, outpatient_price, inpatient_price, category")
           .eq("is_active", true)
-          .order("name"),
+          .order("category").order("name"),
       ]).then(([procsRes, catRes]) => {
         setProcs(procsRes.data ?? []);
         setCatalog(catRes.data ?? []);
@@ -333,7 +333,7 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
   function handleCatalogSelect(id: string) {
     setSelectedCatId(id);
     const item = catalog.find(c => c.id === id);
-    if (item?.price) setProcPrice(String(item.price));
+    if (item?.outpatient_price) setProcPrice(String(item.outpatient_price));
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -452,7 +452,7 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
                   className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs">
                   <option value="">— Select procedure —</option>
                   {catalog.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.price ? ` (${c.price})` : ""}</option>
+                    <option key={c.id} value={c.id}>{c.category ? `[${c.category}] ` : ""}{c.name}{c.outpatient_price ? ` — ${c.outpatient_price} JOD` : ""}</option>
                   ))}
                 </select>
               ) : (
