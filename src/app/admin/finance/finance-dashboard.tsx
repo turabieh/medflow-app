@@ -94,7 +94,7 @@ export function FinanceDashboard({
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
   staff, latestSalaries, clinicId,
-  unclaimedInsurance, unclaimedHospital, totalUnclaimed, debugData,
+  unclaimedInsurance, unclaimedHospital, totalUnclaimed,
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
@@ -105,7 +105,6 @@ export function FinanceDashboard({
   staff: StaffMember[]; latestSalaries: SalaryEntry[]; clinicId: string;
   unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  debugData: any;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tab);
@@ -211,12 +210,6 @@ export function FinanceDashboard({
               )}
             </div>
           </div>
-
-          {/* Debug — remove after confirming */}
-          <details className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-neutral-600">
-            <summary className="cursor-pointer font-medium text-blue-800">🔍 Debug data (click to expand)</summary>
-            <pre className="mt-2 text-[10px] overflow-auto whitespace-pre-wrap">{JSON.stringify({ hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, totalUnclaimed, cashTotal, hospitalPaid, insurancePaid, ...debugData }, null, 2)}</pre>
-          </details>
 
           {/* Revenue breakdown */}
           <div className="grid grid-cols-3 gap-3">
