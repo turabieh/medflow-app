@@ -342,7 +342,7 @@ export default function InsuranceClaimPrintPage() {
               )}
               <div style={{ borderTop:"1px solid #333", paddingTop:"5px", marginTop: headDoctor?.signature_url ? "0" : "36px" }}>
                 <div style={{ fontWeight:"700", fontSize:"11px" }}>
-                  {headDoctor ? `Dr. ${headDoctor.full_name}` : "Authorized Signature"}
+                  {headDoctor ? headDoctor.full_name : "Authorized Signature"}
                 </div>
                 {headDoctor?.specialty && (
                   <div style={{ fontSize:"10px", color:"#555", marginTop:"1px" }}>{headDoctor.specialty}</div>
