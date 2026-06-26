@@ -9,10 +9,7 @@ export default async function SecretaryLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: profile } = await supabase
@@ -22,15 +19,17 @@ export default async function SecretaryLayout({
     .single();
 
   if (!profile) redirect("/login");
+  if (!["secretary", "nurse", "admin", "doctor"].includes(profile.role)) redirect("/dashboard");
 
-  // Only secretary, nurse, and admin can access the secretary workspace.
-  if (!["secretary", "nurse", "admin", "doctor"].includes(profile.role)) {
-    redirect("/dashboard");
-  }
+  const clinic = Array.isArray(profile.clinics) ? profile.clinics[0] : profile.clinics;
 
-  const clinic = Array.isArray(profile.clinics)
-    ? profile.clinics[0]
-    : profile.clinics;
+  // Fetch granted permissions for this user
+  const { data: grants } = await supabase
+    .from("user_permissions")
+    .select("permission")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("user_id", profile.id);
+  const grantedPermissions = (grants ?? []).map((g: { permission: string }) => g.permission);
 
   // Chat
   const [chatStaff, chatTasks] = await Promise.all([
@@ -51,6 +50,7 @@ export default async function SecretaryLayout({
         userName={profile.full_name}
         userRole={profile.role}
         logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url}
+        grantedPermissions={grantedPermissions}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         {profile.role === "doctor" && (
@@ -59,16 +59,20 @@ export default async function SecretaryLayout({
               <span className="font-medium">Secretary Mode</span>
               <span className="text-indigo-300">— you are acting as secretary</span>
             </div>
-            <a
-              href="/doctor/dashboard"
-              className="rounded-md bg-indigo-600 border border-indigo-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
-            >
+            <a href="/doctor/dashboard"
+              className="rounded-md bg-indigo-600 border border-indigo-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">
               ← Back to Doctor Dashboard
             </a>
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        <FloatingChatButton userId={profile.id} clinicId={profile.clinic_id} staff={chatStaff as {id:string;full_name:string;role:string}[]} quickTasks={chatTasks as {id:string;label:string;category:string}[]} isDoctor={false} />
+        <FloatingChatButton
+          userId={profile.id}
+          clinicId={profile.clinic_id}
+          staff={chatStaff as {id:string;full_name:string;role:string}[]}
+          quickTasks={chatTasks as {id:string;label:string;category:string}[]}
+          isDoctor={false}
+        />
       </div>
     </div>
   );
