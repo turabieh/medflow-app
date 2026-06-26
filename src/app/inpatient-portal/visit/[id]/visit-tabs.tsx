@@ -425,27 +425,17 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
         {/* ── CLINICAL NOTES ── */}
         {tab === "notes" && (
           <div style={{ padding:"16px" }}>
-            <Field label="Subjective — Chief Complaint">
-              <textarea value={subjective} onChange={e => setSubjective(e.target.value)}
-                placeholder="Patient's symptoms, complaints, history..." rows={3} style={{ ...s.input, resize:"none" }} />
-            </Field>
-            <Field label="Objective — Examination Findings">
-              <textarea value={objective} onChange={e => setObjective(e.target.value)}
-                placeholder="Clinical signs, examination findings..." rows={3} style={{ ...s.input, resize:"none" }} />
-            </Field>
-            <Field label="Plan / Treatment">
-              <textarea value={plan} onChange={e => setPlan(e.target.value)}
-                placeholder="Treatment plan, referrals, follow-up..." rows={3} style={{ ...s.input, resize:"none" }} />
-            </Field>
-            <Field label="Key Clinical Points">
-              <textarea value={keyPoints} onChange={e => setKeyPoints(e.target.value)}
-                placeholder="Important flags, alerts, reminders..." rows={2} style={{ ...s.input, resize:"none" }} />
-            </Field>
-            <Field label="Voice Notes">
+            <Field label="🎤 Voice Notes">
               <textarea value={voiceNotes} onChange={e => setVoiceNotes(e.target.value)}
-                placeholder="Voice-to-text or quick notes..." rows={2} style={{ ...s.input, resize:"none" }} />
+                placeholder="Speak or type quick notes from bedside..." rows={5}
+                style={{ ...s.input, resize:"none", fontSize:"15px", lineHeight:"1.6" }} />
             </Field>
-            <SaveBtn onClick={saveNotes} saving={nSaving} saved={nSaved} label="Save Clinical Notes" />
+            <Field label="📌 Key Clinical Points">
+              <textarea value={keyPoints} onChange={e => setKeyPoints(e.target.value)}
+                placeholder="Important flags, alerts, reminders for next session..." rows={4}
+                style={{ ...s.input, resize:"none", fontSize:"15px", lineHeight:"1.6" }} />
+            </Field>
+            <SaveBtn onClick={saveNotes} saving={nSaving} saved={nSaved} label="Save Notes" />
           </div>
         )}
 
@@ -568,26 +558,7 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
 
         {/* ── HISTORY ── */}
         {tab === "history" && (
-          <div style={{ padding:"16px" }}>
-            {prevVisits.length === 0 ? (
-              <div style={{ textAlign:"center", padding:"48px 20px", color:"#475569" }}>
-                <div style={{ fontSize:"40px", marginBottom:"8px" }}>📋</div>
-                <div>No previous visits</div>
-              </div>
-            ) : prevVisits.map(v => (
-              <div key={v.id} style={{ ...s.card }}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
-                  <span style={{ fontSize:"14px", fontWeight:"700", color:"#60a5fa", textTransform:"capitalize" }}>
-                    {(v.visit_type ?? "").replace(/_/g," ")}
-                  </span>
-                  <span style={{ fontSize:"12px", color:"#64748b" }}>{v.visit_date}</span>
-                </div>
-                {v.subjective && <div style={{ fontSize:"12px", color:"#94a3b8", marginBottom:"4px" }}><span style={{ color:"#3b82f6", fontWeight:"600" }}>S: </span>{String(v.subjective).slice(0,120)}{String(v.subjective).length>120?"...":""}</div>}
-                {v.assessment && <div style={{ fontSize:"12px", color:"#94a3b8", marginBottom:"4px" }}><span style={{ color:"#3b82f6", fontWeight:"600" }}>Dx: </span>{String(v.assessment).slice(0,100)}</div>}
-                {v.plan      && <div style={{ fontSize:"12px", color:"#64748b" }}><span style={{ color:"#475569", fontWeight:"600" }}>Plan: </span>{String(v.plan).slice(0,100)}</div>}
-              </div>
-            ))}
-          </div>
+          <HistoryPanel prevVisits={prevVisits} />
         )}
       </div>
 
@@ -607,5 +578,70 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
         ))}
       </div>
     </>
+  );
+}
+
+// ── History Panel ─────────────────────────────────────────────────────────────
+function HistoryPanel({ prevVisits }: { prevVisits: R[] }) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  if (prevVisits.length === 0) return (
+    <div style={{ padding:"16px", textAlign:"center", paddingTop:"48px", color:"#475569" }}>
+      <div style={{ fontSize:"40px", marginBottom:"8px" }}>📋</div>
+      <div style={{ fontSize:"15px" }}>No previous visits</div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding:"16px" }}>
+      {prevVisits.map(v => {
+        const isOpen = expanded === v.id;
+        // Build the complete note — same as clinic portal
+        const parts: string[] = [];
+        if (v.final_note)   parts.push(v.final_note);
+        else {
+          if (v.subjective)  parts.push(`S: ${v.subjective}`);
+          if (v.objective)   parts.push(`O: ${v.objective}`);
+          if (v.assessment)  parts.push(`A: ${v.assessment}`);
+          if (v.plan)        parts.push(`P: ${v.plan}`);
+        }
+        if (v.key_clinical_points) parts.push(`Key Points: ${v.key_clinical_points}`);
+        if (v.voice_notes)         parts.push(`Notes: ${v.voice_notes}`);
+        const fullNote = parts.join("\n\n") || "No notes recorded for this visit.";
+
+        return (
+          <div key={v.id} style={{ background:"#1e293b", borderRadius:"14px", marginBottom:"10px", overflow:"hidden" }}>
+            {/* Header row — always visible */}
+            <button
+              onClick={() => setExpanded(isOpen ? null : v.id)}
+              style={{ width:"100%", background:"none", border:"none", padding:"14px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", fontFamily:"inherit" }}>
+              <div style={{ textAlign:"left" }}>
+                <div style={{ fontSize:"14px", fontWeight:"700", color:"#60a5fa", textTransform:"capitalize" }}>
+                  {(v.visit_type ?? "").replace(/_/g," ")}
+                </div>
+                <div style={{ fontSize:"11px", color:"#64748b", marginTop:"2px" }}>{v.visit_date}</div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+                {v.assessment && (
+                  <div style={{ fontSize:"11px", color:"#94a3b8", maxWidth:"120px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {String(v.assessment).slice(0, 40)}
+                  </div>
+                )}
+                <span style={{ color:"#475569", fontSize:"16px", flexShrink:0 }}>{isOpen ? "▲" : "▼"}</span>
+              </div>
+            </button>
+
+            {/* Expanded — full note */}
+            {isOpen && (
+              <div style={{ borderTop:"1px solid #334155", padding:"14px 16px" }}>
+                <pre style={{ fontSize:"13px", color:"#e2e8f0", whiteSpace:"pre-wrap", margin:0, fontFamily:"system-ui,-apple-system,sans-serif", lineHeight:"1.7" }}>
+                  {fullNote}
+                </pre>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }

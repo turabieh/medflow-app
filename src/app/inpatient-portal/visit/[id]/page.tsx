@@ -70,7 +70,7 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
 
   const { data: prevVisits } = await supabase
     .from("visits")
-    .select("id, visit_date, visit_type, assessment, plan, subjective, status")
+    .select("id, visit_date, visit_type, subjective, objective, assessment, plan, final_note, key_clinical_points, voice_notes, status")
     .eq("patient_id", visit.patient_id).neq("id", id)
     .not("visit_date", "is", null)
     .order("visit_date", { ascending: false }).limit(6);
