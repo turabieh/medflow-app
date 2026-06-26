@@ -269,35 +269,13 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
 
         {/* ── PATIENT INFO ── */}
         {tab === "patient" && (
-          <div style={{ padding:"16px" }}>
-            <div style={{ ...s.card }}>
-              <div style={{ fontSize:"19px", fontWeight:"800", marginBottom:"4px" }}>{patient?.full_name}</div>
-              {patient?.full_name_ar && <div style={{ fontSize:"14px", color:"#64748b", direction:"rtl", marginBottom:"10px" }}>{patient.full_name_ar}</div>}
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px" }}>
-                {[
-                  ["Phone",     patient?.phone],
-                  ["Gender",    patient?.gender],
-                  ["Blood Type",patient?.blood_type],
-                  ["Insurance", insName],
-                  ["Policy #",  patient?.insurance_policy_number],
-                  inpatient ? ["MRN",      (inpatient as R).hospital_patient_id] : null,
-                  inpatient ? ["Room",     (inpatient as R).location]            : null,
-                  inpatient ? ["Hospital", hospName]                             : null,
-                ].filter(r => r && r[1]).map((row, i) => (
-                  <div key={i} style={{ background:"#0f172a", borderRadius:"10px", padding:"10px 12px" }}>
-                    <div style={{ fontSize:"9px", color:"#475569", textTransform:"uppercase", letterSpacing:"0.5px", marginBottom:"2px" }}>{row![0]}</div>
-                    <div style={{ fontSize:"13px", fontWeight:"600" }}>{row![1]}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {patient?.allergies && (
-              <div style={{ background:"#450a0a", border:"1.5px solid #dc2626", borderRadius:"12px", padding:"12px 14px" }}>
-                <div style={{ fontSize:"10px", color:"#ef4444", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", marginBottom:"4px" }}>⚠ Allergies</div>
-                <div style={{ fontSize:"13px", color:"#fca5a5" }}>{patient.allergies}</div>
-              </div>
-            )}
-          </div>
+          <PatientEditPanel
+            patient={patient}
+            patientId={patientId}
+            inpatient={inpatient}
+            insName={insName}
+            hospName={hospName}
+          />
         )}
 
         {/* ── SYMPTOMS ── */}
@@ -580,6 +558,173 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
     </>
   );
 }
+
+// ── Patient Edit Panel ────────────────────────────────────────────────────────
+function PatientEditPanel({ patient, patientId, inpatient, insName, hospName }: {
+  patient: R | null; patientId: string;
+  inpatient: R | null; insName: string | null; hospName: string | null;
+}) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+
+  const [fullName,    setFullName]    = useState((patient?.full_name    as string) ?? "");
+  const [fullNameAr,  setFullNameAr]  = useState((patient?.full_name_ar as string) ?? "");
+  const [phone,       setPhone]       = useState((patient?.phone        as string) ?? "");
+  const [dob,         setDob]         = useState((patient?.dob          as string) ?? "");
+  const [gender,      setGender]      = useState((patient?.gender       as string) ?? "");
+  const [bloodType,   setBloodType]   = useState((patient?.blood_type   as string) ?? "");
+  const [allergies,   setAllergies]   = useState((patient?.allergies    as string) ?? "");
+  const [policyNum,   setPolicyNum]   = useState((patient?.insurance_policy_number as string) ?? "");
+
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+  const [error,  setError]  = useState<string | null>(null);
+
+  async function savePatient() {
+    setSaving(true); setError(null);
+    const sb = createClient();
+    const { error: ue } = await sb.from("patients").update({
+      full_name:               fullName.trim()    || null,
+      full_name_ar:            fullNameAr.trim()  || null,
+      phone:                   phone.trim()       || "—",
+      dob:                     dob                || null,
+      gender:                  gender             || null,
+      blood_type:              bloodType          || null,
+      allergies:               allergies.trim()   || null,
+      insurance_policy_number: policyNum.trim()   || null,
+    }).eq("id", patientId);
+    setSaving(false);
+    if (ue) { setError(ue.message); return; }
+    setSaved(true); setEditing(false);
+    setTimeout(() => setSaved(false), 2000);
+    router.refresh();
+  }
+
+  const inp = (label: string, val: string, set: (v:string)=>void, opts?: { placeholder?:string; dir?:string; type?:string }) => (
+    <div style={{ marginBottom:"12px" }}>
+      <label style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase" as const, letterSpacing:"1.5px", display:"block", marginBottom:"6px" }}>{label}</label>
+      <input type={opts?.type ?? "text"} value={val} onChange={e => set(e.target.value)}
+        placeholder={opts?.placeholder ?? ""}
+        dir={opts?.dir}
+        style={{ width:"100%", background:"#0f172a", border:"1.5px solid #334155", borderRadius:"10px",
+          color:"#f1f5f9", padding:"13px 14px", fontSize:"15px", fontFamily:"system-ui,-apple-system,sans-serif",
+          boxSizing:"border-box" as const, outline:"none" }} />
+    </div>
+  );
+
+  return (
+    <div style={{ padding:"16px" }}>
+      {/* View mode */}
+      {!editing ? (
+        <>
+          <div style={{ background:"#1e293b", borderRadius:"14px", padding:"16px", marginBottom:"12px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
+              <div>
+                <div style={{ fontSize:"19px", fontWeight:"800" }}>{patient?.full_name}</div>
+                {patient?.full_name_ar && <div style={{ fontSize:"14px", color:"#64748b", direction:"rtl", marginTop:"2px" }}>{patient.full_name_ar as string}</div>}
+              </div>
+              <button onClick={() => setEditing(true)}
+                style={{ background:"#1d4ed8", color:"#fff", border:"none", borderRadius:"10px", padding:"8px 14px", fontSize:"13px", fontWeight:"700", cursor:"pointer", fontFamily:"inherit", flexShrink:0 }}>
+                ✏️ Edit
+              </button>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px" }}>
+              {[
+                ["Phone",     patient?.phone],
+                ["Gender",    patient?.gender],
+                ["Blood Type",patient?.blood_type],
+                ["DOB",       patient?.dob],
+                ["Insurance", insName],
+                ["Policy #",  patient?.insurance_policy_number],
+                inpatient ? ["MRN",      (inpatient as R).hospital_patient_id] : null,
+                inpatient ? ["Room",     (inpatient as R).location]            : null,
+                inpatient ? ["Hospital", hospName]                             : null,
+              ].filter(r => r && r[1]).map((row, i) => (
+                <div key={i} style={{ background:"#0f172a", borderRadius:"10px", padding:"10px 12px" }}>
+                  <div style={{ fontSize:"9px", color:"#475569", textTransform:"uppercase", letterSpacing:"0.5px", marginBottom:"2px" }}>{row![0]}</div>
+                  <div style={{ fontSize:"13px", fontWeight:"600" }}>{String(row![1])}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {patient?.allergies && (
+            <div style={{ background:"#450a0a", border:"1.5px solid #dc2626", borderRadius:"12px", padding:"12px 14px" }}>
+              <div style={{ fontSize:"10px", color:"#ef4444", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", marginBottom:"4px" }}>⚠ Allergies</div>
+              <div style={{ fontSize:"13px", color:"#fca5a5" }}>{patient.allergies as string}</div>
+            </div>
+          )}
+
+          {saved && (
+            <div style={{ marginTop:"10px", background:"#166534", borderRadius:"10px", padding:"10px 14px", fontSize:"13px", color:"#86efac", textAlign:"center" }}>
+              ✓ Patient information saved
+            </div>
+          )}
+        </>
+      ) : (
+        /* Edit mode */
+        <div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"16px" }}>
+            <div style={{ fontSize:"15px", fontWeight:"700", color:"#f1f5f9" }}>Edit Patient Info</div>
+            <button onClick={() => setEditing(false)}
+              style={{ background:"none", border:"none", color:"#64748b", fontSize:"20px", cursor:"pointer" }}>✕</button>
+          </div>
+
+          {error && <div style={{ background:"#450a0a", border:"1px solid #dc2626", borderRadius:"10px", padding:"10px 14px", color:"#fca5a5", fontSize:"13px", marginBottom:"12px" }}>⚠ {error}</div>}
+
+          {inp("Full Name (EN)",   fullName,   setFullName,   { placeholder:"Patient full name" })}
+          {inp("Full Name (AR)",   fullNameAr, setFullNameAr, { placeholder:"الاسم الكامل", dir:"rtl" })}
+          {inp("Phone Number",     phone,      setPhone,      { placeholder:"+962 7x xxx xxxx", type:"tel" })}
+          {inp("Date of Birth",    dob,        setDob,        { type:"date" })}
+
+          <div style={{ marginBottom:"12px" }}>
+            <label style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase" as const, letterSpacing:"1.5px", display:"block", marginBottom:"6px" }}>Gender</label>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px" }}>
+              {["male","female"].map(g => (
+                <button key={g} onClick={() => setGender(g)}
+                  style={{ background: gender===g ? "#3b82f6" : "#0f172a", color: gender===g ? "#fff" : "#64748b",
+                    border:`1.5px solid ${gender===g?"#3b82f6":"#334155"}`, borderRadius:"10px", padding:"12px",
+                    fontSize:"14px", fontWeight:"600", cursor:"pointer", fontFamily:"inherit", textTransform:"capitalize" as const }}>
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom:"12px" }}>
+            <label style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase" as const, letterSpacing:"1.5px", display:"block", marginBottom:"6px" }}>Blood Type</label>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"6px" }}>
+              {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(bt => (
+                <button key={bt} onClick={() => setBloodType(bt)}
+                  style={{ background: bloodType===bt ? "#dc2626" : "#0f172a", color: bloodType===bt ? "#fff" : "#64748b",
+                    border:`1.5px solid ${bloodType===bt?"#dc2626":"#334155"}`, borderRadius:"10px", padding:"10px 4px",
+                    fontSize:"13px", fontWeight:"700", cursor:"pointer", fontFamily:"inherit" }}>
+                  {bt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom:"12px" }}>
+            <label style={{ fontSize:"10px", color:"#ef4444", fontWeight:"700", textTransform:"uppercase" as const, letterSpacing:"1.5px", display:"block", marginBottom:"6px" }}>⚠ Allergies</label>
+            <textarea value={allergies} onChange={e => setAllergies(e.target.value)} rows={2}
+              placeholder="List any known allergies..."
+              style={{ width:"100%", background:"#0f172a", border:"1.5px solid #7f1d1d", borderRadius:"10px", color:"#fca5a5", padding:"12px 14px", fontSize:"14px", fontFamily:"inherit", resize:"none", boxSizing:"border-box" as const }} />
+          </div>
+
+          {inp("Insurance Policy #", policyNum, setPolicyNum, { placeholder:"Policy number" })}
+
+          <button onClick={savePatient} disabled={saving}
+            style={{ width:"100%", background: saving ? "#334155" : "#3b82f6", color:"#fff", border:"none",
+              borderRadius:"12px", padding:"16px", fontSize:"16px", fontWeight:"700", cursor:"pointer", fontFamily:"inherit", marginTop:"4px" }}>
+            {saving ? "Saving..." : "✓ Save Patient Info"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 // ── History Panel ─────────────────────────────────────────────────────────────
 function HistoryPanel({ prevVisits }: { prevVisits: R[] }) {
