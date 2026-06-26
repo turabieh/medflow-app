@@ -13,21 +13,35 @@ export default async function BackupPage() {
     .from("users").select("id, clinic_id, role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/");
 
-  const tables = [
+  // Tables with clinic_id
+  const directTables = [
     "patients", "appointments", "visits", "prescriptions",
-    "visit_diagnoses", "visit_labs", "visit_symptoms",
+    "visit_diagnoses", "visit_labs",
     "inpatients", "inpatient_visit_procedures",
     "insurance_claims", "hospital_claims", "outpatient_procedure_claims",
     "expenses", "staff_salaries",
   ];
 
   const counts: Record<string, number> = {};
-  await Promise.all(tables.map(async t => {
+
+  await Promise.all(directTables.map(async t => {
     const { count } = await supabase.from(t)
       .select("*", { count:"exact", head:true })
       .eq("clinic_id", profile.clinic_id);
     counts[t] = count ?? 0;
   }));
+
+  // visit_symptoms — filter via visits join
+  const vsq = await supabase.from("visit_symptoms")
+    .select("visits!inner(clinic_id)", { count:"exact", head:true })
+    .eq("visits.clinic_id", profile.clinic_id);
+  counts["visit_symptoms"] = vsq.count ?? 0;
+
+  // appointment_symptoms — filter via appointments join
+  const asq = await supabase.from("appointment_symptoms")
+    .select("appointments!inner(clinic_id)", { count:"exact", head:true })
+    .eq("appointments.clinic_id", profile.clinic_id);
+  counts["appointment_symptoms"] = asq.count ?? 0;
 
   return (
     <div>

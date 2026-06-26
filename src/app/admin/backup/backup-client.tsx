@@ -51,11 +51,21 @@ const GROUPS: Group[] = [
           .select("id, type, name, lab_date, findings, link_url, created_at, visits(visit_date, patients(full_name))")
           .eq("clinic_id", id).order("lab_date", { ascending:false })
           .then(r => (r.data ?? []) as unknown as Record<string,unknown>[])) },
-      { key:"visit_symptoms", label:"Symptoms", desc:"All recorded patient symptoms per visit",
-        query: q((id,sb) => sb.from("visit_symptoms")
-          .select("id, notes, created_at, visits(visit_date, patients(full_name)), symptoms_catalog(name, category)")
-          .eq("clinic_id", id)
-          .then(r => (r.data ?? []) as unknown as Record<string,unknown>[])) },
+      { key:"visit_symptoms", label:"Visit Symptoms", desc:"Symptoms recorded per visit (from catalog selection)",
+        query: q(async (id,sb) => {
+          // visit_symptoms has no clinic_id — join via visits
+          const { data } = await sb.from("visit_symptoms")
+            .select("visit_id, notes, symptoms_catalog(name, name_ar, category), visits!inner(visit_date, clinic_id, patients(full_name))")
+            .eq("visits.clinic_id", id);
+          return (data ?? []) as unknown as Record<string,unknown>[];
+        }) },
+      { key:"appointment_symptoms", label:"Appointment Symptoms", desc:"Symptoms recorded at booking time by secretary",
+        query: q(async (id,sb) => {
+          const { data } = await sb.from("appointment_symptoms")
+            .select("appointment_id, notes, symptoms_catalog(name, name_ar, category), appointments!inner(appt_date, clinic_id, patients(full_name))")
+            .eq("appointments.clinic_id", id);
+          return (data ?? []) as unknown as Record<string,unknown>[];
+        }) },
     ],
   },
   {
@@ -68,7 +78,7 @@ const GROUPS: Group[] = [
           .then(r => (r.data ?? []) as unknown as Record<string,unknown>[])) },
       { key:"inpatient_visit_procedures", label:"Inpatient Procedures", desc:"All procedures performed during inpatient visits",
         query: q((id,sb) => sb.from("inpatient_visit_procedures")
-          .select("id, procedure_name, price, notes, created_at, visits(visit_date, patients(full_name))")
+          .select("id, procedure_name, price, notes, created_at, visits(visit_date, inpatient_id, patients(full_name))")
           .eq("clinic_id", id).order("created_at", { ascending:false })
           .then(r => (r.data ?? []) as unknown as Record<string,unknown>[])) },
     ],
