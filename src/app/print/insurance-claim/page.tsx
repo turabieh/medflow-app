@@ -347,9 +347,7 @@ export default function InsuranceClaimPrintPage() {
                 {headDoctor?.specialty && (
                   <div style={{ fontSize:"10px", color:"#555", marginTop:"1px" }}>{headDoctor.specialty}</div>
                 )}
-                <div style={{ fontSize:"10px", color:"#888", marginTop:"2px" }}>
-                  {headDoctor ? "Head of Clinic" : clinic?.name}
-                </div>
+                <div style={{ fontSize:"10px", color:"#888", marginTop:"2px" }}>{clinic?.name}</div>
               </div>
             </div>
           </div>
