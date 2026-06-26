@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebarNav } from "@/components/admin/layout/sidebar";
+import { SecretarySidebar } from "@/components/secretary/layout/sidebar";
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,17 +17,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (!profile) redirect("/login");
 
-  // Allow admin, OR any user who has at least one permission grant
-  // (individual pages do their own specific permission check)
-  if (profile.role !== "admin") {
-    const { count } = await supabase
-      .from("user_permissions")
-      .select("*", { count: "exact", head: true })
-      .eq("clinic_id", profile.clinic_id)
-      .eq("user_id", profile.id);
+  // Fetch permissions for this user
+  const { data: grants } = await supabase
+    .from("user_permissions")
+    .select("permission")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("user_id", profile.id);
+  const grantedPermissions = (grants ?? []).map((g: { permission: string }) => g.permission);
 
-    // No permissions at all → redirect away
-    if ((count ?? 0) === 0) redirect("/secretary/dashboard");
+  // Allow admin, OR any user with at least one permission grant
+  if (profile.role !== "admin") {
+    if (grantedPermissions.length === 0) redirect("/secretary/dashboard");
   }
 
   const clinic = Array.isArray(profile.clinics) ? profile.clinics[0] : profile.clinics;
@@ -44,11 +45,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-      <AdminSidebarNav
-        clinicName={clinic?.name ?? "Clinic"}
-        userName={profile.full_name}
-        logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url}
-      />
+      {profile.role === "admin" ? (
+        <AdminSidebarNav
+          clinicName={clinic?.name ?? "Clinic"}
+          userName={profile.full_name}
+          logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url}
+        />
+      ) : (
+        <SecretarySidebar
+          clinicName={clinic?.name ?? "Clinic"}
+          userName={profile.full_name}
+          userRole={profile.role}
+          logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url}
+          grantedPermissions={grantedPermissions}
+        />
+      )}
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
       <FloatingChatButton
         userId={profile.id}
