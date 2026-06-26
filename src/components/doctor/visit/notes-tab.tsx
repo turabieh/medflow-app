@@ -17,6 +17,7 @@ interface Diagnosis { id: string; icd_code: string | null; description: string; 
 export function NotesTab({
   visitId,
   appointmentId,
+  visitContext,
   voiceNotes,
   keyPoints,
   prescriptions,
@@ -25,6 +26,7 @@ export function NotesTab({
 }: {
   visitId: string;
   appointmentId: string;
+  visitContext?: string | null;
   voiceNotes: string | null;
   keyPoints: string | null;
   prescriptions: Prescription[];
@@ -284,13 +286,13 @@ export function NotesTab({
       </section>
 
       {/* Insurance Procedures (pre-authorization) */}
-      <InsuranceProceduresSection visitId={visitId} appointmentId={appointmentId} />
+      <InsuranceProceduresSection visitId={visitId} appointmentId={appointmentId} isInpatient={visitContext === "inpatient"} />
     </div>
   );
 }
 
 // ── Insurance Procedures sub-component ────────────────────────────────────────
-function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: string; appointmentId: string }) {
+function InsuranceProceduresSection({ visitId, appointmentId, isInpatient }: { visitId: string; appointmentId: string; isInpatient?: boolean }) {
   const router = useRouter();
   const [procs, setProcs] = useState<{id:string;procedure_name:string;price:number;auth_number:string|null;auth_date:string|null;auth_status:string}[]>([]);
   const [catalog, setCatalog] = useState<{id:string;name:string;name_ar:string|null;outpatient_price:number;inpatient_price:number|null;category:string|null}[]>([]);
@@ -333,7 +335,8 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
   function handleCatalogSelect(id: string) {
     setSelectedCatId(id);
     const item = catalog.find(c => c.id === id);
-    if (item?.outpatient_price) setProcPrice(String(item.outpatient_price));
+    const price = isInpatient ? (item?.inpatient_price ?? item?.outpatient_price) : item?.outpatient_price;
+    if (price) setProcPrice(String(price));
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -452,7 +455,7 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
                   className="col-span-2 rounded-md border border-neutral-300 px-2 py-1.5 text-xs">
                   <option value="">— Select procedure —</option>
                   {catalog.map(c => (
-                    <option key={c.id} value={c.id}>{c.category ? `[${c.category}] ` : ""}{c.name}{c.outpatient_price ? ` — ${c.outpatient_price} JOD` : ""}</option>
+                    <option key={c.id} value={c.id}>{c.category ? `[${c.category}] ` : ""}{c.name}{` — ${isInpatient ? (c.inpatient_price ?? c.outpatient_price) : c.outpatient_price} JOD`}</option>
                   ))}
                 </select>
               ) : (

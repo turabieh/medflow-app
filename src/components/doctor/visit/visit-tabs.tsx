@@ -49,6 +49,7 @@ interface VisitTabsProps {
   medsCatalog: MedCatalog[];
   diagnoses: Diagnosis[];
   visitStatus: string;
+  visitContext?: string | null;
   voiceNotes: string | null;
   keyPoints: string | null;
   clinicalNote: string | null;
@@ -159,6 +160,7 @@ export function VisitTabs(props: VisitTabsProps) {
           <NotesTab
             visitId={props.visitId}
             appointmentId={props.appointmentId}
+            visitContext={props.visitContext}
             voiceNotes={props.voiceNotes}
             keyPoints={props.keyPoints}
             prescriptions={props.prescriptions}

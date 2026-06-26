@@ -223,6 +223,7 @@ export default async function VisitPage({
           medsCatalog={medsCatalog ?? []}
           diagnoses={diagnoses ?? []}
           visitStatus={visit.status}
+          visitContext={visit.visit_context}
           voiceNotes={visit.voice_notes ?? null}
           keyPoints={visit.key_clinical_points ?? null}
           clinicalNote={visit.clinical_note ?? null}
