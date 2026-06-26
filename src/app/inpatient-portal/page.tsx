@@ -28,6 +28,16 @@ export default async function PortalDashboard() {
 
   const inpatientIds = (inpatients ?? []).map(ip => ip.id);
 
+  // Today's outpatient appointments (schedule)
+  const { data: schedule } = await supabase
+    .from("appointments")
+    .select("id, appt_date, start_time, visit_type, status, patients(id, full_name, full_name_ar)")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("doctor_id", profile.id)
+    .eq("appt_date", today)
+    .not("status", "in", '("cancelled","no_show")')
+    .order("start_time");
+
   // Today's visits
   const { data: todayVisits } = inpatientIds.length ? await supabase
     .from("visits").select("id, inpatient_id, visit_type, status")
@@ -90,6 +100,32 @@ export default async function PortalDashboard() {
             </div>
           </Link>
         </div>
+
+        {/* Today's schedule — outpatient appointments */}
+        {(schedule ?? []).length > 0 && (
+          <div style={{ marginBottom:"20px" }}>
+            <div className="ip-section-title">🗓 Today&apos;s Schedule</div>
+            {(schedule ?? []).map((appt: Record<string,unknown>) => {
+              const pt = Array.isArray(appt.patients) ? appt.patients[0] : appt.patients as {full_name:string}|null;
+              const time = appt.start_time ? String(appt.start_time).slice(0,5) : "";
+              const isDone = ["done","finalized"].includes(String(appt.status ?? ""));
+              return (
+                <div key={String(appt.id)} style={{ background:"#1e293b", border:`1.5px solid ${isDone?"#166534":"#1e40af"}`, borderRadius:"14px", padding:"12px 16px", marginBottom:"8px", display:"flex", alignItems:"center", gap:"14px" }}>
+                  <div style={{ background: isDone ? "#166534" : "#1e3a8a", borderRadius:"10px", padding:"8px 10px", textAlign:"center", flexShrink:0, minWidth:"48px" }}>
+                    <div style={{ fontSize:"15px", fontWeight:"800", color: isDone ? "#86efac" : "#93c5fd", fontFamily:"monospace" }}>{time}</div>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:"14px", fontWeight:"700", color:"#f1f5f9", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{pt?.full_name ?? "Patient"}</div>
+                    <div style={{ fontSize:"11px", color:"#64748b", marginTop:"2px", textTransform:"capitalize" }}>
+                      {String(appt.visit_type ?? "").replace(/_/g," ")}
+                      {isDone && <span style={{ marginLeft:"8px", color:"#4ade80" }}>✓ Done</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Not visited yet — priority */}
         {notVisited.length > 0 && (

@@ -99,6 +99,10 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
               {p?.blood_type && <div style={{ fontSize:"11px", fontWeight:"700", color:"#ef4444" }}>{p.blood_type}</div>}
             </div>
           )}
+          <Link href="/inpatient-portal"
+            style={{ background:"#0f172a", border:"1px solid #334155", borderRadius:"8px", padding:"7px 10px", textDecoration:"none", flexShrink:0, fontSize:"18px", lineHeight:1 }}>
+            🏠
+          </Link>
         </div>
       </div>
 
