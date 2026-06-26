@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DoctorSidebarNav } from "@/components/doctor/layout/sidebar";
+import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
 export default async function DoctorLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -85,6 +86,7 @@ export default async function DoctorLayout({ children }: { children: React.React
       />
       </aside>
       <main className="doctor-main flex-1 overflow-y-auto">{children}</main>
+      <FloatingChatButton userId={profile.id} chatHref="/doctor/chat" />
     </div>
   );
 }

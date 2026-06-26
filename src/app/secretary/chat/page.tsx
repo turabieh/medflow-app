@@ -32,6 +32,13 @@ export default async function SecretaryChatPage() {
     .eq("recipient_id", profile.id)
     .eq("is_read", false);
 
+  const { data: quickTasks } = await supabase
+    .from("chat_quick_tasks")
+    .select("id, label, category")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("is_active", true)
+    .order("sort_order");
+
   return (
     <div>
       <h1 className="mb-1 text-lg font-medium text-neutral-900">Chat</h1>
@@ -43,6 +50,7 @@ export default async function SecretaryChatPage() {
         clinicId={profile.clinic_id}
         staff={staff ?? []}
         initialMessages={(messages ?? []) as Record<string, unknown>[]}
+        quickTasks={(quickTasks ?? []) as {id:string;label:string;category:string}[]}
       />
     </div>
   );

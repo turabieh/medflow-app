@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SecretarySidebar } from "@/components/secretary/layout/sidebar";
+import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
 export default async function SecretaryLayout({
   children,
@@ -55,6 +56,7 @@ export default async function SecretaryLayout({
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <FloatingChatButton userId={profile.id} chatHref="/secretary/chat" />
       </div>
     </div>
   );

@@ -29,6 +29,14 @@ export default async function DoctorChatPage() {
     .order("created_at", { ascending: true })
     .limit(100);
 
+  // Quick tasks from admin
+  const { data: quickTasks } = await supabase
+    .from("chat_quick_tasks")
+    .select("id, label, category")
+    .eq("clinic_id", profile.clinic_id)
+    .eq("is_active", true)
+    .order("sort_order");
+
   // Mark messages to this doctor as read
   await supabase.from("chat_messages")
     .update({ is_read: true })
@@ -46,6 +54,7 @@ export default async function DoctorChatPage() {
         clinicId={profile.clinic_id}
         staff={staff ?? []}
         initialMessages={(messages ?? []) as Record<string, unknown>[]}
+        quickTasks={(quickTasks ?? []) as {id:string;label:string;category:string}[]}
       />
     </div>
   );

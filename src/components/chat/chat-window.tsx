@@ -15,14 +15,7 @@ interface Message {
   users?: { full_name: string; role: string } | { full_name: string; role: string }[] | null;
 }
 
-const QUICK_TASKS = [
-  "Please check insurance coverage",
-  "Book follow-up appointment",
-  "Call patient to confirm",
-  "Send lab results to patient",
-  "Check if prescription is ready",
-  "Reschedule today's appointment",
-];
+interface QuickTask { id: string; label: string; category: string; }
 
 const ROLE_COLORS: Record<string, string> = {
   doctor:    "#1d4ed8",
@@ -38,13 +31,14 @@ function formatTime(ts: string) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function ChatWindow({ currentUserId, currentUserName, currentUserRole, clinicId, staff, initialMessages }: {
+export function ChatWindow({ currentUserId, currentUserName, currentUserRole, clinicId, staff, initialMessages, quickTasks }: {
   currentUserId: string;
   currentUserName: string;
   currentUserRole: string;
   clinicId: string;
   staff: StaffMember[];
   initialMessages: Record<string, unknown>[];
+  quickTasks: QuickTask[];
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages as unknown as Message[]);
   const [text, setText]         = useState("");
@@ -202,13 +196,23 @@ export function ChatWindow({ currentUserId, currentUserName, currentUserRole, cl
 
         {/* Quick task picker */}
         {showQuick && (
-          <div className="border-b border-neutral-100 bg-neutral-50 px-3 py-2 flex flex-wrap gap-1.5">
-            {QUICK_TASKS.map(task => (
-              <button key={task} onClick={() => sendMessage(task)}
-                className="rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs text-neutral-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors">
-                {task}
-              </button>
+          <div className="border-b border-neutral-100 bg-neutral-50 px-3 py-3 max-h-48 overflow-y-auto">
+            {[...new Set(quickTasks.map(t => t.category))].map(cat => (
+              <div key={cat} className="mb-2 last:mb-0">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1.5 capitalize">{cat}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {quickTasks.filter(t => t.category === cat).map(task => (
+                    <button key={task.id} onClick={() => sendMessage(task.label)}
+                      className="rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs text-neutral-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors">
+                      {task.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
+            {quickTasks.length === 0 && (
+              <p className="text-xs text-neutral-400">No tasks configured. Admin can add them in Settings.</p>
+            )}
           </div>
         )}
 
