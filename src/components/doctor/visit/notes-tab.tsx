@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   addPrescription,
@@ -308,6 +308,25 @@ function InsuranceProceduresSection({ visitId, appointmentId, isInpatient }: { v
   const [authNum, setAuthNum]     = useState("");
   const [authDate, setAuthDate]   = useState("");
   const [adding, setAdding]       = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<string>("pending");
+  const [editAuthNum, setEditAuthNum] = useState("");
+  const [editAuthDate, setEditAuthDate] = useState("");
+
+  async function handleUpdateAuth(id: string) {
+    const { updateProcedureAuth } = await import("@/lib/actions/insurance-claims");
+    await updateProcedureAuth(id, editAuthNum || "", editAuthDate || "", editStatus);
+    setProcs(prev => prev.map(p => p.id === id ? { ...p, auth_status: editStatus, auth_number: editAuthNum || null, auth_date: editAuthDate || null } : p));
+    setEditingId(null);
+    router.refresh();
+  }
+
+  function startEdit(p: {id:string;auth_status:string;auth_number:string|null;auth_date:string|null}) {
+    setEditingId(p.id);
+    setEditStatus(p.auth_status);
+    setEditAuthNum(p.auth_number ?? "");
+    setEditAuthDate(p.auth_date ?? "");
+  }
 
   useEffect(() => {
     if (!show) { setLoaded(false); return; }
@@ -415,13 +434,56 @@ function InsuranceProceduresSection({ visitId, appointmentId, isInpatient }: { v
               </tr></thead>
               <tbody className="divide-y divide-neutral-50">
                 {procs.map(p => (
-                  <tr key={p.id} className={p.auth_status === "rejected" ? "bg-red-50/30" : ""}>
-                    <td className="py-1.5 pr-3 font-medium">{p.procedure_name}</td>
-                    <td className="py-1.5 pr-3 text-right font-mono text-xs">{p.price.toFixed(2)}</td>
-                    <td className="py-1.5 pr-3 font-mono text-xs text-neutral-600">{p.auth_number ?? "—"}</td>
-                    <td className={`py-1.5 pr-3 text-xs font-medium ${AUTH_COLORS[p.auth_status] ?? ""}`}>{AUTH_LABELS[p.auth_status] ?? p.auth_status}</td>
-                    <td><button onClick={() => handleDelete(p.id)} className="text-xs text-red-400 hover:text-red-600">Remove</button></td>
-                  </tr>
+                  <React.Fragment key={p.id}>
+                    <tr className={p.auth_status === "rejected" ? "bg-red-50/30" : ""}>
+                      <td className="py-1.5 pr-3 font-medium">{p.procedure_name}</td>
+                      <td className="py-1.5 pr-3 text-right font-mono text-xs">{p.price.toFixed(2)}</td>
+                      <td className="py-1.5 pr-3 font-mono text-xs text-neutral-600">{p.auth_number ?? "—"}</td>
+                      <td className={`py-1.5 pr-3 text-xs font-medium ${AUTH_COLORS[p.auth_status] ?? ""}`}>{AUTH_LABELS[p.auth_status] ?? p.auth_status}</td>
+                      <td className="py-1.5 flex gap-1">
+                        <button onClick={() => editingId === p.id ? setEditingId(null) : startEdit(p)}
+                          className="text-xs text-blue-500 hover:text-blue-700">
+                          {editingId === p.id ? "Cancel" : "Edit"}
+                        </button>
+                        <button onClick={() => handleDelete(p.id)} className="text-xs text-red-400 hover:text-red-600">Remove</button>
+                      </td>
+                    </tr>
+                    {/* Inline edit row */}
+                    {editingId === p.id && (
+                      <tr className="bg-blue-50/50">
+                        <td colSpan={5} className="py-2 px-1">
+                          <div className="flex flex-wrap gap-2 items-end">
+                            <div>
+                              <label className="block text-[10px] text-neutral-500 mb-0.5">Status</label>
+                              <select value={editStatus} onChange={e => setEditStatus(e.target.value)}
+                                className="rounded border border-neutral-300 px-2 py-1 text-xs">
+                                <option value="pending">⏳ Pending</option>
+                                <option value="approved">✓ Approved</option>
+                                <option value="rejected">✗ Rejected</option>
+                                <option value="not_required">N/A</option>
+                              </select>
+                            </div>
+                            {editStatus === "approved" && (<>
+                              <div>
+                                <label className="block text-[10px] text-neutral-500 mb-0.5">Auth / Referral #</label>
+                                <input value={editAuthNum} onChange={e => setEditAuthNum(e.target.value)}
+                                  placeholder="Auth number" className="rounded border border-neutral-300 px-2 py-1 text-xs w-32" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] text-neutral-500 mb-0.5">Auth Date</label>
+                                <input type="date" value={editAuthDate} onChange={e => setEditAuthDate(e.target.value)}
+                                  className="rounded border border-neutral-300 px-2 py-1 text-xs" />
+                              </div>
+                            </>)}
+                            <button onClick={() => handleUpdateAuth(p.id)}
+                              className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-medium text-white hover:bg-neutral-800">
+                              Save
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
               </tbody>
               {approvedTotal > 0 && (
