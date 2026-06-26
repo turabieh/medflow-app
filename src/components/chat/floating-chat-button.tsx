@@ -12,22 +12,31 @@ interface Message {
 }
 
 
-// Play a short notification beep using Web Audio API — no file needed
+// Soft gentle chime — two overlapping sine waves, like a soft notification bell
 function playNotificationBeep() {
   try {
-    const ctx = new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(880, ctx.currentTime);           // A5 — clean ping
-    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
-    gain.gain.setValueAtTime(0.18, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.25);
-  } catch { /* audio blocked, ignore */ }
+    const AudioCtx = window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(0.10, ctx.currentTime + 0.01);
+    master.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+    master.connect(ctx.destination);
+
+    // Two harmonics for warmth
+    [[523.25, 0], [783.99, 0.06]].forEach(([freq, delay]) => {
+      const osc = ctx.createOscillator();
+      const g   = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0.5, ctx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.85);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + 0.9);
+    });
+  } catch { /* audio not available */ }
 }
 
 const ROLE_COLOR: Record<string,string> = {
@@ -224,6 +233,8 @@ export function FloatingChatButton({ userId, clinicId, staff, quickTasks }: {
   const [unread, setUnread]       = useState(0);
   const [currentUserName, setCurrentUserName] = useState("");
   const [currentUserRole, setCurrentUserRole] = useState("");
+  const [lastSender, setLastSender] = useState<{name:string;role:string} | null>(null);
+  const [lastSenderTimer, setLastSenderTimer] = useState<ReturnType<typeof setTimeout>|null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -241,7 +252,21 @@ export function FloatingChatButton({ userId, clinicId, staff, quickTasks }: {
 
     const ch = supabase.channel(`fab:${userId}`)
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"chat_messages",
-        filter:`recipient_id=eq.${userId}` }, () => { setUnread(n => n + 1); playNotificationBeep(); })
+        filter:`recipient_id=eq.${userId}` }, async (payload) => {
+        const msg = payload.new as {sender_id:string};
+        setUnread(n => n + 1);
+        playNotificationBeep();
+        // Fetch sender name to show on FAB
+        const { data: sender } = await supabase.from("users")
+          .select("full_name, role").eq("id", msg.sender_id).single();
+        if (sender) {
+          setLastSender({ name: sender.full_name.split(" ")[0], role: sender.role });
+          setLastSenderTimer(prev => {
+            if (prev) clearTimeout(prev);
+            return setTimeout(() => setLastSender(null), 5000);
+          });
+        }
+      })
       .on("postgres_changes", { event:"UPDATE", schema:"public", table:"chat_messages",
         filter:`recipient_id=eq.${userId}` }, fetchUnread)
       .subscribe();
@@ -308,8 +333,28 @@ export function FloatingChatButton({ userId, clinicId, staff, quickTasks }: {
       )}
 
       {/* FAB button */}
+      {/* Sender name popup above FAB */}
+      {lastSender && !showMenu && (
+        <div style={{
+          position:"fixed", bottom:"68px", right:"16px", zIndex:1002,
+          background:"#1a1a1a", color:"#fff", borderRadius:"10px",
+          padding:"6px 12px", fontSize:"12px", fontWeight:"600",
+          boxShadow:"0 4px 16px rgba(0,0,0,0.2)", whiteSpace:"nowrap",
+          fontFamily:"system-ui,-apple-system,sans-serif",
+          animation:"fadeInUp 0.2s ease",
+        }}>
+          <span style={{ color: ROLE_COLOR[lastSender.role] ?? "#94a3b8" }}>●</span>
+          {" "}{lastSender.name} sent a message
+          <div style={{
+            position:"absolute", bottom:"-5px", right:"18px",
+            width:"10px", height:"10px", background:"#1a1a1a",
+            transform:"rotate(45deg)", borderRadius:"2px",
+          }} />
+        </div>
+      )}
+
       <button
-        onClick={() => setShowMenu(s => !s)}
+        onClick={() => { setShowMenu(s => !s); setLastSender(null); }}
         style={{
           position:"fixed", bottom:"16px", right:"16px", zIndex:1002,
           width:"44px", height:"44px", borderRadius:"50%",

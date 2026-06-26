@@ -8,7 +8,6 @@ const NAV_ITEMS = [
   { href: "/secretary/dashboard", label: "Dashboard", icon: "⊞" },
   { href: "/secretary/patients", label: "Patients", icon: "👤" },
   { href: "/secretary/appointments", label: "Appointments", icon: "📅" },
-  { href: "/secretary/chat", label: "Team Chat", icon: "💬" },
   { href: "/secretary/schedule", label: "Schedule", icon: "🗓" },
   { href: "/secretary/reports", label: "Reports & Print", icon: "🖨" },
   { href: "/secretary/insurance-claims", label: "Insurance Claims", icon: "🏦" },
