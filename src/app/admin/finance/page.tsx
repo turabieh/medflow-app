@@ -18,7 +18,18 @@ export default async function AdminFinancePage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase.from("users").select("clinic_id, role").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/");
+  if (profile?.role !== "admin") {
+    // Allow if user has the required permission
+    const { data: grant } = await supabase
+      .from("user_permissions")
+      .select("permission")
+      .eq("clinic_id", profile?.clinic_id ?? "")
+      .eq("user_id", user.id)
+      .eq("permission", "finance.view")
+      .single();
+    if (!grant) redirect("/secretary/dashboard");
+  }
+  if (!profile) redirect("/login");
 
   const clinicId = profile.clinic_id ?? "";
   const today    = new Date();

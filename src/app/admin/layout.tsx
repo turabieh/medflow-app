@@ -14,7 +14,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.role !== "admin") redirect("/dashboard");
+  if (!profile) redirect("/login");
+
+  // Allow admin, OR any user who has at least one permission grant
+  // (individual pages do their own specific permission check)
+  if (profile.role !== "admin") {
+    const { count } = await supabase
+      .from("user_permissions")
+      .select("*", { count: "exact", head: true })
+      .eq("clinic_id", profile.clinic_id)
+      .eq("user_id", profile.id);
+
+    // No permissions at all → redirect away
+    if ((count ?? 0) === 0) redirect("/secretary/dashboard");
+  }
 
   const clinic = Array.isArray(profile.clinics) ? profile.clinics[0] : profile.clinics;
 
@@ -31,7 +44,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-      <AdminSidebarNav clinicName={clinic?.name ?? "Clinic"} userName={profile.full_name} logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url} />
+      <AdminSidebarNav
+        clinicName={clinic?.name ?? "Clinic"}
+        userName={profile.full_name}
+        logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url}
+      />
       <main className="flex-1 overflow-y-auto p-6">{children}</main>
       <FloatingChatButton
         userId={profile.id}

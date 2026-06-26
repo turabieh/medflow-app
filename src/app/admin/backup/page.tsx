@@ -11,7 +11,18 @@ export default async function BackupPage() {
 
   const { data: profile } = await supabase
     .from("users").select("id, clinic_id, role").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/");
+  if (profile?.role !== "admin") {
+    // Allow if user has the required permission
+    const { data: grant } = await supabase
+      .from("user_permissions")
+      .select("permission")
+      .eq("clinic_id", profile?.clinic_id ?? "")
+      .eq("user_id", user.id)
+      .eq("permission", "data.backup")
+      .single();
+    if (!grant) redirect("/secretary/dashboard");
+  }
+  if (!profile) redirect("/login");
 
   // Tables with clinic_id
   const directTables = [
