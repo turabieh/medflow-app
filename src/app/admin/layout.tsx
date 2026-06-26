@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminSidebarNav } from "@/components/admin/layout/sidebar";
+import { getClinicTier, hasFeature } from "@/lib/clinic-tier";
 import { SecretarySidebar } from "@/components/secretary/layout/sidebar";
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
@@ -16,6 +17,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .single();
 
   if (!profile) redirect("/login");
+
+  // Fetch clinic tier
+  const clinicTier = await getClinicTier(profile.clinic_id);
 
   // Fetch permissions for this user
   const { data: grants } = await supabase
@@ -50,6 +54,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           clinicName={clinic?.name ?? "Clinic"}
           userName={profile.full_name}
           logoUrl={(clinic as { logo_url?: string | null } | null)?.logo_url}
+          tierKey={clinicTier.tierKey}
+          features={clinicTier.features}
         />
       ) : (
         <SecretarySidebar
