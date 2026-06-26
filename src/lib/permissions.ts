@@ -10,33 +10,23 @@ export interface PermissionDef {
 }
 
 export const PERMISSIONS: PermissionDef[] = [
-  // Finance
-  { key:"finance.view",        label:"View Finance Dashboard",    description:"See revenue, expenses and KPI overview",    group:"Finance",      defaultRoles:["admin","doctor"] },
-  { key:"finance.reports",     label:"Print Financial Reports",   description:"Download and print P&L reports",           group:"Finance",      defaultRoles:["admin","doctor"] },
-  { key:"finance.expenses",    label:"Manage Expenses",           description:"Add and edit clinic expenses",             group:"Finance",      defaultRoles:["admin"] },
-  { key:"finance.salaries",    label:"View Staff Salaries",       description:"See payroll and salary records",           group:"Finance",      defaultRoles:["admin"] },
+  // Finance — secretary doesn't have these by default
+  { key:"finance.view",        label:"View Finance Dashboard",    description:"See revenue, expenses and financial overview",      group:"Finance",  defaultRoles:["admin","doctor"] },
+  { key:"finance.expenses",    label:"Manage Expenses",           description:"Add and edit clinic expense records",               group:"Finance",  defaultRoles:["admin"] },
+  { key:"finance.salaries",    label:"View Staff Salaries",       description:"See payroll and monthly salary records",            group:"Finance",  defaultRoles:["admin"] },
+  { key:"finance.reports",     label:"Print Financial Reports",   description:"Download and print P&L and financial summaries",    group:"Finance",  defaultRoles:["admin","doctor"] },
 
-  // Claims & Insurance
-  { key:"claims.view",         label:"View Insurance Claims",     description:"See submitted claims list",                group:"Insurance",    defaultRoles:["admin","doctor","secretary"] },
-  { key:"claims.submit",       label:"Submit Insurance Claims",   description:"Create and submit new insurance claims",   group:"Insurance",    defaultRoles:["admin","secretary"] },
-  { key:"claims.print",        label:"Print Claim Documents",     description:"Print insurance and hospital claim forms", group:"Insurance",    defaultRoles:["admin","secretary"] },
-
-  // Reports
-  { key:"reports.patient",     label:"Patient Reports",           description:"Generate and print patient visit reports", group:"Reports",      defaultRoles:["admin","doctor","secretary"] },
-  { key:"reports.schedule",    label:"Schedule Reports",          description:"Export appointment and schedule summaries", group:"Reports",     defaultRoles:["admin","doctor"] },
-
-  // Patients
-  { key:"patients.edit",       label:"Edit Patient Records",      description:"Update patient info, insurance, allergies", group:"Patients",    defaultRoles:["admin","secretary"] },
-  { key:"patients.delete",     label:"Delete Patient Records",    description:"Remove patients from the system",          group:"Patients",     defaultRoles:["admin"] },
+  // Patients — delete is admin-only by default
+  { key:"patients.delete",     label:"Delete Patient Records",    description:"Permanently remove patients and their data",        group:"Patients", defaultRoles:["admin"] },
 
   // Schedule
-  { key:"schedule.doctor",     label:"View Doctor Schedule",      description:"See doctor's personal schedule and blocks", group:"Schedule",    defaultRoles:["admin","doctor"] },
-  { key:"schedule.manage",     label:"Manage Working Hours",      description:"Edit doctor working hours and holidays",   group:"Schedule",     defaultRoles:["admin"] },
+  { key:"schedule.manage",     label:"Manage Working Hours",      description:"Edit doctor working hours, blocks and holidays",    group:"Schedule", defaultRoles:["admin"] },
 
   // Data
-  { key:"data.backup",         label:"Download Data Backup",      description:"Export clinic data as CSV files",          group:"Data",         defaultRoles:["admin"] },
-  { key:"data.catalog",        label:"Manage Catalogs",           description:"Edit medications, symptoms, procedures",   group:"Data",         defaultRoles:["admin"] },
+  { key:"data.backup",         label:"Download Data Backup",      description:"Export all clinic data as CSV files",              group:"Data",     defaultRoles:["admin"] },
+  { key:"data.catalog",        label:"Manage Catalogs",           description:"Edit medications, symptoms and procedures catalog", group:"Data",     defaultRoles:["admin"] },
 ];
+
 
 export const PERMISSION_GROUPS = [...new Set(PERMISSIONS.map(p => p.group))];
 

@@ -15,15 +15,22 @@ const BASE_NAV = [
   { href: "/secretary/settings/schedules", label: "Settings",      icon: "⚙" },
 ];
 
-// Extra nav items unlocked by permissions
+// Extra nav items unlocked by permissions — each maps to a real page that checks the permission
 const PERMISSION_NAV: { permission: string; href: string; label: string; icon: string; group?: string }[] = [
-  { permission:"finance.view",    href:"/admin/finance",              label:"Finance",          icon:"💰", group:"Extra Access" },
-  { permission:"finance.reports", href:"/admin/finance",              label:"Finance Reports",  icon:"📊", group:"Extra Access" },
-  { permission:"data.backup",     href:"/admin/backup",               label:"Data Backup",      icon:"💾", group:"Extra Access" },
-  { permission:"data.catalog",    href:"/admin/settings/medications", label:"Medications",      icon:"💊", group:"Catalogs"     },
-  { permission:"data.catalog",    href:"/admin/settings/symptoms",    label:"Symptoms",         icon:"🤒", group:"Catalogs"     },
-  { permission:"data.catalog",    href:"/admin/settings/procedures",  label:"Procedures",       icon:"🔬", group:"Catalogs"     },
-  { permission:"schedule.manage", href:"/admin/settings/schedules",   label:"Working Hours",    icon:"🗓", group:"Extra Access" },
+  // Finance
+  { permission:"finance.view",     href:"/admin/finance",              label:"Finance Dashboard",icon:"💰", group:"Finance"      },
+  { permission:"finance.expenses", href:"/admin/finance?tab=expenses", label:"Expenses",         icon:"💸", group:"Finance"      },
+  { permission:"finance.salaries", href:"/admin/finance?tab=salaries", label:"Staff Salaries",   icon:"👥", group:"Finance"      },
+  { permission:"finance.reports",  href:"/admin/finance?tab=reports",  label:"Finance Reports",  icon:"📊", group:"Finance"      },
+  // Patients
+  { permission:"patients.delete",  href:"/admin/patients",             label:"Delete Patients",  icon:"🗑", group:"Patients"     },
+  // Data
+  { permission:"data.backup",      href:"/admin/backup",               label:"Data Backup",      icon:"💾", group:"Data"         },
+  { permission:"data.catalog",     href:"/admin/settings/medications", label:"Medications",      icon:"💊", group:"Catalogs"     },
+  { permission:"data.catalog",     href:"/admin/settings/symptoms",    label:"Symptoms Catalog", icon:"🤒", group:"Catalogs"     },
+  { permission:"data.catalog",     href:"/admin/settings/procedures",  label:"Procedures",       icon:"🔬", group:"Catalogs"     },
+  // Schedule
+  { permission:"schedule.manage",  href:"/admin/settings/schedules",   label:"Working Hours",    icon:"⏱", group:"Schedule"     },
 ];
 
 export function SecretarySidebar({

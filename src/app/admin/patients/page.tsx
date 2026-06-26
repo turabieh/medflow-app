@@ -15,8 +15,20 @@ export default async function AdminPatientsPage({
   const { data: profile } = await supabase
     .from("users").select("clinic_id, role").eq("id", user?.id ?? "").single();
 
-  if (profile?.role !== "admin") {
-    return <div className="p-6 text-sm text-red-600">Access denied.</div>;
+  // Check if non-admin has patients.delete permission
+  let canDelete = profile?.role === "admin";
+  if (!canDelete && user) {
+    const { data: grant } = await supabase
+      .from("user_permissions")
+      .select("permission")
+      .eq("user_id", user.id)
+      .eq("permission", "patients.delete")
+      .single();
+    canDelete = !!grant;
+  }
+
+  if (!canDelete) {
+    return <div className="p-6 text-sm text-red-600">Access denied. You need the "Delete Patients" permission.</div>;
   }
 
   let patients: {
@@ -33,7 +45,7 @@ export default async function AdminPatientsPage({
     const { data } = await supabase
       .from("patients")
       .select("id, full_name, full_name_ar, phone, dob, gender, created_at")
-      .eq("clinic_id", profile.clinic_id)
+      .eq("clinic_id", profile?.clinic_id ?? "")
       .or(`full_name.ilike.%${q}%,full_name_ar.ilike.%${q}%,phone.ilike.%${q}%`)
       .order("full_name")
       .limit(30);
@@ -127,13 +139,13 @@ export default async function AdminPatientsPage({
                       {new Date(p.created_at).toLocaleDateString("en-GB")}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <DeletePatientButton
+                      {canDelete && <DeletePatientButton
                         patientId={p.id}
                         patientName={p.full_name}
                         visitCount={visitMap.get(p.id) ?? 0}
                         apptCount={apptMap.get(p.id) ?? 0}
                         searchQuery={q ?? ""}
-                      />
+                      />}
                     </td>
                   </tr>
                 );
