@@ -11,6 +11,25 @@ interface Message {
   senderName?: string; senderRole?: string;
 }
 
+
+// Play a short notification beep using Web Audio API — no file needed
+function playNotificationBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as {webkitAudioContext: typeof AudioContext}).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime);           // A5 — clean ping
+    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+  } catch { /* audio blocked, ignore */ }
+}
+
 const ROLE_COLOR: Record<string,string> = {
   doctor:"#1d4ed8", secretary:"#166534", admin:"#6d28d9",
 };
@@ -74,6 +93,7 @@ function ChatPopup({
         const { data: u } = await supabase.from("users").select("full_name,role").eq("id",msg.sender_id).single();
         setMsgs(prev => prev.find(m=>m.id===msg.id) ? prev : [...prev, {...msg, senderName:u?.full_name, senderRole:u?.role}]);
         if (msg.sender_id === peer.id) {
+          playNotificationBeep();
           supabase.from("chat_messages").update({is_read:true}).eq("id",msg.id).then(()=>{});
         }
       }).subscribe();
@@ -221,7 +241,7 @@ export function FloatingChatButton({ userId, clinicId, staff, quickTasks }: {
 
     const ch = supabase.channel(`fab:${userId}`)
       .on("postgres_changes", { event:"INSERT", schema:"public", table:"chat_messages",
-        filter:`recipient_id=eq.${userId}` }, () => setUnread(n => n + 1))
+        filter:`recipient_id=eq.${userId}` }, () => { setUnread(n => n + 1); playNotificationBeep(); })
       .on("postgres_changes", { event:"UPDATE", schema:"public", table:"chat_messages",
         filter:`recipient_id=eq.${userId}` }, fetchUnread)
       .subscribe();

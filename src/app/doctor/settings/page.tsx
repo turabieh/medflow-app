@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ScheduleManager } from "@/app/settings/schedules/schedule-manager";
 import { SignatureUpload } from "@/components/doctor/signature-upload";
+import { DoctorQuickTasks } from "@/components/chat/doctor-quick-tasks";
 
 export default async function DoctorSettingsPage() {
   const supabase = await createClient();
@@ -22,6 +23,12 @@ export default async function DoctorSettingsPage() {
     .eq("doctor_id", profile?.id ?? "")
     .gte("block_date", new Date().toISOString().split("T")[0])
     .order("block_date");
+
+  const { data: quickTasks } = await supabase
+    .from("chat_quick_tasks")
+    .select("id, label, category, sort_order, is_active")
+    .eq("clinic_id", profile?.clinic_id ?? "")
+    .order("sort_order");
 
   // Only pass this doctor as the list so they can only edit their own
   const doctors = [{ id: profile?.id ?? "", full_name: profile?.full_name ?? "" }];
@@ -44,6 +51,11 @@ export default async function DoctorSettingsPage() {
         initialWorkingHours={workingHours ?? []}
         initialBlocks={blocks ?? []}
       />
+      <div className="mt-8">
+        <h2 className="mb-1 text-base font-semibold text-neutral-900">⚡ Quick Chat Tasks</h2>
+        <p className="mb-4 text-sm text-neutral-500">Manage your one-tap messages to send to the secretary.</p>
+        <DoctorQuickTasks clinicId={profile?.clinic_id ?? ""} tasks={quickTasks ?? []} />
+      </div>
     </div>
   );
 }
