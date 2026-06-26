@@ -9,7 +9,7 @@ export default async function AdminUsersPage() {
 
   const { data: staff } = await supabase
     .from("users")
-    .select("id, full_name, role, email, specialty, is_active")
+    .select("id, full_name, role, email, specialty, is_active, is_clinic_head")
     .eq("clinic_id", profile?.clinic_id ?? "")
     .order("role").order("full_name");
 

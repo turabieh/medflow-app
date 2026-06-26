@@ -56,6 +56,16 @@ export default function InsuranceClaimPrintPage() {
       const { data: clinic } = await supabase
         .from("clinics").select("name, name_ar, tagline, logo_url, address, phone, email").limit(1).single();
 
+      // Fetch clinic head doctor for signature
+      const { data: headDoctors } = await supabase
+        .from("users")
+        .select("full_name, specialty, signature_url")
+        .eq("clinic_id", claim.clinic_id)
+        .eq("is_clinic_head", true)
+        .eq("is_active", true)
+        .limit(1);
+      const headDoctor = headDoctors?.[0] ?? null;
+
       // Get patients with this insurance
       const { data: patients } = await supabase
         .from("patients").select("id, full_name, dob, gender, insurance_policy_number")
@@ -123,7 +133,7 @@ export default function InsuranceClaimPrintPage() {
         await supabase.from("insurance_claims").update({ total_claimed: grandTotal }).eq("id", claimId);
       }
 
-      setData({ claim, clinic, rows, grandTotal, parentClaim });
+      setData({ claim, clinic, rows, grandTotal, parentClaim, headDoctor });
       setLoading(false);
     }
     load();
@@ -135,7 +145,7 @@ export default function InsuranceClaimPrintPage() {
   if (data?.error) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00", flexDirection:"column" as const, gap:"8px" }}><div>Error loading claim</div><div style={{fontSize:"12px"}}>{data.error}</div></div>;
   if (!data?.claim) return <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", fontFamily:"Arial", color:"#c00" }}>Claim not found.</div>;
 
-  const { claim, clinic, rows, grandTotal, parentClaim } = data as { claim: any; clinic: any; rows: any[]; grandTotal: number; parentClaim: any };
+  const { claim, clinic, rows, grandTotal, parentClaim, headDoctor } = data as { claim: any; clinic: any; rows: any[]; grandTotal: number; parentClaim: any; headDoctor: any };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const insurance = Array.isArray(claim.insurance_companies) ? claim.insurance_companies[0] : claim.insurance_companies as any;
 
@@ -325,9 +335,22 @@ export default function InsuranceClaimPrintPage() {
             <div style={{ color:"#aaa", marginTop:"4px" }}>Claim ref: <strong>{claim.claim_number}</strong> · {printDate}</div>
           </div>
           <div style={{ textAlign:"center" }}>
-            <div style={{ width:"220px", borderTop:"1px solid #222", paddingTop:"5px", marginTop:"48px" }}>
-              <div style={{ fontWeight:"700", fontSize:"11px" }}>Authorized Signature</div>
-              <div style={{ fontSize:"10px", color:"#888", marginTop:"2px" }}>{clinic?.name}</div>
+            <div style={{ width:"220px", marginTop:"48px" }}>
+              {headDoctor?.signature_url && (
+                <img src={headDoctor.signature_url} alt="Signature"
+                  style={{ height:"48px", maxWidth:"180px", objectFit:"contain", display:"block", margin:"0 auto 4px" }} />
+              )}
+              <div style={{ borderTop:"1px solid #333", paddingTop:"5px", marginTop: headDoctor?.signature_url ? "0" : "36px" }}>
+                <div style={{ fontWeight:"700", fontSize:"11px" }}>
+                  {headDoctor ? `Dr. ${headDoctor.full_name}` : "Authorized Signature"}
+                </div>
+                {headDoctor?.specialty && (
+                  <div style={{ fontSize:"10px", color:"#555", marginTop:"1px" }}>{headDoctor.specialty}</div>
+                )}
+                <div style={{ fontSize:"10px", color:"#888", marginTop:"2px" }}>
+                  {headDoctor ? "Head of Clinic" : clinic?.name}
+                </div>
+              </div>
             </div>
           </div>
         </div>
