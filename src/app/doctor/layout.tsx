@@ -24,7 +24,8 @@ export default async function DoctorLayout({ children }: { children: React.React
   const [chatStaff, chatTasks] = await Promise.all([
     supabase.from("users").select("id, full_name, role")
       .eq("clinic_id", profile.clinic_id)
-      .in("role", ["secretary","admin"]).neq("id", profile.id).order("full_name")
+      .in("role", ["secretary","admin"]).neq("id", profile.id)
+      .eq("is_active", true).order("full_name")
       .then(r => r.data ?? []),
     supabase.from("chat_quick_tasks").select("id, label, category")
       .eq("clinic_id", profile.clinic_id).eq("is_active", true).order("sort_order")
@@ -97,7 +98,7 @@ export default async function DoctorLayout({ children }: { children: React.React
       />
       </aside>
       <main className="doctor-main flex-1 overflow-y-auto">{children}</main>
-      <FloatingChatButton userId={profile.id} clinicId={profile.clinic_id} staff={chatStaff as {id:string;full_name:string;role:string}[]} quickTasks={chatTasks as {id:string;label:string;category:string}[]} />
+      <FloatingChatButton userId={profile.id} clinicId={profile.clinic_id} staff={chatStaff as {id:string;full_name:string;role:string}[]} quickTasks={chatTasks as {id:string;label:string;category:string}[]} isDoctor={true} />
     </div>
   );
 }
