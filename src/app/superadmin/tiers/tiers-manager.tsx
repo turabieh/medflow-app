@@ -35,7 +35,7 @@ export function TiersManager({ tiers, tierCounts }: { tiers: Tier[]; tierCounts:
   const [msg, setMsg]         = useState("");
 
   function startEdit(tier: Tier) {
-    setEditing({ ...tier, features: [...(tier.features ?? [])] });
+    setEditing({ ...tier, features: [...(tier.features ?? [])], price_monthly: Number(tier.price_monthly) || 0 });
   }
 
   function toggleFeature(key: string) {
@@ -120,7 +120,7 @@ export function TiersManager({ tiers, tierCounts }: { tiers: Tier[]; tierCounts:
             </div>
             <div>
               <label style={{ display:"block", fontSize:"11px", color:"#525252", marginBottom:"5px" }}>Monthly Price ($)</label>
-              <input type="number" value={editing.price_monthly} onChange={e => setEditing({...editing, price_monthly:parseFloat(e.target.value)})} style={inp} />
+              <input type="number" value={editing.price_monthly ?? ""} onChange={e => setEditing({...editing, price_monthly: e.target.value === "" ? 0 : parseFloat(e.target.value)})} style={inp} />
             </div>
             <div>
               <label style={{ display:"block", fontSize:"11px", color:"#525252", marginBottom:"5px" }}>Status</label>
