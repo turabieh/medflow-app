@@ -308,13 +308,15 @@ function InsuranceProceduresSection({ visitId, appointmentId }: { visitId: strin
   const [adding, setAdding]       = useState(false);
 
   useEffect(() => {
-    if (!show || loaded) return;
+    if (!show) { setLoaded(false); return; }
+    if (loaded) return;
     import("@/lib/supabase/client").then(({ createClient }) => {
       const supabase = createClient();
       Promise.all([
         supabase.from("outpatient_procedure_claims")
           .select("id, procedure_name, price, auth_number, auth_date, auth_status")
-          .eq("visit_id", visitId),
+          .eq("visit_id", visitId)
+          .order("created_at"),
         supabase.from("procedures_catalog")
           .select("id, name, price")
           .eq("is_active", true)
