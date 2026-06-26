@@ -18,10 +18,7 @@ const BASE_NAV = [
 // Extra nav items unlocked by permissions — each maps to a real page that checks the permission
 const PERMISSION_NAV: { permission: string; href: string; label: string; icon: string; group?: string }[] = [
   // Finance
-  { permission:"finance.view",     href:"/admin/finance",              label:"Finance Dashboard",icon:"💰", group:"Finance"      },
-  { permission:"finance.expenses", href:"/admin/finance?tab=expenses", label:"Expenses",         icon:"💸", group:"Finance"      },
-  { permission:"finance.salaries", href:"/admin/finance?tab=salaries", label:"Staff Salaries",   icon:"👥", group:"Finance"      },
-  { permission:"finance.reports",  href:"/admin/finance?tab=reports",  label:"Finance Reports",  icon:"📊", group:"Finance"      },
+  { permission:"finance.access",   href:"/admin/finance",              label:"Finance & Reports",icon:"💰", group:"Extra Access"  },
   // Patients
   { permission:"patients.delete",  href:"/admin/patients",             label:"Delete Patients",  icon:"🗑", group:"Patients"     },
   // Data

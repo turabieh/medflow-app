@@ -20,14 +20,13 @@ export default async function AdminFinancePage({
   const { data: profile } = await supabase.from("users").select("clinic_id, role").eq("id", user.id).single();
   if (!profile) redirect("/login");
   if (profile.role !== "admin") {
-    // Allow if user has any finance permission
-    const { data: grants } = await supabase
-      .from("user_permissions")
-      .select("permission")
+    const { data: grant } = await supabase
+      .from("user_permissions").select("permission")
       .eq("clinic_id", profile.clinic_id)
       .eq("user_id", user.id)
-      .in("permission", ["finance.view","finance.expenses","finance.salaries","finance.reports"]);
-    if (!grants || grants.length === 0) redirect("/secretary/dashboard");
+      .eq("permission", "finance.access")
+      .single();
+    if (!grant) redirect("/secretary/dashboard");
   }
 
   const clinicId = profile.clinic_id ?? "";
@@ -156,10 +155,17 @@ export default async function AdminFinancePage({
 
   // Salary expenses for period (monthly salary × months in range)
   const { data: salaries } = await supabase
-    .from("staff_salaries")
+.from("staff_salaries")
     .select("monthly_salary, effective_from, users(full_name, role)")
     .eq("clinic_id", clinicId)
     .lte("effective_from", toDate)
+    .order("effective_from", { ascending: false });
+
+  // Full salary history (all time, for the history view)
+  const { data: salaryHistory } = await supabase
+    .from("staff_salaries")
+    .select("id, monthly_salary, effective_from, notes, users(id, full_name, role)")
+    .eq("clinic_id", clinicId)
     .order("effective_from", { ascending: false });
 
   // Latest salary per user
@@ -417,6 +423,7 @@ export default async function AdminFinancePage({
         monthlyTrend={monthlyTrend}
         staff={staff ?? []}
         latestSalaries={Array.from(latestSalaryMap.values())}
+        salaryHistory={(salaryHistory ?? []) as unknown as {id:string;monthly_salary:number;effective_from:string;notes:string|null;users:{id:string;full_name:string;role:string}|null}[]}
         clinicId={clinicId}
         unclaimedInsurance={unclaimedInsurance}
         unclaimedHospital={unclaimedHospital}

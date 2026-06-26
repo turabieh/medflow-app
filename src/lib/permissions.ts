@@ -10,11 +10,8 @@ export interface PermissionDef {
 }
 
 export const PERMISSIONS: PermissionDef[] = [
-  // Finance — secretary doesn't have these by default
-  { key:"finance.view",        label:"View Finance Dashboard",    description:"See revenue, expenses and financial overview",      group:"Finance",  defaultRoles:["admin","doctor"] },
-  { key:"finance.expenses",    label:"Manage Expenses",           description:"Add and edit clinic expense records",               group:"Finance",  defaultRoles:["admin"] },
-  { key:"finance.salaries",    label:"View Staff Salaries",       description:"See payroll and monthly salary records",            group:"Finance",  defaultRoles:["admin"] },
-  { key:"finance.reports",     label:"Print Financial Reports",   description:"Download and print P&L and financial summaries",    group:"Finance",  defaultRoles:["admin","doctor"] },
+  // Finance — full dashboard access (all tabs: overview, revenue, expenses, salaries, reports)
+  { key:"finance.access",      label:"Finance & Reports",         description:"Full access to finance dashboard, expenses, salaries and reports", group:"Finance",  defaultRoles:["admin","doctor"] },
 
   // Patients — delete is admin-only by default
   { key:"patients.delete",     label:"Delete Patient Records",    description:"Permanently remove patients and their data",        group:"Patients", defaultRoles:["admin"] },

@@ -16,6 +16,7 @@ const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct
 type Expense = { id: string; expense_date: string; category: string; description: string | null; amount: number; notes: string | null };
 type StaffMember = { id: string; full_name: string; role: string };
 type SalaryEntry = { name: string; role: string; salary: number };
+type SalaryRecord = { id: string; monthly_salary: number; effective_from: string; notes: string | null; users: { id: string; full_name: string; role: string } | null };
 type MonthlyPoint = { month: string; revenue: number; expenses: number; profit: number };
 type UnclaimedEntry = { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string };
 
@@ -93,7 +94,7 @@ export function FinanceDashboard({
   hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, methodBreakdown,
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
-  staff, latestSalaries, clinicId,
+  staff, latestSalaries, salaryHistory, clinicId,
   unclaimedInsurance, unclaimedHospital, totalUnclaimed,
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
@@ -102,7 +103,7 @@ export function FinanceDashboard({
   expenses: Expense[]; totalExpenses: number; expByCategory: Record<string, number>;
   totalSalaries: number; totalCosts: number; netProfit: number;
   monthlyTrend: MonthlyPoint[];
-  staff: StaffMember[]; latestSalaries: SalaryEntry[]; clinicId: string;
+  staff: StaffMember[]; latestSalaries: SalaryEntry[]; salaryHistory: SalaryRecord[]; clinicId: string;
   unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }) {
@@ -489,7 +490,8 @@ export function FinanceDashboard({
 
           {/* Assign / update salary */}
           <form onSubmit={handleSaveSalary} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
-            <p className="text-sm font-semibold text-neutral-900">Assign / Update Salary</p>
+            <p className="text-sm font-semibold text-neutral-900">Update Salary</p>
+            <p className="text-xs text-neutral-400">Adding a new salary creates a record. Old salaries are kept for history.</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Staff Member *</label>
@@ -499,8 +501,9 @@ export function FinanceDashboard({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-600">Monthly Salary ({currency}) *</label>
+                <label className="mb-1 block text-xs text-neutral-600">New Monthly Salary ({currency}) *</label>
                 <input type="number" min="0" step="0.01" value={salAmount} onChange={e => setSalAmount(e.target.value)} required
+                  placeholder={latestSalaries.find(s => staff.find(u => u.id === salUserId && u.full_name === s.name))?.salary?.toString() ?? ""}
                   className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
               </div>
               <div>
@@ -511,9 +514,63 @@ export function FinanceDashboard({
             </div>
             <button type="submit" disabled={savingSal}
               className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
-              {savingSal ? "Saving..." : "Save Salary"}
+              {savingSal ? "Saving..." : "Save New Salary"}
             </button>
           </form>
+
+          {/* Salary History */}
+          {salaryHistory.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                <p className="text-sm font-semibold text-neutral-900">Salary History</p>
+                <p className="text-xs text-neutral-400 mt-0.5">All salary changes — newest first</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-100">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-500 uppercase">Staff</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-500 uppercase">Role</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-neutral-500 uppercase">Salary / Month</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-500 uppercase">Effective From</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-neutral-500 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {(() => {
+                    // Find latest effective_from per user
+                    const latestDates = new Map<string, string>();
+                    for (const r of salaryHistory) {
+                      const uid = r.users?.id ?? "";
+                      if (!latestDates.has(uid) || r.effective_from > latestDates.get(uid)!) {
+                        latestDates.set(uid, r.effective_from);
+                      }
+                    }
+                    return salaryHistory.map(r => {
+                      const uid = r.users?.id ?? "";
+                      const isCurrent = latestDates.get(uid) === r.effective_from;
+                      return (
+                        <tr key={r.id} className={isCurrent ? "bg-emerald-50/40" : ""}>
+                          <td className="px-4 py-3 font-medium text-neutral-900">{r.users?.full_name ?? "—"}</td>
+                          <td className="px-4 py-3 text-neutral-500 capitalize">{r.users?.role}</td>
+                          <td className="px-4 py-3 text-right font-mono font-semibold text-neutral-800">
+                            {fmt(r.monthly_salary, currency)}
+                          </td>
+                          <td className="px-4 py-3 text-neutral-600 font-mono text-xs">{r.effective_from}</td>
+                          <td className="px-4 py-3">
+                            {isCurrent ? (
+                              <span className="rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-semibold">Current</span>
+                            ) : (
+                              <span className="rounded-full bg-neutral-100 text-neutral-500 px-2 py-0.5 text-[10px] font-semibold">Historical</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
