@@ -32,6 +32,17 @@ export default async function SecretaryLayout({
     ? profile.clinics[0]
     : profile.clinics;
 
+  // Chat
+  const [chatStaff, chatTasks] = await Promise.all([
+    supabase.from("users").select("id, full_name, role")
+      .eq("clinic_id", profile.clinic_id)
+      .in("role", ["doctor","admin"]).neq("id", profile.id).order("full_name")
+      .then(r => r.data ?? []),
+    supabase.from("chat_quick_tasks").select("id, label, category")
+      .eq("clinic_id", profile.clinic_id).eq("is_active", true).order("sort_order")
+      .then(r => r.data ?? []),
+  ]);
+
   return (
     <div className="flex min-h-screen bg-neutral-50">
       <SecretarySidebar
@@ -56,7 +67,7 @@ export default async function SecretaryLayout({
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
-        <FloatingChatButton userId={profile.id} chatHref="/secretary/chat" />
+        <FloatingChatButton userId={profile.id} clinicId={profile.clinic_id} staff={chatStaff as {id:string;full_name:string;role:string}[]} quickTasks={chatTasks as {id:string;label:string;category:string}[]} />
       </div>
     </div>
   );
