@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { PermissionDef } from "@/lib/permissions";
@@ -30,6 +30,11 @@ export function PermissionsManager({
   const [grants, setGrants]   = useState<Set<string>>(new Set(currentGrants));
   const [saving, setSaving]   = useState<string | null>(null);
   const [search, setSearch]   = useState("");
+
+  // Sync grants when switching users
+  useEffect(() => {
+    setGrants(new Set(currentGrants));
+  }, [selectedUserId, currentGrants]);
 
   const filteredStaff = staff.filter(s =>
     !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.role.includes(search)

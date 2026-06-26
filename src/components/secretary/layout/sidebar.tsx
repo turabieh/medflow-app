@@ -57,7 +57,7 @@ export function SecretarySidebar({
   // Group extra items
   const extraGroups = [...new Set(extraNav.map(n => n.group ?? "Extra Access"))];
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => { const base = href.split('?')[0]; return pathname === base || pathname.startsWith(base + '/'); };
 
   const navLink = (item: { href: string; label: string; icon: string }) => (
     <Link key={item.href} href={item.href}
