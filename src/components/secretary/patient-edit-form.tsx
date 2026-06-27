@@ -23,11 +23,13 @@ interface PatientEditFormProps {
     insurance_company_id: string | null;
     insurance_policy_number: string | null;
     insurance_expiry_date: string | null;
+    preferred_doctor_id: string | null;
   };
   insuranceCompanies: InsuranceCompany[];
+  doctors?: { id: string; full_name: string; specialty: string | null }[];
 }
 
-export function PatientEditForm({ patient, insuranceCompanies }: PatientEditFormProps) {
+export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: PatientEditFormProps) {
   const [fullName, setFullName] = useState(patient.full_name);
   const [fullNameAr, setFullNameAr] = useState(patient.full_name_ar ?? "");
   const [phone, setPhone] = useState(patient.phone);
@@ -40,6 +42,7 @@ export function PatientEditForm({ patient, insuranceCompanies }: PatientEditForm
   const [bloodType, setBloodType] = useState(patient.blood_type ?? "");
   const [allergies, setAllergies] = useState(patient.allergies ?? "");
   const [insuranceCompanyId, setInsuranceCompanyId] = useState(patient.insurance_company_id ?? "");
+  const [preferredDoctorId, setPreferredDoctorId] = useState(patient.preferred_doctor_id ?? "");
   const [policyNumber, setPolicyNumber] = useState(patient.insurance_policy_number ?? "");
   const [expiryDate, setExpiryDate] = useState(patient.insurance_expiry_date ?? "");
 

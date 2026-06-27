@@ -26,6 +26,11 @@ export default async function SecretaryPatientDetailPage({
     .order("appt_date", { ascending: false })
     .limit(20);
 
+  const { data: doctors } = await supabase
+    .from("users")
+    .select("id, full_name, specialty")
+    .eq("role", "doctor").eq("is_active", true).order("full_name");
+
   const { data: insuranceCompanies } = await supabase
     .from("insurance_companies")
     .select("id, name")

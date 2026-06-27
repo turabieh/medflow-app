@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from "@/lib/supabase/server";
+import { getClinicTier, hasFeature } from "@/lib/clinic-tier";
 
 const client = new Anthropic();
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if user's clinic has AI feature
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { data: profile } = await supabase
+      .from("users").select("clinic_id").eq("id", user.id).single();
+
+    if (profile?.clinic_id) {
+      const tier = await getClinicTier(profile.clinic_id);
+      if (!hasFeature(tier, "ai_diagnosis")) {
+        return NextResponse.json({
+          error: "AI features are not available on your current plan. Upgrade to AI Plus to access AI diagnosis and clinical notes."
+        }, { status: 403 });
+      }
+    }
+
     const { type, context, specialty } = await request.json();
 
     if (!context) {
