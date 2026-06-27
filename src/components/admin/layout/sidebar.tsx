@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href:"/admin/settings/insurance",       label:"Insurance & Procedures",icon:"🏥", feature:"insurance_claims" },
   { href:"/admin/hospitals",                label:"Hospitals",             icon:"🏨", feature:"inpatients" },
   { href:"/admin/nurse-procedures",         label:"Nurse Procedures",      icon:"🩺", feature:"inpatients" },
+  { href:"/admin/technician-procedures",    label:"Tech Procedures",       icon:"🔬", feature:null },
   { href:"/admin/chat-tasks",               label:"Quick Tasks",           icon:"⚡", feature:null },
   { href:"/admin/permissions",              label:"Permissions",           icon:"🔐", feature:"permissions" },
   { href:"/admin/backup",                   label:"Data Backup",           icon:"💾", feature:"data_backup" },

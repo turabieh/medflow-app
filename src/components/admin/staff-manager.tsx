@@ -9,7 +9,7 @@ export function StaffManager({ initialStaff }: { initialStaff: StaffMember[] }) 
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string|null>(null);
-  const [fullName,setFullName]=useState(""); const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [role,setRole]=useState<"doctor"|"secretary"|"nurse"|"admin">("secretary"); const [specialty,setSpecialty]=useState("");
+  const [fullName,setFullName]=useState(""); const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [role,setRole]=useState<"doctor"|"secretary"|"nurse"|"admin"|"technician">("secretary"); const [specialty,setSpecialty]=useState("");
   const [loading,setLoading]=useState(false); const [error,setError]=useState<string|null>(null);
 
   async function handleCreate(e: React.FormEvent) {
@@ -31,7 +31,8 @@ export function StaffManager({ initialStaff }: { initialStaff: StaffMember[] }) 
           {error&&<div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
           <div className="grid grid-cols-2 gap-2">
             <div><label className="mb-1 block text-xs text-neutral-600">Full name</label><input required value={fullName} onChange={e=>setFullName(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
-            <div><label className="mb-1 block text-xs text-neutral-600">Role</label><select value={role} onChange={e=>setRole(e.target.value as typeof role)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"><option value="secretary">Secretary</option><option value="doctor">Doctor</option><option value="nurse">Nurse</option><option value="admin">Admin</option></select></div>
+            <div><label className="mb-1 block text-xs text-neutral-600">Role</label><select value={role} onChange={e=>setRole(e.target.value as typeof role)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"><option value="secretary">Secretary</option>
+              <option value="technician">Technician</option><option value="doctor">Doctor</option><option value="nurse">Nurse</option><option value="admin">Admin</option></select></div>
           </div>
           {role==="doctor"&&<div><label className="mb-1 block text-xs text-neutral-600">Specialty</label><input value={specialty} onChange={e=>setSpecialty(e.target.value)} placeholder="e.g. Neurology" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>}
           <div className="grid grid-cols-2 gap-2">
@@ -72,7 +73,8 @@ function StaffRow({member,editing,onEdit,onSave,onToggle,onToggleHead}:{member:S
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
-            <select value={role} onChange={e=>setRole(e.target.value)} className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"><option value="secretary">Secretary</option><option value="doctor">Doctor</option><option value="nurse">Nurse</option><option value="admin">Admin</option></select>
+            <select value={role} onChange={e=>setRole(e.target.value)} className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"><option value="secretary">Secretary</option>
+              <option value="technician">Technician</option><option value="doctor">Doctor</option><option value="nurse">Nurse</option><option value="admin">Admin</option></select>
           </div>
           {role==="doctor"&&<input value={spec} onChange={e=>setSpec(e.target.value)} placeholder="Specialty" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>}
           <div className="flex gap-2">

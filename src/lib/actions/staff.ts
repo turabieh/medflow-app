@@ -28,7 +28,7 @@ export interface CreateStaffInput {
   fullName: string;
   email: string;
   password: string;
-  role: "doctor" | "secretary" | "nurse" | "admin";
+  role: "doctor" | "secretary" | "nurse" | "admin" | "technician";
   specialty?: string;
 }
 
