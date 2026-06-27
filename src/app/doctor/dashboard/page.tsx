@@ -1,3 +1,4 @@
+import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -22,7 +23,7 @@ export default async function DoctorDashboardPage({
 
   const doctorId  = profile?.id ?? "";
   const clinicId  = profile?.clinic_id ?? "";
-  const todayStr  = new Date().toISOString().split("T")[0];
+  const todayStr  = todayClinic();
   const now       = new Date();
 
   // Date range based on period
@@ -153,7 +154,7 @@ export default async function DoctorDashboardPage({
           <h1 className="text-lg font-medium text-neutral-900">
             {new Date().toLocaleDateString("en", { weekday: "long", day: "numeric", month: "long" })}
           </h1>
-          <p className="text-sm text-neutral-500"> {profile?.full_name}</p>
+          <p className="text-sm text-neutral-500">Dr. {profile?.full_name}</p>
         </div>
         {/* Period selector */}
         <div className="flex gap-1.5">

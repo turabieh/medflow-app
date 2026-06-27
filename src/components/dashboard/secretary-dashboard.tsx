@@ -2,6 +2,7 @@ import { PendingList } from "@/components/secretary/pending-list";
 import { ConfirmationCallForm } from "@/components/secretary/confirmation-call-form";
 import { TodayQueue } from "@/components/secretary/today-queue";
 import { computeConfirmationCallDate, type ExistingAppointmentForSlots } from "@/lib/scheduling/slots";
+import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 
 export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
@@ -88,7 +89,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
     .eq("status", "booked")
     .order("appt_date", { ascending: true });
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayClinic();
 
   const doctorWorkingDaysMap = new Map<string, number[]>();
   for (const wh of workingHoursData ?? []) {

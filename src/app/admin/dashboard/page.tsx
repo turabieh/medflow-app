@@ -1,3 +1,4 @@
+import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
@@ -17,7 +18,7 @@ export default async function AdminDashboardPage() {
   ] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
     supabase.from("appointments").select("id", { count: "exact", head: true }).eq("status", "pending").eq("is_archived", false),
-    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("appt_date", new Date().toISOString().split("T")[0]).neq("status", "pending"),
+    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("appt_date", todayClinic()).neq("status", "pending"),
     supabase.from("users").select("id, full_name, role, is_active").eq("clinic_id", clinicId).order("role"),
   ]);
 

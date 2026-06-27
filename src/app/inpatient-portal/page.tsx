@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { todayClinic } from "@/lib/clinic-timezone";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PortalNav } from "./portal-nav";
@@ -15,7 +16,7 @@ export default async function PortalDashboard() {
     .eq("id", user.id).single();
   if (!profile || !["doctor","admin"].includes(profile.role ?? "")) redirect("/inpatient-portal/login");
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayClinic();
 
   // Active inpatients for this doctor
   const { data: inpatients } = await supabase

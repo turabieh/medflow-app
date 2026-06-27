@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { todayClinic } from "@/lib/clinic-timezone";
 import { DoctorSidebarNav } from "@/components/doctor/layout/sidebar";
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
@@ -18,7 +19,7 @@ export default async function DoctorLayout({ children }: { children: React.React
 
   const clinic = Array.isArray(profile.clinics) ? profile.clinics[0] : profile.clinics;
   const cl = clinic as { name?: string; logo_url?: string | null } | null;
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayClinic();
 
   // Chat: staff list and quick tasks for floating widget
   const [chatStaff, chatTasks] = await Promise.all([
