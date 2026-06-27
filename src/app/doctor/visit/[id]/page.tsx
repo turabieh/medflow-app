@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { VisitTabs } from "@/components/doctor/visit/visit-tabs";
+import { getClinicTier, hasFeature } from "@/lib/clinic-tier";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,8 @@ export default async function VisitPage({
   // Clinic's full symptoms catalog, grouped by category
   const { data: profile } = await supabase
     .from("users").select("clinic_id").eq("id", user.id).single();
+  const clinicTier = await getClinicTier(profile?.clinic_id ?? "");
+  const hasAI = hasFeature(clinicTier, "ai_diagnosis");
 
   const { data: symptomsCatalog } = await supabase
     .from("symptoms_catalog")
@@ -224,6 +227,7 @@ export default async function VisitPage({
           diagnoses={diagnoses ?? []}
           visitStatus={visit.status}
           visitContext={visit.visit_context}
+          hasAI={hasAI}
           voiceNotes={visit.voice_notes ?? null}
           keyPoints={visit.key_clinical_points ?? null}
           clinicalNote={visit.clinical_note ?? null}

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { MobileVisitTabs } from "./visit-tabs";
+import { getClinicTier, hasFeature } from "@/lib/clinic-tier";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
     return <meta httpEquiv="refresh" content="0;url=/inpatient-portal/login" />;
 
   const clinicId = profile.clinic_id;
+  const clinicTier = await getClinicTier(clinicId);
+  const hasAI = hasFeature(clinicTier, "ai_diagnosis");
 
   const { data: visit, error: ve } = await supabase
     .from("visits")
@@ -120,6 +123,7 @@ export default async function MobileVisitPage({ params }: { params: Promise<{ id
         prevVisits={(prevVisits ?? []) as Record<string,unknown>[]}
         clinicId={clinicId}
         doctorId={profile.id}
+        hasAI={hasAI}
         patientId={visit.patient_id}
       />
     </div>

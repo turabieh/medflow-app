@@ -39,11 +39,11 @@ function SaveBtn({ onClick, saving, saved, label }: { onClick:()=>void; saving:b
   );
 }
 
-export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCatalog, checkedSymptomIds: initSymptomIds, labs: initLabs, prescriptions: initRx, medsCatalog, diagnoses: initDx, prevVisits, clinicId, doctorId, patientId }: {
+export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCatalog, checkedSymptomIds: initSymptomIds, labs: initLabs, prescriptions: initRx, medsCatalog, diagnoses: initDx, prevVisits, clinicId, doctorId, patientId, hasAI = false }: {
   visitId: string; visit: R; patient: R|null; inpatient: R|null;
   symptomsCatalog: R[]; checkedSymptomIds: string[];
   labs: R[]; prescriptions: R[]; medsCatalog: R[]; diagnoses: R[];
-  prevVisits: R[]; clinicId: string; doctorId: string; patientId: string;
+  prevVisits: R[]; clinicId: string; doctorId: string; patientId: string; hasAI?: boolean;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("notes");
@@ -498,6 +498,13 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
             {/* AI suggestion */}
             <div style={s.card}>
               <label style={s.label}>🤖 AI Diagnosis Suggestion</label>
+              {!hasAI ? (
+                <div style={{ background:"#f8fafc", border:"1.5px dashed #cbd5e1", borderRadius:"10px", padding:"16px", textAlign:"center" }}>
+                  <div style={{ fontSize:"24px", marginBottom:"6px" }}>🔒</div>
+                  <div style={{ fontSize:"13px", fontWeight:"600", color:"#475569" }}>AI Plus Plan Required</div>
+                  <div style={{ fontSize:"11px", color:"#94a3b8", marginTop:"4px" }}>Upgrade to access AI diagnosis suggestions</div>
+                </div>
+              ) : (<>
               <div style={{ fontSize:"12px", color:"#64748b", marginBottom:"10px" }}>Based on symptoms & notes entered</div>
               <button onClick={getAiDiagnosis} disabled={aiLoading}
                 style={{ width:"100%", background: aiLoading ? "#334155" : "#7c3aed", color:"#fff", border:"none", borderRadius:"10px", padding:"12px", fontSize:"14px", fontWeight:"700", cursor:"pointer", fontFamily:"inherit", marginBottom: aiResult ? "10px" : 0 }}>
@@ -512,6 +519,7 @@ export function MobileVisitTabs({ visitId, visit, patient, inpatient, symptomsCa
                   </button>
                 </div>
               )}
+              </>)}
             </div>
 
             {/* Add diagnosis */}

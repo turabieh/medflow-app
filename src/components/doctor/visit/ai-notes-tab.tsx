@@ -21,10 +21,12 @@ export function AINotesTab({
   labs,
   voiceNotes,
   keyPoints,
+  hasAI = false,
 }: {
   visitId: string;
   existingNote: string | null;
   existingAbstract: string | null;
+  hasAI?: boolean;
   patient: {
     full_name: string;
     dob: string | null;

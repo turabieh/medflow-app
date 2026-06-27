@@ -50,6 +50,7 @@ interface VisitTabsProps {
   diagnoses: Diagnosis[];
   visitStatus: string;
   visitContext?: string | null;
+  hasAI?: boolean;
   voiceNotes: string | null;
   keyPoints: string | null;
   clinicalNote: string | null;
@@ -171,6 +172,7 @@ export function VisitTabs(props: VisitTabsProps) {
         )}
         {activeTab === "ai" && (
           <AINotesTab
+            hasAI={props.hasAI ?? false}
             visitId={props.visitId}
             existingNote={props.clinicalNote}
             existingAbstract={props.patientSummary}
