@@ -57,7 +57,7 @@ export default async function VisitPage({
 
   // Clinic's full symptoms catalog, grouped by category
   const { data: profile } = await supabase
-    .from("users").select("clinic_id").eq("id", user.id).single();
+    .from("users").select("id, clinic_id").eq("id", user.id).single();
   const clinicTier = await getClinicTier(profile?.clinic_id ?? "");
   const hasAI = hasFeature(clinicTier, "ai_diagnosis");
 
@@ -196,6 +196,7 @@ export default async function VisitPage({
           visitId={visit.id}
           appointmentId={visit.appointment_id}
           clinicId={profile?.clinic_id ?? ""}
+          doctorId={profile?.id ?? ""}
           patient={{
             id: patient?.id ?? "",
             full_name: patient?.full_name ?? "",

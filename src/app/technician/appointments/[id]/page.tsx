@@ -8,18 +8,21 @@ export default async function TechAppointmentPage({ params }: { params: Promise<
   const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/technician/login");
+  if (!user) redirect("/login");
 
   const { data: profile } = await supabase
     .from("users").select("id, clinic_id, full_name, role").eq("id", user.id).single();
-  if (!profile || profile.role !== "technician") redirect("/login");
+
+  // Allow technician, secretary, admin, doctor to view reports
+  const allowed = ["technician","secretary","admin","doctor"];
+  if (!profile || !allowed.includes(profile.role)) redirect("/login");
 
   const { data: appt } = await supabase
     .from("technician_appointments")
     .select("*, patients(id, full_name, full_name_ar, dob, phone, gender, blood_type), technician_procedures(id, name, name_ar, variables, price, duration_min, category)")
-    .eq("id", id).single();
+    .eq("id", id).eq("clinic_id", profile.clinic_id).single();
 
-  if (!appt) redirect("/technician");
+  if (!appt) redirect(profile.role === "technician" ? "/technician" : "/secretary/dashboard");
 
   const { data: report } = await supabase
     .from("technician_reports")
@@ -27,13 +30,19 @@ export default async function TechAppointmentPage({ params }: { params: Promise<
     .eq("appointment_id", id)
     .single();
 
-  const proc = Array.isArray(appt.technician_procedures)
+  const proc = (Array.isArray(appt.technician_procedures)
     ? appt.technician_procedures[0]
-    : appt.technician_procedures as {id:string;name:string;name_ar:string|null;variables:Variable[];price:number|null;duration_min:number;category:string}|null;
+    : appt.technician_procedures) as {id:string;name:string;name_ar:string|null;variables:Variable[];price:number|null;duration_min:number;category:string}|null;
 
-  const patient = Array.isArray(appt.patients)
+  const patient = (Array.isArray(appt.patients)
     ? appt.patients[0]
-    : appt.patients as {id:string;full_name:string;full_name_ar:string|null;dob:string|null;phone:string;gender:string|null;blood_type:string|null}|null;
+    : appt.patients) as {id:string;full_name:string;full_name_ar:string|null;dob:string|null;phone:string;gender:string|null;blood_type:string|null}|null;
+
+  const backUrl = profile.role === "technician"
+    ? "/technician"
+    : profile.role === "doctor"
+    ? `/doctor/visit/${appt.visit_id ?? ""}`
+    : "/secretary/technician-schedule";
 
   return (
     <TechReportForm
@@ -44,6 +53,8 @@ export default async function TechAppointmentPage({ params }: { params: Promise<
       technicianId={profile.id}
       clinicId={profile.clinic_id}
       technicianName={profile.full_name}
+      viewerRole={profile.role}
+      backUrl={backUrl}
     />
   );
 }

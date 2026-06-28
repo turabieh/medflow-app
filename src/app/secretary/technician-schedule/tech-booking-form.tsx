@@ -20,6 +20,7 @@ export function TechBookingForm({ date, clinicId, technicians, procedures, patie
 }) {
   const router = useRouter();
 
+  const [bookDate,  setBookDate]  = useState(date);
   const [patSearch, setPatSearch] = useState("");
   const [selPat,    setSelPat]    = useState<Pat | null>(null);
   const [techId,    setTechId]    = useState(technicians[0]?.id ?? "");
@@ -80,7 +81,7 @@ export function TechBookingForm({ date, clinicId, technicians, procedures, patie
       patientId:         selPat.id,
       technicianId:      techId,
       procedureId:       procId,
-      apptDate:          date,
+      apptDate:          bookDate,
       startTime:         selTime,
       endTime,
       notes:             notes || undefined,
@@ -104,9 +105,13 @@ export function TechBookingForm({ date, clinicId, technicians, procedures, patie
   return (
     <form onSubmit={book} className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
       <h2 className="text-sm font-semibold text-neutral-900">+ Book Appointment</h2>
-      <p className="text-xs text-neutral-400 -mt-2">{date}</p>
-
       {error && <p className="rounded bg-red-50 px-2 py-1.5 text-xs text-red-700">{error}</p>}
+
+      {/* Date */}
+      <div>
+        <label className={lbl}>Date *</label>
+        <input type="date" value={bookDate} onChange={e => setBookDate(e.target.value)} required className={inp} />
+      </div>
 
       {/* Patient */}
       <div>

@@ -12,7 +12,7 @@ interface Variable {
 
 type R = Record<string, unknown>;
 
-export function TechReportForm({ appointment, procedure, patient, existingReport, technicianId, clinicId, technicianName }: {
+export function TechReportForm({ appointment, procedure, patient, existingReport, technicianId, clinicId, technicianName, viewerRole = "technician", backUrl = "/technician" }: {
   appointment: R;
   procedure: { id:string; name:string; name_ar:string|null; variables:Variable[]; price:number|null; category:string } | null;
   patient: { id:string; full_name:string; full_name_ar:string|null; dob:string|null; phone:string; gender:string|null; blood_type:string|null } | null;
@@ -20,9 +20,12 @@ export function TechReportForm({ appointment, procedure, patient, existingReport
   technicianId: string;
   clinicId: string;
   technicianName: string;
+  viewerRole?: string;
+  backUrl?: string;
 }) {
   const router = useRouter();
-  const isFinalized = existingReport?.status === "finalized";
+  // Report is always editable (technician can correct mistakes)
+  const isFinalized = false;
 
   // Initialize values from existing report or empty
   const initValues: Record<string,string> = {};
@@ -128,7 +131,7 @@ export function TechReportForm({ appointment, procedure, patient, existingReport
     <div style={{ fontFamily:"system-ui,-apple-system,sans-serif" }}>
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", gap:"12px", marginBottom:"20px" }}>
-        <Link href="/technician" style={{ color:"#94a3b8", textDecoration:"none", fontSize:"20px" }}>←</Link>
+        <Link href={backUrl} style={{ color:"#94a3b8", textDecoration:"none", fontSize:"20px" }}>←</Link>
         <div>
           <div style={{ fontSize:"18px", fontWeight:"700", color:"#0f172a" }}>{procedure?.name ?? "Procedure"}</div>
           <div style={{ fontSize:"12px", color:"#64748b" }}>
@@ -233,7 +236,7 @@ export function TechReportForm({ appointment, procedure, patient, existingReport
           )}
           {isFinalized && (
             <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:"8px", padding:"12px 16px", fontSize:"13px", color:"#166534", fontWeight:"600" }}>
-              ✓ Report finalized — {existingReport?.finalized_at ? new Date(existingReport.finalized_at as string).toLocaleString("en-GB", {timeZone:"Asia/Amman"}) : ""}
+              ✓ Previously finalized — {existingReport?.finalized_at ? new Date(existingReport.finalized_at as string).toLocaleString("en-GB", {timeZone:"Asia/Amman"}) : ""}. You can still edit and re-finalize.
             </div>
           )}
         </div>

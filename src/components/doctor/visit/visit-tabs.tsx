@@ -18,6 +18,7 @@ interface VisitTabsProps {
   visitId: string;
   appointmentId: string;
   clinicId: string;
+  doctorId?: string;
   patient: {
     id: string;
     full_name: string;
@@ -189,7 +190,7 @@ export function VisitTabs(props: VisitTabsProps) {
           />
         )}
         {activeTab === "procedures" && (
-          <ProcedureReportsTab patientId={props.patient.id} clinicId={props.clinicId} />
+          <ProcedureReportsTab patientId={props.patient.id} clinicId={props.clinicId} visitId={props.visitId} doctorId={props.doctorId ?? ""} />
         )}
         {activeTab === "history" && (
           <HistoryTab
@@ -203,75 +204,207 @@ export function VisitTabs(props: VisitTabsProps) {
 }
 
 // ── Procedure Reports Tab ─────────────────────────────────────────────────
-function ProcedureReportsTab({ patientId, clinicId }: { patientId: string; clinicId: string }) {
-  const [reports, setReports] = React.useState<Record<string,unknown>[]>([]);
-  const [loaded, setLoaded]   = React.useState(false);
+function ProcedureReportsTab({ patientId, clinicId, visitId, doctorId }: {
+  patientId: string; clinicId: string; visitId: string; doctorId: string;
+}) {
+  const [reports,    setReports]    = React.useState<Record<string,any>[]>([]);
+  const [procedures, setProcedures] = React.useState<Record<string,any>[]>([]);
+  const [loaded,     setLoaded]     = React.useState(false);
+  const [ordering,   setOrdering]   = React.useState(false);
+  const [selProcId,  setSelProcId]  = React.useState("");
+  const [editPrice,  setEditPrice]  = React.useState("");
+  const [orderNote,  setOrderNote]  = React.useState("");
+  const [saving,     setSaving]     = React.useState(false);
+  const [msg,        setMsg]        = React.useState("");
 
   React.useEffect(() => {
     import("@/lib/supabase/client").then(({ createClient }) => {
       const sb = createClient();
-      sb.from("technician_reports")
-        .select("id, created_at, status, notes, values, finalized_at, technician_procedures(name, variables), users!technician_reports_technician_id_fkey(full_name)")
-        .eq("patient_id", patientId)
-        .eq("clinic_id", clinicId)
-        .order("created_at", { ascending: false })
-        .limit(20)
-        .then(({ data }) => { setReports(data ?? []); setLoaded(true); });
+      Promise.all([
+        sb.from("technician_reports")
+          .select("id, created_at, status, notes, values, finalized_at, appointment_id, technician_procedures(name, price, variables), users!technician_reports_technician_id_fkey(full_name)")
+          .eq("patient_id", patientId).eq("clinic_id", clinicId)
+          .order("created_at", { ascending: false }).limit(20),
+        sb.from("technician_procedures")
+          .select("id, name, name_ar, category, price, duration_min, variables")
+          .eq("clinic_id", clinicId).eq("is_active", true).order("category").order("name"),
+      ]).then(([rRes, pRes]) => {
+        setReports(rRes.data ?? []);
+        setProcedures(pRes.data ?? []);
+        if (pRes.data?.[0]) setSelProcId(pRes.data[0].id);
+        setLoaded(true);
+      });
     });
   }, [patientId, clinicId]);
 
+  // Set default price when procedure changes
+  React.useEffect(() => {
+    const proc = procedures.find(p => p.id === selProcId);
+    setEditPrice(proc?.price != null ? String(proc.price) : "");
+  }, [selProcId, procedures]);
+
+  async function orderProcedure() {
+    if (!selProcId) return;
+    setSaving(true); setMsg("");
+    const { createClient } = await import("@/lib/supabase/client");
+    const sb = createClient();
+    const proc = procedures.find(p => p.id === selProcId);
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
+    const now   = new Date().toLocaleTimeString("en-GB", { timeZone: "Asia/Amman", hour:"2-digit", minute:"2-digit" });
+
+    // Create a technician appointment ordered by this doctor
+    const { data: appt, error } = await sb.from("technician_appointments").insert({
+      clinic_id:    clinicId,
+      patient_id:   patientId,
+      procedure_id: selProcId,
+      appt_date:    today,
+      start_time:   now,
+      status:       "scheduled",
+      doctor_id:    doctorId,
+      notes:        orderNote || null,
+      amount_due:   editPrice ? parseFloat(editPrice) : (proc?.price ?? null),
+    }).select("id").single();
+
+    if (error || !appt) { setMsg("✗ Failed: " + (error?.message ?? "")); setSaving(false); return; }
+
+    // Auto-create an empty report
+    await sb.from("technician_reports").insert({
+      clinic_id:     clinicId,
+      appointment_id: appt.id,
+      technician_id: doctorId, // doctor is acting as technician for self-performed
+      patient_id:    patientId,
+      procedure_id:  selProcId,
+      values:        {},
+      status:        "draft",
+    });
+
+    setMsg("✓ Procedure ordered");
+    setOrdering(false);
+    setOrderNote("");
+    // Reload reports
+    const { data: newReports } = await sb.from("technician_reports")
+      .select("id, created_at, status, notes, values, finalized_at, appointment_id, technician_procedures(name, price, variables), users!technician_reports_technician_id_fkey(full_name)")
+      .eq("patient_id", patientId).eq("clinic_id", clinicId)
+      .order("created_at", { ascending: false }).limit(20);
+    setReports(newReports ?? []);
+    setSaving(false);
+  }
+
   if (!loaded) return <div className="p-6 text-sm text-neutral-400">Loading...</div>;
 
-  if (reports.length === 0) return (
-    <div className="p-8 text-center">
-      <div className="text-3xl mb-2">🔬</div>
-      <p className="text-sm text-neutral-500">No procedure reports for this patient yet.</p>
-    </div>
-  );
+  const selectedProc = procedures.find(p => p.id === selProcId);
 
   return (
     <div className="space-y-4 p-4">
-      {reports.map(r => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const proc = (Array.isArray(r.technician_procedures) ? r.technician_procedures[0] : r.technician_procedures) as any;
-        const tech = (Array.isArray(r.users) ? r.users[0] : r.users) as {full_name:string}|null;
-        const vals = r.values as Record<string,string> ?? {};
-        return (
-          <div key={r.id as string} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <div className="flex items-start justify-between mb-3">
+      {/* Order new procedure */}
+      <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-neutral-800">Order Procedure</h3>
+          <button onClick={() => setOrdering(!ordering)}
+            className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-neutral-700">
+            {ordering ? "Cancel" : "+ Order"}
+          </button>
+        </div>
+
+        {ordering && (
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">Procedure</label>
+              <select value={selProcId} onChange={e => setSelProcId(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500">
+                {procedures.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} — {p.category}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-sm font-semibold text-neutral-900">{proc?.name}</p>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  {new Date(r.created_at as string).toLocaleDateString("en-GB", { timeZone:"Asia/Amman" })} · {tech?.full_name}
+                <label className="mb-1 block text-xs font-medium text-neutral-600">
+                  Fee (JOD)
+                  {selectedProc?.price != null && (
+                    <span className="ml-1 text-neutral-400">default: {selectedProc.price}</span>
+                  )}
+                </label>
+                <input type="number" min="0" step="0.01" value={editPrice}
+                  onChange={e => setEditPrice(e.target.value)}
+                  placeholder="Override price..."
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-neutral-600">Duration</label>
+                <p className="rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-500">
+                  {selectedProc?.duration_min ?? "—"} min
                 </p>
               </div>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.status === "finalized" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                {r.status === "finalized" ? "Finalized" : "Draft"}
-              </span>
             </div>
-
-            {/* Variable values */}
-            {proc?.variables && proc.variables.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                {proc.variables.map((v: {key:string;label:string;unit?:string}) => (
-                  <div key={v.key} className="rounded-lg bg-neutral-50 px-3 py-2">
-                    <p className="text-[10px] text-neutral-500 uppercase tracking-wide">{v.label}{v.unit ? String(` (${v.unit})`) : ""}</p>
-                    <p className="text-sm font-bold text-neutral-900 mt-0.5">{String(vals[v.key] || "—")}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Notes */}
-            {r.notes && (
-              <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
-                <p className="text-[10px] text-blue-500 uppercase font-semibold mb-0.5">Notes</p>
-                <p className="text-xs text-neutral-700 whitespace-pre-wrap">{r.notes as string}</p>
-              </div>
-            )}
+            <div>
+              <label className="mb-1 block text-xs font-medium text-neutral-600">Note / Instructions</label>
+              <input value={orderNote} onChange={e => setOrderNote(e.target.value)}
+                placeholder="Any instructions for the technician..."
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500" />
+            </div>
+            {msg && <p className={`text-xs ${msg.startsWith("✓")?"text-green-600":"text-red-500"}`}>{msg}</p>}
+            <button onClick={orderProcedure} disabled={saving || !selProcId}
+              className="w-full rounded-md bg-neutral-900 py-2 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-60">
+              {saving ? "Ordering..." : "✓ Confirm Order"}
+            </button>
           </div>
-        );
-      })}
+        )}
+        {!ordering && msg && <p className={`text-xs mt-1 ${msg.startsWith("✓")?"text-green-600":"text-red-500"}`}>{msg}</p>}
+      </div>
+
+      {/* Existing reports */}
+      {reports.length === 0 ? (
+        <div className="p-6 text-center">
+          <div className="text-3xl mb-2">🔬</div>
+          <p className="text-sm text-neutral-500">No procedure reports for this patient yet.</p>
+        </div>
+      ) : (
+        reports.map(r => {
+          const proc = r.technician_procedures as {name:string;price:number|null;variables:{key:string;label:string;unit?:string}[]}|null;
+          const tech = r.users as {full_name:string}|null;
+          const vals = (r.values ?? {}) as Record<string,string>;
+          return (
+            <div key={r.id} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">{proc?.name}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {new Date(r.created_at).toLocaleDateString("en-GB", { timeZone:"Asia/Amman" })}
+                    {tech?.full_name ? ` · ${tech.full_name}` : ""}
+                    {proc?.price != null ? ` · ${proc.price} JOD` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.status==="finalized"?"bg-green-100 text-green-700":"bg-amber-100 text-amber-700"}`}>
+                    {r.status==="finalized"?"Finalized":"Draft"}
+                  </span>
+                  <a href={`/technician/appointments/${r.appointment_id}`}
+                    className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
+                    Open →
+                  </a>
+                </div>
+              </div>
+              {proc?.variables && proc.variables.length > 0 && Object.keys(vals).length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {proc.variables.map((v: {key:string;label:string;unit?:string}) => (
+                    <div key={v.key} className="rounded-lg bg-neutral-50 px-3 py-2">
+                      <p className="text-[10px] text-neutral-500 uppercase tracking-wide">{v.label}{v.unit?` (${v.unit})`:""}</p>
+                      <p className="text-sm font-bold text-neutral-900 mt-0.5">{vals[v.key] || "—"}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {r.notes && (
+                <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+                  <p className="text-[10px] text-blue-500 uppercase font-semibold mb-0.5">Notes</p>
+                  <p className="text-xs text-neutral-700 whitespace-pre-wrap">{r.notes}</p>
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }
