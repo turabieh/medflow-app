@@ -58,22 +58,32 @@ export async function bookTechAppointment(input: {
   startTime: string;
   endTime?: string;
   notes?: string;
+  paymentMethod?: string;
+  insuranceCompanyId?: string;
+  insuranceAuthStatus?: string;
+  insuranceAuthNumber?: string;
+  amountDue?: number;
 }) {
   const auth = await getAuth();
   if (!auth.ok) return { success: false, error: auth.error };
   const { data, error } = await auth.supabase.from("technician_appointments").insert({
-    clinic_id:     auth.clinicId,
-    technician_id: input.technicianId,
-    patient_id:    input.patientId,
-    procedure_id:  input.procedureId,
-    appt_date:     input.apptDate,
-    start_time:    input.startTime,
-    end_time:      input.endTime ?? null,
-    status:        "scheduled",
-    notes:         input.notes ?? null,
+    clinic_id:             auth.clinicId,
+    technician_id:         input.technicianId,
+    patient_id:            input.patientId,
+    procedure_id:          input.procedureId,
+    appt_date:             input.apptDate,
+    start_time:            input.startTime,
+    end_time:              input.endTime ?? null,
+    status:                "scheduled",
+    notes:                 input.notes ?? null,
+    payment_method:        input.paymentMethod ?? null,
+    insurance_company_id:  input.insuranceCompanyId ?? null,
+    insurance_auth_status: input.insuranceAuthStatus ?? null,
+    insurance_auth_number: input.insuranceAuthNumber ?? null,
+    amount_due:            input.amountDue ?? null,
   }).select("id").single();
   if (error) return { success: false, error: error.message };
-  revalidatePath("/secretary/dashboard");
+  revalidatePath("/secretary/technician-schedule");
   revalidatePath("/technician");
   return { success: true, id: data.id };
 }

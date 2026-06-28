@@ -27,6 +27,16 @@ export default async function SecretaryDashboardPage() {
   return (
     <div>
       <SecretaryDashboard clinicId={profile.clinic_id} />
+      <div className="mt-4 mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-neutral-700">🔬 Technician Schedule — Today</h2>
+        <a href="/secretary/technician-schedule" className="text-xs text-blue-600 hover:underline">Full schedule →</a>
+      </div>
+      {(techAppts ?? []).length === 0 && (
+        <div className="rounded-xl border border-dashed border-neutral-300 bg-white p-5 text-center text-sm text-neutral-400">
+          No technician appointments today.{" "}
+          <a href="/secretary/technician-schedule" className="text-blue-600 hover:underline">Book one →</a>
+        </div>
+      )}
       {(techAppts ?? []).length > 0 && (
         <div className="mt-6">
           <TechQueue appointments={techAppts ?? []} clinicId={profile.clinic_id} />
