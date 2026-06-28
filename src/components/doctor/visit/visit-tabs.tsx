@@ -1,6 +1,5 @@
 "use client";
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PatientTab } from "./patient-tab";
 import { ClinicalTab } from "./clinical-tab";
@@ -74,6 +73,7 @@ const TABS = [
   { id: "notes",     label: "Notes" },
   { id: "ai",        label: "AI Notes" },
   { id: "history",   label: "History" },
+  { id: "procedures", label: "🔬 Procedures" },
 ];
 
 export function VisitTabs(props: VisitTabsProps) {
@@ -188,6 +188,9 @@ export function VisitTabs(props: VisitTabsProps) {
             keyPoints={props.keyPoints}
           />
         )}
+        {activeTab === "procedures" && (
+          <ProcedureReportsTab patientId={props.patient.id} clinicId={props.clinicId} />
+        )}
         {activeTab === "history" && (
           <HistoryTab
             pastVisits={props.pastVisits}
@@ -195,6 +198,80 @@ export function VisitTabs(props: VisitTabsProps) {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Procedure Reports Tab ─────────────────────────────────────────────────
+function ProcedureReportsTab({ patientId, clinicId }: { patientId: string; clinicId: string }) {
+  const [reports, setReports] = React.useState<Record<string,unknown>[]>([]);
+  const [loaded, setLoaded]   = React.useState(false);
+
+  React.useEffect(() => {
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const sb = createClient();
+      sb.from("technician_reports")
+        .select("id, created_at, status, notes, values, finalized_at, technician_procedures(name, variables), users!technician_reports_technician_id_fkey(full_name)")
+        .eq("patient_id", patientId)
+        .eq("clinic_id", clinicId)
+        .order("created_at", { ascending: false })
+        .limit(20)
+        .then(({ data }) => { setReports(data ?? []); setLoaded(true); });
+    });
+  }, [patientId, clinicId]);
+
+  if (!loaded) return <div className="p-6 text-sm text-neutral-400">Loading...</div>;
+
+  if (reports.length === 0) return (
+    <div className="p-8 text-center">
+      <div className="text-3xl mb-2">🔬</div>
+      <p className="text-sm text-neutral-500">No procedure reports for this patient yet.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 p-4">
+      {reports.map(r => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const proc = (Array.isArray(r.technician_procedures) ? r.technician_procedures[0] : r.technician_procedures) as any;
+        const tech = (Array.isArray(r.users) ? r.users[0] : r.users) as {full_name:string}|null;
+        const vals = r.values as Record<string,string> ?? {};
+        return (
+          <div key={r.id as string} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">{proc?.name}</p>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  {new Date(r.created_at as string).toLocaleDateString("en-GB", { timeZone:"Asia/Amman" })} · {tech?.full_name}
+                </p>
+              </div>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.status === "finalized" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                {r.status === "finalized" ? "Finalized" : "Draft"}
+              </span>
+            </div>
+
+            {/* Variable values */}
+            {proc?.variables && proc.variables.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {proc.variables.map((v: {key:string;label:string;unit?:string}) => (
+                  <div key={v.key} className="rounded-lg bg-neutral-50 px-3 py-2">
+                    <p className="text-[10px] text-neutral-500 uppercase tracking-wide">{v.label}{v.unit ? String(` (${v.unit})`) : ""}</p>
+                    <p className="text-sm font-bold text-neutral-900 mt-0.5">{String(vals[v.key] || "—")}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Notes */}
+            {r.notes && (
+              <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2">
+                <p className="text-[10px] text-blue-500 uppercase font-semibold mb-0.5">Notes</p>
+                <p className="text-xs text-neutral-700 whitespace-pre-wrap">{r.notes as string}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
