@@ -1,4 +1,5 @@
 "use client";
+import { to12h, todayJordan } from "@/lib/client-timezone";
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -54,13 +55,13 @@ export function AppointmentsView({
   function prevDay() {
     const d = new Date(currentDate + "T00:00:00");
     d.setDate(d.getDate() - 1);
-    goToDate(d.toISOString().split("T")[0]);
+    goToDate(d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }));
   }
 
   function nextDay() {
     const d = new Date(currentDate + "T00:00:00");
     d.setDate(d.getDate() + 1);
-    goToDate(d.toISOString().split("T")[0]);
+    goToDate(d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }));
   }
 
   const displayDate = new Date(currentDate + "T00:00:00").toLocaleDateString("en", {
@@ -90,7 +91,7 @@ export function AppointmentsView({
           Next →
         </button>
         <button
-          onClick={() => goToDate(new Date().toISOString().split("T")[0])}
+          onClick={() => goToDate(todayJordan())}
           className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50"
         >
           Today
@@ -114,7 +115,7 @@ export function AppointmentsView({
             >
               <div className="flex items-center gap-3">
                 <span className="w-12 font-mono text-xs text-neutral-500">
-                  {appt.start_time?.slice(0, 5) ?? "—"}
+                  {to12h(appt.start_time) || "—"}
                 </span>
                 <div>
                   <p className="text-sm font-medium text-neutral-900">

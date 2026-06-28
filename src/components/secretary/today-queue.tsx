@@ -1,4 +1,5 @@
 "use client";
+import { to12h, todayJordan } from "@/lib/client-timezone";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -318,7 +319,7 @@ export function TodayQueue({ items, currency = "JOD" }: { items: QueueItem[]; cu
           {/* Left: patient info */}
           <div className="flex items-start gap-3">
             <span className="mt-0.5 w-12 flex-shrink-0 font-mono text-xs text-neutral-500">
-              {item.start_time?.slice(0, 5) ?? "-"}
+              {to12h(item.start_time) || "-"}
             </span>
             <div>
               <p className="text-sm font-medium text-neutral-900">

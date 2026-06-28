@@ -1,5 +1,6 @@
 "use client";
 
+import { todayJordan } from "@/lib/client-timezone";
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -199,7 +200,7 @@ export function NewAppointmentForm({
         <div>
           <label className="mb-1 block text-xs font-medium text-neutral-700">Date</label>
           <input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)}
-            min={new Date().toISOString().split("T")[0]}
+            min={todayJordan()}
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
         <div>

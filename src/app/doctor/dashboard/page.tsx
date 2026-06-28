@@ -28,10 +28,10 @@ export default async function DoctorDashboardPage({
 
   // Date range based on period
   const fromDate = period === "week"
-    ? new Date(now.getTime() - 7  * 24 * 3600 * 1000).toISOString().split("T")[0]
+    ? new Date(Date.now() - 7 * 24 * 3600 * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Amman" })
     : period === "year"
     ? `${now.getFullYear()}-01-01`
-    : new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    : new Date(Date.now()).toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }).slice(0,7) + "-01";
 
   // ── Today stats
   const { data: todayAppts } = await supabase

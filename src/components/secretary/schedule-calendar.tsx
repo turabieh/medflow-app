@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { todayJordan, to12h } from "@/lib/client-timezone";
 import type { DoctorWorkingHours, DoctorScheduleBlock } from "@/lib/scheduling/slots";
 
 interface Doctor     { id: string; full_name: string; }
@@ -51,20 +52,20 @@ function getWeekDates(dateStr: string): Date[] {
   });
 }
 
-function ds(d: Date) { return d.toISOString().split("T")[0]; }
+function ds(d: Date) { return d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }); }
 
 // ── Appointment item inside a day cell ──────────────────────────────────────
 function ApptItem({ a }: { a: Appointment }) {
   if (a.isInpatient) return (
     <div className="mb-0.5 truncate rounded bg-blue-100 border border-blue-300 px-1 py-0.5 text-[10px] text-blue-800">
-      🏨 {a.start_time?.slice(0,5)} {a.patientName} · {a.hospitalName}
+      🏨 {to12h(a.start_time)} {a.patientName} · {a.hospitalName}
     </div>
   );
 
   if (a.isTechProcedure) return (
     <div className="mb-0.5 truncate rounded bg-teal-50 border border-teal-300 px-1 py-0.5 text-[10px] text-teal-800 flex items-center gap-0.5">
       <span className="flex-shrink-0">🔬</span>
-      <span className="truncate">{a.start_time?.slice(0,5)} {a.patientName} · {a.procedureName}</span>
+      <span className="truncate">{to12h(a.start_time)} {a.patientName} · {a.procedureName}</span>
     </div>
   );
 
@@ -72,7 +73,7 @@ function ApptItem({ a }: { a: Appointment }) {
     <div className="mb-0.5 flex items-center gap-0.5">
       <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${STATUS_DOT[a.status] ?? "bg-neutral-300"}`} />
       <p className="truncate text-[10px] text-neutral-700">
-        {a.start_time?.slice(0,5)} {a.patientName}
+        {to12h(a.start_time)} {a.patientName}
       </p>
     </div>
   );
@@ -136,7 +137,7 @@ function TechDayCell({ date, isToday, appointments, label }: {
         techAppts.map(a => (
           <div key={a.id} className="mb-0.5 rounded bg-teal-50 border border-teal-200 px-1 py-0.5">
             <p className="text-[10px] font-semibold text-teal-700 truncate">
-              🔬 {a.start_time?.slice(0,5)}
+              🔬 {to12h(a.start_time)}
             </p>
             <p className="text-[10px] text-teal-600 truncate">{a.procedureName}</p>
             <p className="text-[9px] text-neutral-400 truncate">{a.patientName}</p>
@@ -157,14 +158,14 @@ export function ScheduleCalendar({
 }) {
   const [view, setView]           = useState<"week"|"day">(initialView);
   const [currentDate, setCurrentDate] = useState(initialDate);
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayJordan();
   const weekDates  = getWeekDates(currentDate);
   const viewDates  = view === "week" ? weekDates : [new Date(currentDate + "T00:00:00")];
 
   function navigate(dir: -1|1) {
     const d = new Date(currentDate + "T00:00:00");
     d.setDate(d.getDate() + (view === "week" ? 7 : 1) * dir);
-    setCurrentDate(d.toISOString().split("T")[0]);
+    setCurrentDate(d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }));
   }
 
   function isWorking(doctorId: string, date: Date) {

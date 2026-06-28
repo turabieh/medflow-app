@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 import { getVisitDurations } from "@/lib/actions/visit-durations";
 import { AppointmentEditForm } from "@/components/secretary/appointment-edit-form";
@@ -56,8 +57,8 @@ export default async function AppointmentEditPage({
   const visitDurations = await getVisitDurations(profile?.clinic_id ?? "");
 
   // Fetch booked slots for conflict detection on edit
-  const today2 = new Date().toISOString().split("T")[0];
-  const future2 = new Date(Date.now() + 90 * 24 * 3600 * 1000).toISOString().split("T")[0];
+  const today2 = todayClinic();
+  const future2 = new Date(Date.now() + 90 * 24 * 3600 * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
   const { data: bookedSlots } = await supabase
     .from("appointments")
     .select("doctor_id, appt_date, start_time, end_time, patient_id, patients(full_name)")

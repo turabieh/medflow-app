@@ -4,7 +4,7 @@ import { DoctorQueue } from "@/components/doctor/doctor-queue";
 export async function DoctorDashboard({ doctorId }: { doctorId: string }) {
   const supabase = await createClient();
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
 
   const { data: appointments } = await supabase
     .from("appointments")

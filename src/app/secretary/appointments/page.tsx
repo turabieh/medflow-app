@@ -1,3 +1,4 @@
+import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 import { AppointmentsView } from "@/components/secretary/appointments-view";
 import Link from "next/link";
@@ -11,7 +12,7 @@ export default async function SecretaryAppointmentsPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const params = await searchParams;
-  const targetDate = params.date ?? new Date().toISOString().split("T")[0];
+  const targetDate = params.date ?? todayClinic();
   const supabase = await createClient();
 
   // Fetch ALL non-pending appointments for this date
