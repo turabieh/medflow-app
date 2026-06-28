@@ -27,8 +27,10 @@ export default function NewPatientPage() {
     setError(null);
 
     const result = await createPatient({
-      full_name: fullName,
-      full_name_ar: fullNameAr || undefined,
+      first_name: fullName.split(' ')[0] || fullName,
+      last_name: fullName.split(' ').slice(1).join(' ') || undefined,
+      first_name_ar: fullNameAr ? fullNameAr.split(' ')[0] : undefined,
+      last_name_ar: fullNameAr ? fullNameAr.split(' ').slice(1).join(' ') || undefined : undefined,
       phone,
       phone2: phone2 || undefined,
       phone2_relation: phone2Relation || undefined,

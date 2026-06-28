@@ -46,7 +46,7 @@ export function PatientTab({
 
   // Patient edit state
   const [editingPatient, setEditingPatient] = useState(false);
-  const [fullName, setFullName] = useState(patient.full_name);
+  const [fullName, setFullName] = useState(patient.full_name); // displays computed full_name
   const [fullNameAr, setFullNameAr] = useState(patient.full_name_ar ?? "");
   const [dob, setDob] = useState(patient.dob ?? "");
   const [gender, setGender] = useState(patient.gender ?? "");
@@ -69,8 +69,10 @@ export function PatientTab({
     e.preventDefault();
     setSavingPatient(true);
     await updatePatient(patient.id, {
-      full_name: fullName,
-      full_name_ar: fullNameAr || undefined,
+      first_name: fullName.split(" ")[0] || fullName,
+      last_name: fullName.split(" ").slice(1).join(" ") || undefined,
+      first_name_ar: fullNameAr.split(" ")[0] || undefined,
+      last_name_ar: fullNameAr.split(" ").slice(1).join(" ") || undefined,
       dob: dob || undefined,
       gender: (gender as "male" | "female") || undefined,
       blood_type: bloodType || undefined,
