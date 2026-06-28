@@ -121,8 +121,16 @@ export default async function SecretaryTechSchedulePage({
                     <span className={`text-xs font-semibold capitalize ${STATUS_COLOR[a.status as string]}`}>
                       {(a.status as string)?.replace("_"," ")}
                     </span>
-                    <Link href={`/technician/appointments/${a.id}`}
-                      className="text-xs text-blue-600 hover:underline flex-shrink-0">View →</Link>
+                    {(a.status === "scheduled" || a.status === "in_progress") && (
+                      <form action="/api/tech-appointment/cancel" method="POST" className="inline">
+                        <input type="hidden" name="id" value={String(a.id)} />
+                        <button type="submit"
+                          className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
+                          onClick={e => { if (!confirm("Cancel this appointment?")) e.preventDefault(); }}>
+                          Cancel
+                        </button>
+                      </form>
+                    )}
                   </div>
                 );
               })}

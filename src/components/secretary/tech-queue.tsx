@@ -89,11 +89,8 @@ export function TechQueue({ appointments, clinicId }: { appointments: R[]; clini
                     )}
                   </>
                 )}
-                {a.status === "done" && rep && (
-                  <Link href={`/technician/appointments/${a.id}`}
-                    className="rounded-md border border-neutral-300 px-2.5 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
-                    View Report
-                  </Link>
+                {a.status === "done" && (
+                  <span className="text-xs text-neutral-400 italic">Completed</span>
                 )}
               </div>
             </div>
