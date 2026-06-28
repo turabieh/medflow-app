@@ -50,6 +50,11 @@ export default async function DashboardPage() {
     redirect("/doctor/dashboard");
   }
 
+  // Technician gets their own portal
+  if (profile.role === "technician") {
+    redirect("/technician");
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 px-4 py-8">
       <div className="mx-auto max-w-2xl">
