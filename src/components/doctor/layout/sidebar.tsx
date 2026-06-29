@@ -82,9 +82,10 @@ export function DoctorSidebarNav({
         if (appt.appt_date !== today) return;
 
         // Fetch updated patient list silently
+        // Fetch updated list WITH visit IDs
         const { data: updated } = await sb
           .from("appointments")
-          .select("id, start_time, status, visit_type, patient_id, patients(full_name)")
+          .select("id, start_time, status, visit_type, patient_id, patients(full_name), visits(id)")
           .eq("doctor_id", doctorId)
           .eq("appt_date", today)
           .in("status", ["booked","confirmed","arrived","with_doctor","done"])
@@ -93,9 +94,11 @@ export function DoctorSidebarNav({
         if (updated) {
           const newList: OutpatientEntry[] = updated.map((a: Record<string, unknown>) => {
             const pt = Array.isArray(a.patients) ? a.patients[0] : a.patients as {full_name?: string}|null;
+            const visits = Array.isArray(a.visits) ? a.visits : (a.visits ? [a.visits] : []);
+            const visitId = (visits[0] as {id?: string}|null)?.id ?? null;
             return {
               appointmentId: a.id as string,
-              visitId: null,
+              visitId,
               patientName: pt?.full_name ?? "Patient",
               startTime: a.start_time as string,
               status: a.status as string,
@@ -104,14 +107,29 @@ export function DoctorSidebarNav({
           });
           setPatients(newList);
 
-          // Show notification for key status changes
+          // Notification + sound for key status changes
           const newStatus = appt.status as string;
           if (newStatus === "with_doctor") {
-            setNotification("🟢 Patient sent to you");
+            setNotification("🟢 New patient waiting for you");
+            // Play notification sound
+            try {
+              const ctx = new (window.AudioContext || (window as unknown as Record<string,typeof AudioContext>).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.15);
+              gain.gain.setValueAtTime(0.3, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+              osc.start(ctx.currentTime);
+              osc.stop(ctx.currentTime + 0.5);
+            } catch {}
           } else if (newStatus === "arrived") {
-            setNotification("🟡 Patient arrived");
+            setNotification("🟡 Patient arrived — awaiting you");
           }
-          setTimeout(() => setNotification(null), 5000);
+          // Keep notification longer (12 seconds)
+          setTimeout(() => setNotification(null), 12000);
         }
       })
       .subscribe();
@@ -172,8 +190,12 @@ export function DoctorSidebarNav({
 
         {/* Realtime notification */}
         {notification && (
-          <div className="mx-3 mb-2 rounded-md bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-800 animate-pulse">
-            {notification}
+          <div className="mx-2 mb-2 flex items-center justify-between rounded-lg border border-indigo-300 bg-indigo-600 px-3 py-2 shadow-lg">
+            <span className="text-xs font-semibold text-white">{notification}</span>
+            <button onClick={() => setNotification(null)}
+              className="ml-2 flex-shrink-0 text-indigo-200 hover:text-white text-sm leading-none">
+              ✕
+            </button>
           </div>
         )}
 
