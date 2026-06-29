@@ -430,14 +430,22 @@ export function PendingAppointmentForm({
         )}
       </div>
 
-      {symptomsCatalog.length > 0 && (
+      {symptomsCatalog.filter(s => !s.category || s.category === "basic").length > 0 && (
         <div className="mb-3">
-          <label className="mb-1 block text-xs text-neutral-600">Symptoms</label>
-          <div className="grid grid-cols-3 gap-1.5 rounded-md border border-neutral-200 bg-white p-2">
-            {symptomsCatalog.map((symptom) => (
-              <label key={symptom.id} className="flex items-center gap-1.5 text-xs text-neutral-700">
+          <label className="mb-1 block text-xs font-medium text-neutral-700">
+            Main Symptoms
+            <span className="ml-1 font-normal text-neutral-400">(basic only)</span>
+          </label>
+          <div className="flex flex-wrap gap-1.5 rounded-md border border-neutral-200 bg-white p-2">
+            {symptomsCatalog.filter(s => !s.category || s.category === "basic").map((symptom) => (
+              <label key={symptom.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
+                symptomIds.has(symptom.id)
+                  ? "border-indigo-400 bg-indigo-50 font-medium text-indigo-700"
+                  : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
+              }`}>
                 <input
                   type="checkbox"
+                  className="hidden"
                   checked={symptomIds.has(symptom.id)}
                   onChange={() => toggleSymptom(symptom.id)}
                 />
