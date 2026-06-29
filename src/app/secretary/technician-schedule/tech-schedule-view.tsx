@@ -40,9 +40,9 @@ export function TechScheduleView({ date, today, clinicId, technicians, procedure
   const [saving, setSaving]     = useState(false);
 
   function navigate(dir: -1|1) {
-    const d = new Date(currentDate + "T00:00:00");
-    d.setDate(d.getDate() + dir);
-    const nd = d.toLocaleDateString("en-CA");
+    const [y,m,day] = currentDate.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m-1, day+dir, 12));
+    const nd = d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
     setCurrentDate(nd);
     router.push(`?date=${nd}`);
   }

@@ -27,7 +27,7 @@ export default async function TechSchedulePage({ searchParams }: { searchParams:
 
   const prev = new Date(date); prev.setDate(prev.getDate()-1);
   const next = new Date(date); next.setDate(next.getDate()+1);
-  const fmt  = (d:Date) => d.toLocaleDateString("en-CA");
+  const fmt  = (d:Date) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const STATUS: Record<string,any> = {

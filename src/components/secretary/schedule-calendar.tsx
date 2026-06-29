@@ -43,12 +43,19 @@ const STATUS_DOT: Record<string,string> = {
 };
 
 function getWeekDates(dateStr: string): Date[] {
-  const date = new Date(dateStr + "T00:00:00");
-  const day  = date.getDay();
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - ((day + 6) % 7));
+  // Parse as Jordan midnight to avoid UTC day-of-week shifting
+  // e.g. "2026-06-26T00:00:00+03:00" = Jordan midnight
+  const [y, m, d] = dateStr.split("-").map(Number);
+  // Create date at noon UTC to safely get the correct Jordan weekday
+  const date = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  // Get day-of-week in Jordan timezone
+  const dayName = date.toLocaleDateString("en-US", { timeZone: "Asia/Amman", weekday: "short" });
+  const dayMap: Record<string, number> = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+  const day = dayMap[dayName] ?? 0;
+  // Monday-based week
+  const mondayOffset = (day + 6) % 7;
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday); d.setDate(monday.getDate() + i); return d;
+    return new Date(Date.UTC(y, m - 1, d - mondayOffset + i, 12, 0, 0));
   });
 }
 
@@ -184,7 +191,7 @@ export function ScheduleCalendar({
 
   const dateRangeLabel = view === "week"
     ? `${weekDates[0].toLocaleDateString("en",{month:"short",day:"numeric"})} – ${weekDates[6].toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}`
-    : new Date(currentDate + "T00:00:00").toLocaleDateString("en",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    : (() => { const [y,m,d] = currentDate.split("-").map(Number); return new Date(Date.UTC(y,m-1,d,12)).toLocaleDateString("en",{timeZone:"Asia/Amman",weekday:"long",day:"numeric",month:"long",year:"numeric"}); })();
 
   return (
     <div>

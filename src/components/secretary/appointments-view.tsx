@@ -54,18 +54,18 @@ export function AppointmentsView({
   }
 
   function prevDay() {
-    const d = new Date(currentDate + "T00:00:00");
-    d.setDate(d.getDate() - 1);
+    const [y,m,day] = currentDate.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m-1, day-1, 12));
     goToDate(d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }));
   }
 
   function nextDay() {
-    const d = new Date(currentDate + "T00:00:00");
-    d.setDate(d.getDate() + 1);
+    const [y,m,day] = currentDate.split("-").map(Number);
+    const d = new Date(Date.UTC(y, m-1, day+1, 12));
     goToDate(d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }));
   }
 
-  const displayDate = new Date(currentDate + "T00:00:00").toLocaleDateString("en", {
+  const displayDate = (() => { const [y,m,d] = currentDate.split("-").map(Number); return new Date(Date.UTC(y,m-1,d,12)); })().toLocaleDateString("en", { timeZone: "Asia/Amman",
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
