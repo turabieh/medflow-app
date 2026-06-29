@@ -197,7 +197,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
         Today&apos;s queue
       </h2>
       <div className="mb-6">
-        <TodayQueue items={todayQueueItems} currency={currency} symptomsCatalog={(symptomsCatalog ?? []) as {id:string;name:string;name_ar:string|null;category?:string}[]} />
+        <TodayQueue items={todayQueueItems} currency={currency} symptomsCatalog={(symptomsCatalog ?? []) as {id:string;name:string;name_ar:string|null;category?:string}[]} clinicId={clinicId} />
       </div>
 
       {callTodayAppointments.length > 0 && (

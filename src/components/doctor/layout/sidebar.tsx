@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { LogoutButton } from "@/components/ui/logout-button";
+import { createClient } from "@/lib/supabase/client";
 
 interface OutpatientEntry {
   appointmentId: string;
@@ -39,11 +41,12 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function DoctorSidebarNav({
+  doctorId,
   doctorName,
   specialty,
   clinicName,
   logoUrl,
-  patients = [],
+  patients: initialPatients = [],
   inpatients = [],
   isClinicHead = false,
 }: {
@@ -57,6 +60,64 @@ export function DoctorSidebarNav({
   isClinicHead?: boolean;
 }) {
   const pathname = usePathname();
+  const [patients, setPatients] = useState<OutpatientEntry[]>(initialPatients);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  // Sync when server re-renders with new props
+  useEffect(() => { setPatients(initialPatients); }, [initialPatients]);
+
+  // Realtime: watch appointment status changes for this doctor today
+  useEffect(() => {
+    const sb = createClient();
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
+
+    const channel = sb.channel("doctor-queue-" + doctorId)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "appointments",
+        filter: `doctor_id=eq.${doctorId}`,
+      }, async (payload) => {
+        const appt = payload.new as Record<string, unknown>;
+        if (appt.appt_date !== today) return;
+
+        // Fetch updated patient list silently
+        const { data: updated } = await sb
+          .from("appointments")
+          .select("id, start_time, status, visit_type, patient_id, patients(full_name)")
+          .eq("doctor_id", doctorId)
+          .eq("appt_date", today)
+          .in("status", ["booked","confirmed","arrived","with_doctor","done"])
+          .order("start_time");
+
+        if (updated) {
+          const newList: OutpatientEntry[] = updated.map((a: Record<string, unknown>) => {
+            const pt = Array.isArray(a.patients) ? a.patients[0] : a.patients as {full_name?: string}|null;
+            return {
+              appointmentId: a.id as string,
+              visitId: null,
+              patientName: pt?.full_name ?? "Patient",
+              startTime: a.start_time as string,
+              status: a.status as string,
+              visitType: a.visit_type as string,
+            };
+          });
+          setPatients(newList);
+
+          // Show notification for key status changes
+          const newStatus = appt.status as string;
+          if (newStatus === "with_doctor") {
+            setNotification("🟢 Patient sent to you");
+          } else if (newStatus === "arrived") {
+            setNotification("🟡 Patient arrived");
+          }
+          setTimeout(() => setNotification(null), 5000);
+        }
+      })
+      .subscribe();
+
+    return () => { sb.removeChannel(channel); };
+  }, [doctorId]);
 
   function OutpatientLink({ p }: { p: OutpatientEntry }) {
     const href = p.visitId ? `/doctor/visit/${p.visitId}` : `/doctor/dashboard`;
@@ -108,6 +169,13 @@ export function DoctorSidebarNav({
 
       {/* Scrollable patient lists */}
       <div className="flex-1 overflow-y-auto px-3 py-2" style={{ minHeight: 0 }}>
+
+        {/* Realtime notification */}
+        {notification && (
+          <div className="mx-3 mb-2 rounded-md bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-medium text-indigo-800 animate-pulse">
+            {notification}
+          </div>
+        )}
 
         {/* Today's outpatients */}
         <p className="mb-1 px-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">

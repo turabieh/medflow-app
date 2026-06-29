@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { to12h } from "@/lib/client-timezone";
 import {
@@ -299,16 +299,44 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
 
 // ── Main Queue ───────────────────────────────────────────────────────────────
 export function TodayQueue({
-  items, currency = "JOD", symptomsCatalog = [],
+  items: initialItems, currency = "JOD", symptomsCatalog = [], clinicId = "",
 }: {
   items: QueueItem[];
   currency?: string;
   symptomsCatalog?: Symptom[];
+  clinicId?: string;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [openVitals, setOpenVitals] = useState<string | null>(null);
+  const [items, setItems] = useState<QueueItem[]>(initialItems);
+  const [realtimeNote, setRealtimeNote] = useState<string | null>(null);
+
+  // Sync when server re-renders
+  useEffect(() => { setItems(initialItems); }, [initialItems]);
+
+  // Realtime: watch for status changes (e.g. doctor marks done)
+  useEffect(() => {
+    if (!clinicId) return;
+    const { createClient } = require("@/lib/supabase/client");
+    const sb = createClient();
+    const channel = sb.channel("secretary-queue-" + clinicId)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "appointments",
+      }, (payload: {new: Record<string, unknown>}) => {
+        const updated = payload.new;
+        setItems(prev => prev.map(i =>
+          i.id === updated.id ? { ...i, status: updated.status as string } : i
+        ));
+        if (updated.status === "done") {
+          setRealtimeNote("✓ Visit marked done by doctor");
+          setTimeout(() => setRealtimeNote(null), 4000);
+        }
+      })
+      .subscribe();
+    return () => { sb.removeChannel(channel); };
+  }, [clinicId]);
 
   const basicSymptoms = symptomsCatalog.filter(s => !s.category || s.category === "basic");
 
@@ -439,6 +467,12 @@ export function TodayQueue({
 
   return (
     <div className="space-y-2">
+      {/* Realtime notification */}
+      {realtimeNote && (
+        <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs font-medium text-green-800">
+          {realtimeNote}
+        </div>
+      )}
       {/* Active queue */}
       {active.map(renderItem)}
 
