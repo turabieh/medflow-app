@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { to12h } from "@/lib/client-timezone";
 import {
@@ -317,29 +318,30 @@ export function TodayQueue({
   useEffect(() => { setItems(initialItems); }, [initialItems]);
 
   // Realtime: watch for status changes triggered by doctor
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+
   useEffect(() => {
     if (!clinicId) return;
-    import("@/lib/supabase/client").then(({ createClient }) => {
-      const sb = createClient();
-      const channel = sb.channel("secretary-queue-" + clinicId)
-        .on("postgres_changes", {
-          event: "UPDATE", schema: "public", table: "appointments",
-        }, (payload: {new: Record<string, unknown>}) => {
+    const sb = createClient();
+    const channel = sb
+      .channel("secretary-queue-" + clinicId)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "appointments" },
+        (payload: { new: Record<string, unknown> }) => {
           const updated = payload.new;
           const newStatus = updated.status as string;
 
-          // Update item status in state
           setItems(prev => prev.map(i =>
             i.id === updated.id ? { ...i, status: newStatus } : i
           ));
 
-          // Notify secretary when doctor marks done
           if (newStatus === "done") {
-            const patient = items.find(i => i.id === updated.id);
+            const patient = itemsRef.current.find(i => i.id === updated.id);
             const name = patient?.patientName ?? "Patient";
             setRealtimeNote(`✓ ${name} — visit done. Ready to finalize.`);
 
-            // Play two-tone sound (lower tone = done, not urgent)
             try {
               const ctx = new (window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext)();
               const osc = ctx.createOscillator();
@@ -352,14 +354,13 @@ export function TodayQueue({
               osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
             } catch {}
 
-            // Keep notification for 15 seconds
-            const t = setTimeout(() => setRealtimeNote(null), 15000);
-            return () => clearTimeout(t);
+            setTimeout(() => setRealtimeNote(null), 15000);
           }
-        })
-        .subscribe();
-      return () => { sb.removeChannel(channel); };
-    });
+        }
+      )
+      .subscribe();
+
+    return () => { sb.removeChannel(channel); };
   }, [clinicId]);
 
   const basicSymptoms = symptomsCatalog.filter(s => !s.category || s.category === "basic");
