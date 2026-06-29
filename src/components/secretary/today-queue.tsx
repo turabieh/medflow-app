@@ -316,26 +316,50 @@ export function TodayQueue({
   // Sync when server re-renders
   useEffect(() => { setItems(initialItems); }, [initialItems]);
 
-  // Realtime: watch for status changes (e.g. doctor marks done)
+  // Realtime: watch for status changes triggered by doctor
   useEffect(() => {
     if (!clinicId) return;
-    const { createClient } = require("@/lib/supabase/client");
-    const sb = createClient();
-    const channel = sb.channel("secretary-queue-" + clinicId)
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "appointments",
-      }, (payload: {new: Record<string, unknown>}) => {
-        const updated = payload.new;
-        setItems(prev => prev.map(i =>
-          i.id === updated.id ? { ...i, status: updated.status as string } : i
-        ));
-        if (updated.status === "done") {
-          setRealtimeNote("✓ Visit marked done by doctor");
-          setTimeout(() => setRealtimeNote(null), 4000);
-        }
-      })
-      .subscribe();
-    return () => { sb.removeChannel(channel); };
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const sb = createClient();
+      const channel = sb.channel("secretary-queue-" + clinicId)
+        .on("postgres_changes", {
+          event: "UPDATE", schema: "public", table: "appointments",
+        }, (payload: {new: Record<string, unknown>}) => {
+          const updated = payload.new;
+          const newStatus = updated.status as string;
+
+          // Update item status in state
+          setItems(prev => prev.map(i =>
+            i.id === updated.id ? { ...i, status: newStatus } : i
+          ));
+
+          // Notify secretary when doctor marks done
+          if (newStatus === "done") {
+            const patient = items.find(i => i.id === updated.id);
+            const name = patient?.patientName ?? "Patient";
+            setRealtimeNote(`✓ ${name} — visit done. Ready to finalize.`);
+
+            // Play two-tone sound (lower tone = done, not urgent)
+            try {
+              const ctx = new (window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(660, ctx.currentTime);
+              osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+              gain.gain.setValueAtTime(0.25, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+              osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
+            } catch {}
+
+            // Keep notification for 15 seconds
+            const t = setTimeout(() => setRealtimeNote(null), 15000);
+            return () => clearTimeout(t);
+          }
+        })
+        .subscribe();
+      return () => { sb.removeChannel(channel); };
+    });
   }, [clinicId]);
 
   const basicSymptoms = symptomsCatalog.filter(s => !s.category || s.category === "basic");
@@ -467,10 +491,15 @@ export function TodayQueue({
 
   return (
     <div className="space-y-2">
-      {/* Realtime notification */}
+      {/* Realtime notification — doctor marked done */}
       {realtimeNote && (
-        <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs font-medium text-green-800">
-          {realtimeNote}
+        <div className="flex items-center justify-between rounded-lg border border-emerald-400 bg-emerald-600 px-3 py-2.5 shadow-md">
+          <div>
+            <p className="text-xs font-bold text-white">{realtimeNote}</p>
+            <p className="text-[10px] text-emerald-200 mt-0.5">Scroll down to find the patient and finalize</p>
+          </div>
+          <button onClick={() => setRealtimeNote(null)}
+            className="ml-3 flex-shrink-0 text-emerald-200 hover:text-white text-sm">✕</button>
         </div>
       )}
       {/* Active queue */}
