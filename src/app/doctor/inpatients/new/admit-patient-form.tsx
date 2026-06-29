@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -138,8 +139,7 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Date of Birth</label>
-                <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+                <JordanDateInput value={newDob} onChange={setNewDob} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Gender</label>
@@ -189,7 +189,7 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-600">Admission Date *</label>
-            <input type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required
+            <JordanDateInput value={admissionDate} onChange={setAdmissionDate} required
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </div>
           <div>

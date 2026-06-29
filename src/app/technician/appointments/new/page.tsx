@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -125,7 +126,7 @@ export default function NewTechAppointmentPage() {
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px" }}>
           <div>
             <label style={{ display:"block", fontSize:"11px", fontWeight:"700", textTransform:"uppercase", letterSpacing:"0.5px", color:"#475569", marginBottom:"6px" }}>Date *</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} required {...inp} />
+            <JordanDateInput value={date} onChange={setDate} required {...inp} />
           </div>
           <div>
             <label style={{ display:"block", fontSize:"11px", fontWeight:"700", textTransform:"uppercase", letterSpacing:"0.5px", color:"#475569", marginBottom:"6px" }}>Time *</label>

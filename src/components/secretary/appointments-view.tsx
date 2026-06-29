@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 import { to12h, todayJordan } from "@/lib/client-timezone";
 
 import { useRouter } from "next/navigation";
@@ -78,10 +79,9 @@ export function AppointmentsView({
         >
           ← Prev
         </button>
-        <input
-          type="date"
+        <JordanDateInput
           value={currentDate}
-          onChange={(e) => goToDate(e.target.value)}
+          onChange={goToDate}
           className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
         />
         <button

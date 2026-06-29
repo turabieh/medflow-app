@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -208,13 +209,8 @@ export function PortalAdmitForm({
       {/* Date */}
       <div>
         <label style={labelStyle}>Admission Date *</label>
-        <input
-          type="date"
-          value={admitDate}
-          onChange={e => setAdmitDate(e.target.value)}
-          required
-          style={inputStyle}
-        />
+        <JordanDateInput value={admitDate} onChange={setAdmitDate} required
+          style={inputStyle} />
       </div>
 
       <div style={{ fontSize:"11px", color:"#475569", marginBottom:"8px", fontFamily:"monospace" }}>

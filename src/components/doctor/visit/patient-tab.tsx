@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -152,7 +153,7 @@ export function PatientTab({
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div><label className="mb-1 block text-xs text-neutral-600">Date of birth</label>
-                <input type="date" value={dob} onChange={e=>setDob(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+                <JordanDateInput value={dob} onChange={setDob} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" /></div>
               <div><label className="mb-1 block text-xs text-neutral-600">Gender</label>
                 <select value={gender} onChange={e=>setGender(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
                   <option value="">—</option><option value="male">Male</option><option value="female">Female</option>

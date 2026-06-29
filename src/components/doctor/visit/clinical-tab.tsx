@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -195,8 +196,7 @@ export function ClinicalTab({
               <input value={labName} onChange={e => setLabName(e.target.value)} required
                 placeholder="Name (e.g. CBC, MRI Brain)"
                 className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-              <input type="date" value={labDate} onChange={e => setLabDate(e.target.value)}
-                className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+              <JordanDateInput value={labDate} onChange={setLabDate} className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
             </div>
             <textarea value={labFindings} onChange={e => setLabFindings(e.target.value)} rows={2}
               placeholder="Findings (optional)..."

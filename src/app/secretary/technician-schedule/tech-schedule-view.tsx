@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -243,7 +244,7 @@ export function TechScheduleView({ date, today, clinicId, technicians, procedure
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-neutral-600">New Date</label>
-                <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className={inp} />
+                <JordanDateInput value={newDate} onChange={setNewDate} className={inp} />
               </div>
 
               <div>

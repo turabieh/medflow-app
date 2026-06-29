@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -125,7 +126,7 @@ export function InpatientActions({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs text-blue-700">Date *</label>
-              <input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)} required
+              <JordanDateInput value={visitDate} onChange={setVisitDate} required
                 max={today} min={admissionDate}
                 className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm" />
             </div>
@@ -179,7 +180,7 @@ export function InpatientActions({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs text-orange-700">Discharge Date *</label>
-              <input type="date" value={dischargeDate} onChange={e => setDischargeDate(e.target.value)} required
+              <JordanDateInput value={dischargeDate} onChange={setDischargeDate} required
                 min={admissionDate} max={today}
                 className="w-full rounded-md border border-orange-200 bg-white px-2 py-1.5 text-sm" />
             </div>

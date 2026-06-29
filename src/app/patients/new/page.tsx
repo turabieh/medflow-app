@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -105,10 +106,9 @@ export default function NewPatientPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm text-neutral-700">Date of birth</label>
-              <input
-                type="date"
+              <JordanDateInput
                 value={dob}
-                onChange={(e) => setDob(e.target.value)}
+                onChange={setDob}
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
               />
             </div>

@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { BilingualInput } from "@/components/ui/bilingual-input";
@@ -181,7 +182,7 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
         </div>
         <div>
           <label className="mb-1 block text-xs text-neutral-600">Date of birth</label>
-          <input type="date" value={dob} onChange={(e) => setDob(e.target.value)}
+          <JordanDateInput value={dob} onChange={setDob}
             className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
         </div>
       </div>
@@ -247,7 +248,7 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Expiry date</label>
-            <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
+            <JordanDateInput value={expiryDate} onChange={setExpiryDate}
               className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
           </div>
         </div>

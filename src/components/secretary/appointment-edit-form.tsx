@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -191,8 +192,7 @@ export function AppointmentEditForm({
 
           <div>
             <label className="mb-1 block text-xs text-neutral-600">Date</label>
-            <input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+            <JordanDateInput value={apptDate} onChange={setApptDate} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
           </div>
 
           {/* Time slots */}

@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -110,7 +111,7 @@ export function TechBookingForm({ date, clinicId, technicians, procedures, patie
       {/* Date */}
       <div>
         <label className={lbl}>Date *</label>
-        <input type="date" value={bookDate} onChange={e => setBookDate(e.target.value)} required className={inp} />
+        <JordanDateInput value={bookDate} onChange={setBookDate} required className={inp} />
       </div>
 
       {/* Patient */}

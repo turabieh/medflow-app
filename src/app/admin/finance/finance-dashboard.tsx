@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -63,13 +64,11 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
           <div className="space-y-2">
             <div>
               <label className="mb-1 block text-[10px] text-neutral-500">From</label>
-              <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              <JordanDateInput value={from} onChange={setFrom} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
             </div>
             <div>
               <label className="mb-1 block text-[10px] text-neutral-500">To</label>
-              <input type="date" value={to} onChange={e => setTo(e.target.value)}
-                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+              <JordanDateInput value={to} onChange={setTo} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -386,7 +385,7 @@ export function FinanceDashboard({
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Date *</label>
-                <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} required
+                <JordanDateInput value={expDate} onChange={setExpDate} required
                   className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
               </div>
               <div>
@@ -508,7 +507,7 @@ export function FinanceDashboard({
               </div>
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Effective From *</label>
-                <input type="date" value={salFrom} onChange={e => setSalFrom(e.target.value)} required
+                <JordanDateInput value={salFrom} onChange={setSalFrom} required
                   className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
               </div>
             </div>

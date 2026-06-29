@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -165,12 +166,12 @@ export function ClaimsManager({
             <div />
             <div>
               <label className="mb-1 block text-xs text-neutral-600">From Date *</label>
-              <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} required
+              <JordanDateInput value={fromDate} onChange={setFromDate} required
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-600">To Date *</label>
-              <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} required
+              <JordanDateInput value={toDate} onChange={setToDate} required
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </div>
             <div className="col-span-2">
@@ -278,8 +279,7 @@ export function ClaimsManager({
                           </div>
                           <div>
                             <label className="mb-1 block text-xs text-green-700">Payment Date</label>
-                            <input type="date" value={paidDate} onChange={e => setPaidDate(e.target.value)}
-                              className="rounded-md border border-green-300 bg-white px-3 py-1.5 text-sm" />
+                            <JordanDateInput value={paidDate} onChange={setPaidDate} className="rounded-md border border-green-300 bg-white px-3 py-1.5 text-sm" />
                           </div>
                           <button onClick={() => handleSavePayment(c.id)} disabled={savingPay || !paidAmount}
                             className="rounded-md bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">

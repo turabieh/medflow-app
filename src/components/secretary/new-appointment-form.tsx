@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { todayJordan } from "@/lib/client-timezone";
 import { useState, useMemo, useEffect } from "react";
@@ -199,8 +200,7 @@ export function NewAppointmentForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-neutral-700">Date</label>
-          <input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)}
-            min={todayJordan()}
+          <JordanDateInput value={apptDate} onChange={setApptDate} min={todayJordan()}
             className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
         </div>
         <div>

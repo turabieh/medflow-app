@@ -1,4 +1,5 @@
 "use client";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -151,8 +152,7 @@ export function PortalPatientActions({
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px", marginBottom:"12px" }}>
             <div>
               <div style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", marginBottom:"6px" }}>Visit Date</div>
-              <input type="date" value={visitDate} onChange={e => setVisitDate(e.target.value)}
-                style={{ width:"100%", background:"#0f172a", border:"1.5px solid #334155", borderRadius:"10px", color:"#f1f5f9", padding:"12px 14px", fontSize:"14px", fontFamily:"inherit", boxSizing:"border-box" }} />
+              <JordanDateInput value={visitDate} onChange={setVisitDate} style={{ width:"100%", background:"#0f172a", border:"1.5px solid #334155", borderRadius:"10px", color:"#f1f5f9", padding:"12px 14px", fontSize:"14px", fontFamily:"inherit", boxSizing:"border-box" }} />
             </div>
             <div>
               <div style={{ fontSize:"10px", color:"#3b82f6", fontWeight:"700", textTransform:"uppercase", letterSpacing:"1px", marginBottom:"6px" }}>Time</div>
