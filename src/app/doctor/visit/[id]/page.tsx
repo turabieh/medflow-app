@@ -39,6 +39,14 @@ export default async function VisitPage({
     .eq("id", visit.patient_id)
     .single();
 
+  // Appointment arrival note (from secretary when patient arrived)
+  const { data: appointment } = await supabase
+    .from("appointments")
+    .select("secretary_arrival_note")
+    .eq("id", visit.appointment_id)
+    .single();
+  const secretaryArrivalNote = (appointment as {secretary_arrival_note?:string|null}|null)?.secretary_arrival_note ?? null;
+
   // Appointment symptoms (pre-checked from booking)
   const { data: apptSymptoms } = await supabase
     .from("appointment_symptoms")
@@ -229,6 +237,7 @@ export default async function VisitPage({
           visitStatus={visit.status}
           visitContext={visit.visit_context}
           hasAI={hasAI}
+          secretaryArrivalNote={secretaryArrivalNote}
           voiceNotes={visit.voice_notes ?? null}
           keyPoints={visit.key_clinical_points ?? null}
           clinicalNote={visit.clinical_note ?? null}

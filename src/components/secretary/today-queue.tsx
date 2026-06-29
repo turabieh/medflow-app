@@ -33,6 +33,7 @@ interface QueueItem {
   vital_weight_kg?: number | null;
   vital_height_cm?: number | null;
   vitals_recorded_at?: string | null;
+  secretary_arrival_note?: string | null;
   payment_confirmed?: boolean;
 }
 
@@ -58,7 +59,7 @@ const STATUS_BORDER: Record<string, string> = {
   cancelled: "border-l-neutral-200",
 };
 
-function VitalsForm({ item, onClose }: { item: QueueItem; onClose: () => void }) {
+function VitalsForm({ item, onClose, basicSymptoms = [] }: { item: QueueItem; onClose: () => void; basicSymptoms?: {id:string;name:string;name_ar:string|null}[] }) {
   const router = useRouter();
   const [hr, setHr] = useState(item.vital_heart_rate?.toString() ?? "");
   const [bp, setBp] = useState(item.vital_bp ?? "");
@@ -69,11 +70,39 @@ function VitalsForm({ item, onClose }: { item: QueueItem; onClose: () => void })
   const [height, setHeight] = useState(item.vital_height_cm?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkedSymptoms, setCheckedSymptoms] = useState<Set<string>>(new Set());
+  const [arrivalNote, setArrivalNote] = useState(item.secretary_arrival_note ?? "");
+
+  function toggleSym(id: string) {
+    setCheckedSymptoms(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    // Save arrival note
+    if (arrivalNote !== (item.secretary_arrival_note ?? "")) {
+      const { createClient } = await import("@/lib/supabase/client");
+      const sb = createClient();
+      await sb.from("appointments").update({ secretary_arrival_note: arrivalNote.trim() || null }).eq("id", item.id);
+    }
+
+    // Save checked symptoms to the visit (if a visit exists)
+    if (checkedSymptoms.size > 0) {
+      const { createClient } = await import("@/lib/supabase/client");
+      const sb = createClient();
+      const { data: visit } = await sb.from("visits").select("id").eq("appointment_id", item.id).single();
+      if (visit) {
+        const rows = Array.from(checkedSymptoms).map(sid => ({ visit_id: visit.id, symptom_id: sid }));
+        await sb.from("visit_symptoms").upsert(rows, { onConflict: "visit_id,symptom_id" });
+      }
+    }
+
     const result = await saveVitals({
       appointmentId: item.id,
       heartRate:    hr     ? parseInt(hr)     : undefined,
@@ -139,10 +168,48 @@ function VitalsForm({ item, onClose }: { item: QueueItem; onClose: () => void })
         </div>
       </div>
 
+      {/* Basic symptoms */}
+      {basicSymptoms.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-semibold text-neutral-700">
+            Main Symptoms
+            <span className="ml-1 font-normal text-neutral-400">(check what patient reports now)</span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {basicSymptoms.map(s => (
+              <label key={s.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors ${
+                checkedSymptoms.has(s.id)
+                  ? "border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold"
+                  : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
+              }`}>
+                <input type="checkbox" className="hidden" checked={checkedSymptoms.has(s.id)} onChange={() => toggleSym(s.id)} />
+                {s.name}
+                {s.name_ar && <span className="text-neutral-400" dir="rtl"> · {s.name_ar}</span>}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Note to Doctor */}
+      <div className="mb-4">
+        <label className="mb-1 block text-xs font-semibold text-neutral-700">
+          📝 Note to Doctor
+          <span className="ml-1 font-normal text-neutral-400">(updated at arrival)</span>
+        </label>
+        <textarea
+          value={arrivalNote}
+          onChange={e => setArrivalNote(e.target.value)}
+          rows={2}
+          placeholder="e.g. Patient complains of increased pain since yesterday, brought old reports..."
+          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-400 resize-none"
+        />
+      </div>
+
       <div className="flex gap-2">
         <button type="submit" disabled={saving}
-          className="rounded-md bg-red-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50">
-          {saving ? "Saving..." : "Save Save Vitals"}
+          className="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+          {saving ? "Saving..." : "Save Vitals & Note"}
         </button>
         <button type="button" onClick={onClose}
           className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50">
@@ -285,7 +352,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   );
 }
 
-export function TodayQueue({ items, currency = "JOD" }: { items: QueueItem[]; currency?: string }) {
+export function TodayQueue({ items, currency = "JOD", symptomsCatalog = [] }: { items: QueueItem[]; currency?: string; symptomsCatalog?: {id:string;name:string;name_ar:string|null;category?:string}[] }) {
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [openVitals, setOpenVitals] = useState<string | null>(null);
@@ -397,7 +464,7 @@ export function TodayQueue({ items, currency = "JOD" }: { items: QueueItem[]; cu
               Vitals Vitals {hasVitals ? "[OK]" : ""}
             </button>
             {isVitalsOpen && (
-              <VitalsForm item={item} onClose={() => setOpenVitals(null)} />
+              <VitalsForm item={item} onClose={() => setOpenVitals(null)} basicSymptoms={symptomsCatalog.filter(s => !s.category || s.category === "basic")} />
             )}
           </div>
         )}

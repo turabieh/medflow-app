@@ -20,6 +20,7 @@ interface Symptom {
   id: string;
   name: string;
   name_ar: string | null;
+  category?: string;
 }
 
 interface Doctor {

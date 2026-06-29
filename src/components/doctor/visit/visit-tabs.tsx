@@ -19,6 +19,7 @@ interface VisitTabsProps {
   appointmentId: string;
   clinicId: string;
   doctorId?: string;
+  secretaryArrivalNote?: string | null;
   patient: {
     id: string;
     full_name: string;
@@ -144,6 +145,14 @@ export function VisitTabs(props: VisitTabsProps) {
             preCheckedSymptomNames={[]}
           />
         )}
+        {/* Secretary arrival note — show prominently at top when present */}
+        {props.secretaryArrivalNote && (
+          <div className="mx-4 mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">📝 Secretary Note at Arrival</p>
+            <p className="text-sm text-amber-900">{props.secretaryArrivalNote}</p>
+          </div>
+        )}
+
         {activeTab === "clinical" && (
           <ClinicalTab
             visitId={props.visitId}

@@ -40,7 +40,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: symptomsCatalog } = await supabase
     .from("symptoms_catalog")
-    .select("id, name, name_ar")
+    .select("id, name, name_ar, category")
     .eq("is_active", true)
     .order("name");
 
@@ -113,7 +113,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: todayAppointments } = await supabase
     .from("appointments")
-    .select("id, start_time, status, is_overbooked, no_answer_flag, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed")
+    .select("id, start_time, status, is_overbooked, no_answer_flag, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed, secretary_arrival_note")
     .eq("appt_date", todayStr)
     .neq("status", "pending")
     .order("start_time", { ascending: true });
@@ -145,6 +145,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
       vital_height_cm: appt.vital_height_cm,
       vitals_recorded_at: appt.vitals_recorded_at,
       payment_confirmed: appt.payment_confirmed,
+      secretary_arrival_note: (appt as Record<string,unknown>).secretary_arrival_note as string | null,
     };
   });
 
@@ -196,7 +197,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
         Today&apos;s queue
       </h2>
       <div className="mb-6">
-        <TodayQueue items={todayQueueItems} currency={currency} />
+        <TodayQueue items={todayQueueItems} currency={currency} symptomsCatalog={(symptomsCatalog ?? []) as {id:string;name:string;name_ar:string|null;category?:string}[]} />
       </div>
 
       {callTodayAppointments.length > 0 && (
