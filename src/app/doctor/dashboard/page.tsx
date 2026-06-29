@@ -2,6 +2,7 @@ import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { SecretaryDashboard } from "@/components/dashboard/secretary-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +130,7 @@ export default async function DoctorDashboardPage({
     { id: "overview",    label: "Overview" },
     { id: "outpatients", label: "Outpatients" },
     { id: "inpatients",  label: "Inpatients" },
+    { id: "queue",       label: "🩺 Clinic Queue" },
   ];
 
   function age(dob: string | null) {
@@ -363,6 +365,11 @@ export default async function DoctorDashboardPage({
             </div>
           )}
         </div>
+      )}
+
+      {/* ── CLINIC QUEUE TAB ── */}
+      {tab === "queue" && (
+        <SecretaryDashboard clinicId={clinicId} />
       )}
 
       {/* ── INPATIENTS TAB ── */}
