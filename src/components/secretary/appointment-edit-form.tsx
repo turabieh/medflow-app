@@ -36,7 +36,7 @@ interface AppointmentEditFormProps {
   bookedSlots?: BookedSlot[];
 }
 
-const LOCKED_STATUSES = ["with_doctor", "done", "finalized", "cancelled", "no_show"];
+const LOCKED_STATUSES = ["with_doctor", "done", "finalized", "cancelled"];
 
 function formatSlot(t: string) {
   const [h, m] = t.split(":");
