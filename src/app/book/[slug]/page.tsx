@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { submitBookingRequest } from "@/lib/actions/booking-request";
 import { BilingualInput } from "@/components/ui/bilingual-input";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 export default function PublicBookingPage() {
   const params = useParams<{ slug: string }>();
@@ -18,11 +19,12 @@ export default function PublicBookingPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  // Earliest selectable date is tomorrow — matches the original clinic
-  // booking flow, which never allows same-day online requests.
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split("T")[0];
+  // Earliest selectable date is tomorrow (Jordan time)
+  const minDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
+  })();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -119,12 +121,11 @@ export default function PublicBookingPage() {
 
           <div className="mb-4">
             <label className="mb-1 block text-sm text-neutral-700">Preferred date</label>
-            <input
-              type="date"
+            <JordanDateInput
               required
               min={minDate}
               value={preferredDate}
-              onChange={(e) => setPreferredDate(e.target.value)}
+              onChange={setPreferredDate}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
             />
           </div>

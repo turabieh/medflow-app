@@ -78,12 +78,18 @@ export async function submitBookingRequest(
     patientId = existingPatient.id;
     visitType = "followup";
   } else {
+    // Split fullName into first/last for the new schema
+    const nameParts  = input.fullName.trim().split(/\s+/);
+    const firstName  = nameParts[0] ?? input.fullName.trim();
+    const lastName   = nameParts.length > 1 ? nameParts.slice(1).join(" ") : null;
+
     const { data: newPatient, error: patientError } = await supabase
       .from("patients")
       .insert({
-        clinic_id: clinic.id,
-        full_name: input.fullName.trim(),
-        phone: normalizedPhone,
+        clinic_id:  clinic.id,
+        first_name: firstName,
+        last_name:  lastName,
+        phone:      normalizedPhone,
       })
       .select("id")
       .single();
