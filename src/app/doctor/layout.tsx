@@ -11,7 +11,7 @@ export default async function DoctorLayout({ children }: { children: React.React
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, full_name, role, clinic_id, specialty, clinics(name, logo_url)")
+    .select("id, full_name, role, clinic_id, specialty, is_clinic_head, clinics(name, logo_url)")
     .eq("id", user.id)
     .single();
 
@@ -91,6 +91,7 @@ export default async function DoctorLayout({ children }: { children: React.React
         <DoctorSidebarNav
         doctorId={profile.id}
         doctorName={profile.full_name}
+        isClinicHead={(profile as Record<string,unknown>).is_clinic_head as boolean ?? false}
         specialty={profile.specialty}
         clinicName={cl?.name ?? "Clinic"}
         logoUrl={cl?.logo_url}

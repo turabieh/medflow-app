@@ -45,6 +45,7 @@ export function DoctorSidebarNav({
   logoUrl,
   patients = [],
   inpatients = [],
+  isClinicHead = false,
 }: {
   doctorId: string;
   doctorName: string;
@@ -53,6 +54,7 @@ export function DoctorSidebarNav({
   logoUrl?: string | null;
   patients?: OutpatientEntry[];
   inpatients?: InpatientEntry[];
+  isClinicHead?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -142,6 +144,11 @@ export function DoctorSidebarNav({
               pathname === "/doctor/dashboard" ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"
             }`}>
             Dashboard
+          </Link>
+          <Link href="/doctor/schedule"
+            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${pathname.startsWith("/doctor/schedule") ? "bg-neutral-100 font-medium text-neutral-900" : "text-neutral-600 hover:bg-neutral-50"}`}>
+            <span>🗓</span>
+            <span>{isClinicHead ? "Clinic Schedule" : "My Schedule"}</span>
           </Link>
           <Link href="/doctor/patients"
             className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors ${
