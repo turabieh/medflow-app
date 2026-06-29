@@ -224,12 +224,16 @@ export async function logConfirmationCallAttempt(
     return { success: false, error: "Could not find appointment." };
   }
 
+  const newAttempts = (appt.confirmation_call_attempts ?? 0) + 1;
+  const shouldFlag  = newAttempts >= 3;
+
   const { error } = await supabase
     .from("appointments")
     .update({
-      confirmation_call_attempts: (appt.confirmation_call_attempts ?? 0) + 1,
+      confirmation_call_attempts: newAttempts,
       confirmation_last_call_at: new Date().toISOString(),
-      // status intentionally left untouched -- stays 'booked'
+      no_answer_flag: shouldFlag,
+      // status stays 'booked' — appointment remains in system
     })
     .eq("id", appointmentId);
 

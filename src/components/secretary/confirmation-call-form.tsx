@@ -17,6 +17,7 @@ interface ConfirmationCallFormProps {
     start_time: string;
     visit_type: VisitType;
     confirmation_call_attempts: number;
+    no_answer_flag?: boolean;
   };
   patientName: string;
 }
@@ -81,15 +82,29 @@ export function ConfirmationCallForm({ appointment, patientName }: ConfirmationC
     router.refresh();
   }
 
+  const isNoAnswer = appointment.no_answer_flag || appointment.confirmation_call_attempts >= 3;
+  const attemptsLeft = Math.max(0, 3 - appointment.confirmation_call_attempts);
+
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
+    <div className={`rounded-lg border p-4 ${isNoAnswer ? "border-red-300 bg-red-50/60" : "border-blue-200 bg-blue-50/40"}`}>
       <div className="mb-3 flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-neutral-900">{patientName}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-neutral-900">{patientName}</p>
+            {isNoAnswer && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                🚩 No Answer × 3 — Slot can be overbooked
+              </span>
+            )}
+          </div>
           <p className="text-xs text-neutral-500">
             {appointment.appt_date} at {appointment.start_time?.slice(0, 5)} ·{" "}
-            {appointment.confirmation_call_attempts} call attempt
-            {appointment.confirmation_call_attempts === 1 ? "" : "s"}
+            {appointment.confirmation_call_attempts} call attempt{appointment.confirmation_call_attempts === 1 ? "" : "s"}
+            {!isNoAnswer && attemptsLeft > 0 && (
+              <span className="ml-1 text-amber-600 font-medium">
+                · {attemptsLeft} attempt{attemptsLeft === 1 ? "" : "s"} remaining before flag
+              </span>
+            )}
           </p>
         </div>
       </div>

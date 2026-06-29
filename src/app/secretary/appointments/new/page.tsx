@@ -56,7 +56,7 @@ export default async function NewAppointmentPage({
   const future = new Date(Date.now() + 90 * 24 * 3600 * 1000).toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
   const { data: bookedSlots } = await supabase
     .from("appointments")
-    .select("doctor_id, appt_date, start_time, end_time, patient_id, patients(full_name)")
+    .select("doctor_id, appt_date, start_time, end_time, patient_id, no_answer_flag, patients(full_name)")
     .eq("clinic_id", profile?.clinic_id ?? "")
     .in("status", ["booked", "confirmed", "arrived", "with_doctor"])
     .gte("appt_date", today)
@@ -125,6 +125,7 @@ export default async function NewAppointmentPage({
           startTime: b.start_time,
           endTime: b.end_time,
           patientName: Array.isArray(b.patients) ? b.patients[0]?.full_name : (b.patients as {full_name?: string} | null)?.full_name ?? "Another patient",
+          noAnswerFlag: (b as Record<string,unknown>).no_answer_flag as boolean | undefined,
         }))}
       />
     </div>

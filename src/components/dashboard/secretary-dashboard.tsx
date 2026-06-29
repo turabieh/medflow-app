@@ -85,7 +85,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: bookedAppointments } = await supabase
     .from("appointments")
-    .select("id, appt_date, start_time, visit_type, doctor_id, confirmation_call_attempts, patient_id")
+    .select("id, appt_date, start_time, visit_type, doctor_id, confirmation_call_attempts, no_answer_flag, patient_id")
     .eq("status", "booked")
     .order("appt_date", { ascending: true });
 
@@ -113,7 +113,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: todayAppointments } = await supabase
     .from("appointments")
-    .select("id, start_time, status, is_overbooked, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed")
+    .select("id, start_time, status, is_overbooked, no_answer_flag, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed")
     .eq("appt_date", todayStr)
     .neq("status", "pending")
     .order("start_time", { ascending: true });

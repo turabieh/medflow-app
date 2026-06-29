@@ -19,7 +19,7 @@ function formatSlot(t: string) { const [h,m] = t.split(':'); const hr = parseInt
 
 interface Doctor { id: string; full_name: string; }
 interface Symptom { id: string; name: string; name_ar: string | null; category: string; }
-interface BookedSlot { doctorId: string; date: string; startTime: string; endTime: string; patientName: string; }
+interface BookedSlot { doctorId: string; date: string; startTime: string; endTime: string; patientName: string; noAnswerFlag?: boolean; }
 
 export function NewAppointmentForm({
   clinicId,
@@ -105,7 +105,13 @@ export function NewAppointmentForm({
     return getAllSlotsWithBookingCount(doctorId, apptDate, workingHours, bookedSlots);
   }, [doctorId, apptDate, workingHours, bookedSlots]);
 
-  const noAvailableSlots = availableSlots.length === 0 && apptDate && dateCheck.allowed;
+  // Flagged slots: 3x no-answer — soft blocked, can be overbooked freely
+  const flaggedSlots = useMemo(() => {
+    if (!apptDate || !doctorId) return [] as BookedSlot[];
+    return bookedSlots.filter(b => b.doctorId === doctorId && b.date === apptDate && b.noAnswerFlag);
+  }, [bookedSlots, doctorId, apptDate]);
+
+  const noAvailableSlots = availableSlots.length === 0 && flaggedSlots.length === 0 && apptDate && dateCheck.allowed;
 
   // Is the currently selected slot a conflict?
   const selectedSlotCount = useMemo(() => {
@@ -147,7 +153,7 @@ export function NewAppointmentForm({
       visitType,
       secretaryNotes: notes,
       symptomIds: Array.from(symptomIds),
-      isOverbooked: overbookMode && selectedSlotCount > 0,
+      isOverbooked: (overbookMode && selectedSlotCount > 0) || flaggedSlots.some(f => f.startTime === selectedSlot),
     });
     setLoading(false);
     if (!result.success) { setError(result.error ?? "Could not book."); return; }
@@ -254,6 +260,7 @@ export function NewAppointmentForm({
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-1.5">
+                  {/* Normal available slots */}
                   {availableSlots.map(slot => (
                     <button key={slot} type="button"
                       onClick={() => setSelectedSlot(slot)}
@@ -265,6 +272,31 @@ export function NewAppointmentForm({
                       {formatSlot(slot)}
                     </button>
                   ))}
+                  {/* Flagged slots (3× no-answer) — can be rebooked */}
+                  {flaggedSlots.length > 0 && (
+                    <div className="col-span-4 mt-1 rounded-md border border-red-200 bg-red-50 px-2 py-1.5">
+                      <p className="mb-1 text-[10px] font-semibold text-red-600 uppercase tracking-wide">
+                        🚩 Flagged slots — patient did not answer 3×, can be overbooked
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {flaggedSlots.map(f => (
+                          <button key={f.startTime} type="button"
+                            onClick={() => { setSelectedSlot(f.startTime); }}
+                            className={`rounded-md border px-2 py-1.5 text-xs font-medium transition-colors ${
+                              selectedSlot === f.startTime
+                                ? "border-red-700 bg-red-700 text-white"
+                                : "border-red-300 bg-white text-red-700 hover:bg-red-100"
+                            }`}>
+                            {formatSlot(f.startTime)}
+                            <span className="ml-1 opacity-70">🚩</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-1 text-[10px] text-red-400">
+                        {flaggedSlots[0].patientName} — existing appointment will remain in system
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </>

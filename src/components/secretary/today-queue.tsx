@@ -19,6 +19,7 @@ interface QueueItem {
   status: string;
   visit_type: string;
   is_overbooked: boolean;
+  no_answer_flag?: boolean;
   patientId: string;
   patientName: string;
   patientNameAr?: string | null;
