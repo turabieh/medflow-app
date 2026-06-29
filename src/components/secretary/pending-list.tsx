@@ -25,6 +25,12 @@ interface PendingItem {
     id: string;
     full_name: string;
     full_name_ar: string | null;
+    first_name: string;
+    middle_name: string | null;
+    last_name: string | null;
+    first_name_ar: string | null;
+    middle_name_ar: string | null;
+    last_name_ar: string | null;
     gender: "male" | "female" | null;
     dob: string | null;
     address: string | null;

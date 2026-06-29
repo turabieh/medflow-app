@@ -24,7 +24,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
   const { data: patients } = patientIds.length
     ? await supabase
         .from("patients")
-        .select("id, full_name, full_name_ar, gender, dob, address, phone, phone2, phone2_relation")
+        .select("id, full_name, full_name_ar, first_name, middle_name, last_name, first_name_ar, middle_name_ar, last_name_ar, gender, dob, address, phone, phone2, phone2_relation")
         .in("id", patientIds)
     : { data: [] };
 

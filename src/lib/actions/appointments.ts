@@ -11,8 +11,12 @@ export interface ConfirmBookingInput {
   doctorId: string;
 
   // Patient demographics (editable by secretary during the call)
-  fullName: string;
-  fullNameAr?: string;
+  firstName: string;
+  middleName?: string | null;
+  lastName?: string | null;
+  firstNameAr?: string | null;
+  middleNameAr?: string | null;
+  lastNameAr?: string | null;
   gender?: "male" | "female";
   dob?: string;
   address?: string;
@@ -56,8 +60,8 @@ export async function confirmBooking(
     return { success: false, error: "Not authenticated." };
   }
 
-  if (!input.fullName?.trim() || !input.phone?.trim()) {
-    return { success: false, error: "Name and phone are required." };
+  if (!input.firstName?.trim() || !input.phone?.trim()) {
+    return { success: false, error: "First name and phone are required." };
   }
   if (!input.doctorId?.trim()) {
     return { success: false, error: "A doctor must be selected." };
@@ -70,8 +74,12 @@ export async function confirmBooking(
   const { error: patientError } = await supabase
     .from("patients")
     .update({
-      full_name: input.fullName.trim(),
-      full_name_ar: input.fullNameAr?.trim() || null,
+      first_name:     input.firstName.trim(),
+      middle_name:    input.middleName?.trim() || null,
+      last_name:      input.lastName?.trim() || null,
+      first_name_ar:  input.firstNameAr?.trim() || null,
+      middle_name_ar: input.middleNameAr?.trim() || null,
+      last_name_ar:   input.lastNameAr?.trim() || null,
       gender: input.gender || null,
       dob: input.dob || null,
       address: input.address?.trim() || null,
