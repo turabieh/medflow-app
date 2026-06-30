@@ -121,19 +121,22 @@ export default function PublicBookingPage() {
 
           <div className="mb-4">
             <label className="mb-1 block text-sm text-neutral-700">Preferred date</label>
-            <input
-              type="date"
-              required
-              min={minDate}
-              value={preferredDate}
-              onChange={e => setPreferredDate(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
-            />
-            {preferredDate && (
-              <p className="mt-1 text-xs text-neutral-400">
-                {preferredDate.split("-").reverse().join("/")}
-              </p>
-            )}
+            <div className="relative">
+              <input
+                type="date"
+                required
+                min={minDate}
+                value={preferredDate}
+                onChange={e => setPreferredDate(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+                style={preferredDate ? { color: "transparent" } : undefined}
+              />
+              {preferredDate && (
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-900">
+                  {preferredDate.split("-").reverse().join("/")}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="mb-4">
