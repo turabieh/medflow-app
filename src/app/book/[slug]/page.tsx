@@ -121,13 +121,19 @@ export default function PublicBookingPage() {
 
           <div className="mb-4">
             <label className="mb-1 block text-sm text-neutral-700">Preferred date</label>
-            <JordanDateInput
+            <input
+              type="date"
               required
               min={minDate}
               value={preferredDate}
-              onChange={setPreferredDate}
+              onChange={e => setPreferredDate(e.target.value)}
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
             />
+            {preferredDate && (
+              <p className="mt-1 text-xs text-neutral-400">
+                {preferredDate.split("-").reverse().join("/")}
+              </p>
+            )}
           </div>
 
           <div className="mb-4">
