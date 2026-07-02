@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { LogoutButton } from "@/components/ui/logout-button";
 import { createClient } from "@/lib/supabase/client";
 
@@ -62,9 +62,24 @@ export function DoctorSidebarNav({
   const pathname = usePathname();
   const [patients, setPatients] = useState<OutpatientEntry[]>(initialPatients);
   const [notification, setNotification] = useState<string | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Sync when server re-renders with new props
   useEffect(() => { setPatients(initialPatients); }, [initialPatients]);
+
+  // Pre-warm AudioContext on first user interaction
+  useEffect(() => {
+    function warmAudio() {
+      if (!audioCtxRef.current) {
+        try {
+          audioCtxRef.current = new (window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext)();
+        } catch {}
+      }
+      document.removeEventListener("click", warmAudio);
+    }
+    document.addEventListener("click", warmAudio);
+    return () => document.removeEventListener("click", warmAudio);
+  }, []);
 
   // Realtime: watch appointment status changes for this doctor today
   useEffect(() => {
@@ -132,7 +147,9 @@ export function DoctorSidebarNav({
           setTimeout(() => setNotification(null), 12000);
         }
       })
-      .subscribe();
+      .subscribe((status: string) => {
+        if (status === "SUBSCRIBED") console.log("[Realtime] Doctor queue connected");
+      });
 
     return () => { sb.removeChannel(channel); };
   }, [doctorId]);
