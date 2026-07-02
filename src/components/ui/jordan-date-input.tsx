@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface JordanDateInputProps {
-  value: string;               // YYYY-MM-DD stored value
+  value: string;
   onChange: (val: string) => void;
   required?: boolean;
   placeholder?: string;
@@ -14,26 +14,21 @@ interface JordanDateInputProps {
   id?: string;
 }
 
-/** YYYY-MM-DD → DD/MM/YYYY */
 function toDisplay(iso: string): string {
   if (!iso || iso.length < 10) return "";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
 
-/** DD/MM/YYYY → YYYY-MM-DD. Returns "" if invalid */
 function toISO(display: string): string {
   const digits = display.replace(/\D/g, "");
   if (digits.length < 8) return "";
-  const d = digits.slice(0, 2);
-  const m = digits.slice(2, 4);
-  const y = digits.slice(4, 8);
+  const d = digits.slice(0, 2), m = digits.slice(2, 4), y = digits.slice(4, 8);
   const di = parseInt(d), mi = parseInt(m), yi = parseInt(y);
   if (di < 1 || di > 31 || mi < 1 || mi > 12 || yi < 1900 || yi > 2100) return "";
   return `${y}-${m}-${d}`;
 }
 
-/** Auto-insert slashes: "2906" → "29/06", "290620" → "29/06/20" */
 function autoFormat(raw: string): string {
   const digits = raw.replace(/\D/g, "").slice(0, 8);
   if (digits.length <= 2) return digits;
@@ -42,15 +37,16 @@ function autoFormat(raw: string): string {
 }
 
 export function JordanDateInput({
-  value, onChange, required, placeholder = "DD/MM/YYYY or 📅",
+  value, onChange, required, placeholder = "DD/MM/YYYY",
   className = "", style, min, max, id,
 }: JordanDateInputProps) {
-  const nativeRef = useRef<HTMLInputElement>(null);
-  // Text field value — either typed or from picker
-  const [text, setText] = useState(() => value ? toDisplay(value) : "");
+  const nativeRef  = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [text, setText]       = useState(() => value ? toDisplay(value) : "");
   const [hasError, setHasError] = useState(false);
+  const [showNative, setShowNative] = useState(false);
 
-  // Keep text in sync when value prop changes externally
+  // Keep text in sync when value changes externally
   const prevValue = useRef(value);
   if (value !== prevValue.current) {
     prevValue.current = value;
@@ -58,21 +54,27 @@ export function JordanDateInput({
     if (text !== expected) setText(value ? expected : "");
   }
 
+  // Close native picker when clicking outside
+  useEffect(() => {
+    if (!showNative) return;
+    function handleOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowNative(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [showNative]);
+
   function handleTextChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value;
     const formatted = autoFormat(raw);
     setText(formatted);
     setHasError(false);
-
     if (formatted.length === 10) {
       const iso = toISO(formatted);
-      if (iso) {
-        onChange(iso);
-        setHasError(false);
-      } else {
-        setHasError(true);
-        onChange("");
-      }
+      if (iso) { onChange(iso); setHasError(false); }
+      else setHasError(true);
     } else if (formatted.length === 0) {
       onChange("");
     }
@@ -83,27 +85,44 @@ export function JordanDateInput({
   }
 
   function handleNativeChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const iso = e.target.value; // YYYY-MM-DD
+    const iso = e.target.value;
     if (iso) {
       onChange(iso);
       setText(toDisplay(iso));
       setHasError(false);
+      setShowNative(false); // close after picking
     }
   }
 
-  function openCalendar() {
-    try {
-      nativeRef.current?.showPicker?.();
-    } catch {}
-    nativeRef.current?.click();
+  function openCalendar(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Try showPicker (Chrome/Firefox/Edge — not Safari)
+    if (nativeRef.current && typeof nativeRef.current.showPicker === "function") {
+      try {
+        nativeRef.current.showPicker();
+        return;
+      } catch {}
+    }
+    
+    // Safari fallback: show an absolutely-positioned native input
+    setShowNative(true);
+    // Focus the native input after render
+    setTimeout(() => {
+      nativeRef.current?.focus();
+      nativeRef.current?.click();
+    }, 0);
   }
 
-  const border = hasError ? "border-red-400 focus:border-red-500" : "border-neutral-300 focus:border-neutral-500";
+  const border = hasError
+    ? "border-red-400 focus:border-red-500"
+    : "border-neutral-300 focus:border-neutral-500";
 
   return (
-    <div className="relative" style={{ width: "100%" }}>
+    <div ref={wrapperRef} className="relative" style={{ width: "100%" }}>
       <div className="flex gap-1">
-        {/* Manual text entry — DD/MM/YYYY with auto-slash */}
+        {/* Typing field */}
         <input
           id={id}
           type="text"
@@ -117,7 +136,7 @@ export function JordanDateInput({
           className={`flex-1 rounded-md border px-3 py-2 text-sm outline-none font-mono tracking-wide ${border} ${className}`}
           style={style}
         />
-        {/* Calendar icon button */}
+        {/* Calendar button */}
         <button
           type="button"
           onClick={openCalendar}
@@ -131,7 +150,7 @@ export function JordanDateInput({
         </button>
       </div>
 
-      {/* Invisible native date input — only for calendar picker */}
+      {/* Native date input — always present for showPicker(), shown on top in Safari */}
       <input
         ref={nativeRef}
         type="date"
@@ -139,16 +158,24 @@ export function JordanDateInput({
         min={min}
         max={max}
         onChange={handleNativeChange}
-        tabIndex={-1}
-        aria-hidden="true"
+        onBlur={() => setShowNative(false)}
+        tabIndex={showNative ? 0 : -1}
+        aria-hidden={!showNative}
         style={{
           position: "absolute",
           top: 0,
           left: 0,
-          width: "1px",
-          height: "1px",
-          opacity: 0,
-          pointerEvents: "none",
+          width: "100%",
+          height: "100%",
+          opacity: showNative ? 1 : 0,
+          zIndex: showNative ? 10 : -1,
+          cursor: "pointer",
+          // Make it visible but text transparent so calendar icon shows
+          color: "transparent",
+          background: showNative ? "white" : "transparent",
+          border: showNative ? "2px solid #6366f1" : "none",
+          borderRadius: "6px",
+          padding: "8px 12px",
         }}
       />
 

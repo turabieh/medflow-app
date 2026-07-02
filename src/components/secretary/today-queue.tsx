@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef, useCallback } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { initAudio, playNotificationLow } from "@/lib/notification-sound";
 import { useRouter } from "next/navigation";
 import { to12h } from "@/lib/client-timezone";
 import {
@@ -313,22 +314,6 @@ export function TodayQueue({
   const [openVitals, setOpenVitals] = useState<string | null>(null);
   const [items, setItems] = useState<QueueItem[]>(initialItems);
   const [realtimeNote, setRealtimeNote] = useState<string | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-
-  // Pre-warm audio on first click
-  useEffect(() => {
-    function warmAudio() {
-      if (!audioCtxRef.current) {
-        try {
-          audioCtxRef.current = new (window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext)();
-        } catch {}
-      }
-      document.removeEventListener("click", warmAudio);
-    }
-    document.addEventListener("click", warmAudio);
-    return () => document.removeEventListener("click", warmAudio);
-  }, []);
-
   // Sync when server re-renders
   useEffect(() => { setItems(initialItems); }, [initialItems]);
 
@@ -357,19 +342,7 @@ export function TodayQueue({
             const name = patient?.patientName ?? "Patient";
             setRealtimeNote(`✓ ${name} — visit done. Ready to finalize.`);
 
-            try {
-              const ctx = audioCtxRef.current ?? new (window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext)();
-              const playSound = () => {
-                const osc = ctx.createOscillator(); const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.frequency.setValueAtTime(660, ctx.currentTime);
-                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.25, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-                osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
-              };
-              if (ctx.state === "suspended") { ctx.resume().then(playSound).catch(() => {}); } else { playSound(); }
-            } catch {}
+            playNotificationLow();
 
             setTimeout(() => setRealtimeNote(null), 15000);
           }
@@ -385,6 +358,7 @@ export function TodayQueue({
   const basicSymptoms = symptomsCatalog.filter(s => !s.category || s.category === "basic");
 
   function runAction(id: string, action: (id: string) => Promise<unknown>) {
+    initAudio(); // warm up audio
     setLoadingId(id);
     startTransition(async () => {
       await action(id);
