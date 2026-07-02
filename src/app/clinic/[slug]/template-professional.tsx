@@ -22,6 +22,142 @@ const SI: Record<string,React.ReactNode> = {
   whatsapp: <svg viewBox="0 0 24 24" fill="currentColor" style={{width:14,height:14}}><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>,
 };
 
+
+// Extract YouTube video ID from URL or plain ID
+function extractYTId(raw: string): string {
+  if (!raw) return "";
+  const m = raw.match(/[?&]v=([^&#]{11})/) ||
+            raw.match(/youtu\.be\/([^?&#]{11})/) ||
+            raw.match(/embed\/([^?&#]{11})/);
+  if (m) return m[1];
+  // If it's already an 11-char ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(raw.trim())) return raw.trim();
+  return raw.slice(-11); // fallback
+}
+
+// Get all valid YouTube IDs from page + all doctors
+function getAllVideoIds(page: R, doctors: R[]): string[] {
+  const ids: string[] = [];
+  // From clinic page
+  ((page.youtube_video_ids as string[]) ?? []).forEach(id => {
+    const clean = extractYTId(id);
+    if (clean.length >= 10) ids.push(clean);
+  });
+  if (!ids.length && page.youtube_video_id) {
+    const clean = extractYTId(page.youtube_video_id as string);
+    if (clean.length >= 10) ids.push(clean);
+  }
+  // From doctors
+  doctors.forEach(doc => {
+    ((doc.youtube_ids as string[]) ?? []).forEach(id => {
+      const clean = extractYTId(id);
+      if (clean.length >= 10 && !ids.includes(clean)) ids.push(clean);
+    });
+  });
+  return ids;
+}
+
+
+
+// Back to top button
+function BackToTop() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const handler = () => setVisible(window.scrollY > 600);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+  return visible ? (
+    <button
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      style={{
+        position: "fixed", bottom: "2rem", right: "2rem", zIndex: 200,
+        width: 44, height: 44, borderRadius: "50%",
+        background: "#0A2342", color: "#fff", border: "none",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", fontSize: "1.1rem",
+        boxShadow: "0 4px 20px rgba(10,35,66,0.25)",
+        transition: "all 0.2s ease",
+        opacity: visible ? 1 : 0,
+      }}
+      aria-label="Back to top"
+      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C9A84C"; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#0A2342"; }}
+    >
+      ↑
+    </button>
+  ) : null;
+}
+
+// YouTube section with random video picker
+function YouTubeSection({ page, doctors, lang }: { page: R; doctors: R[]; lang: string }) {
+  const ar = lang === "ar";
+  const allIds = getAllVideoIds(page, doctors);
+  const [activeIdx, setActiveIdx] = useState(0);
+  
+  // Shuffle once on mount
+  const [shuffled, setShuffled] = useState<string[]>([]);
+  useEffect(() => {
+    const arr = [...allIds].sort(() => Math.random() - 0.5);
+    setShuffled(arr);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allIds.join(",")]);
+  
+  const videos = shuffled.length > 0 ? shuffled : allIds;
+  if (videos.length === 0) return null;
+  
+  const activeId = videos[activeIdx] ?? "";
+
+  return (
+    <section className="youtube-section">
+      <div className="youtube-inner">
+        <div className="fade-in" style={{textAlign:"center"}}>
+          <div className="section-eyebrow" style={{justifyContent:"center",color:"#C9A84C"}}>
+            {ar?"شاهد":"Watch"}
+          </div>
+          <h2 className="section-heading" style={{textAlign:"center"}}>
+            {ar
+              ? String((page.youtube_title_ar ?? page.youtube_title_en) ?? (ar?"مقاطع مميزة":"Featured Videos"))
+              : String((page.youtube_title_en ?? page.youtube_title_ar) ?? "Featured Videos")
+            }
+          </h2>
+        </div>
+        <div className="youtube-frame fade-in fade-in-delay-2">
+          <iframe
+            key={activeId}
+            src={`https://www.youtube.com/embed/${activeId}?rel=0&modestbranding=1&color=white`}
+            title="Clinic video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+        {/* Video selector dots — if more than 1 video */}
+        {videos.length > 1 && (
+          <div style={{display:"flex",justifyContent:"center",gap:"0.5rem",marginTop:"1.25rem",flexWrap:"wrap"}}>
+            {videos.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveIdx(i)}
+                style={{
+                  width: activeIdx===i ? 28 : 8,
+                  height: 8,
+                  borderRadius: 100,
+                  border: "none",
+                  background: activeIdx===i ? "#C9A84C" : "#d0c9bc",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "all 0.3s ease",
+                }}
+                aria-label={`Video ${i+1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // Star component
 function Stars({ n }: { n: number }) {
   return (
@@ -143,24 +279,26 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
   const phone      = (page.phone||clinic.phone) as string||"";
   const email      = (page.email||clinic.email) as string||"";
 
-  // Collect photos: doctors first, then hero/about images
-  const slideItems: Array<{img:string; name:string; title:string; bio:string}> = [
-    ...doctors
-      .filter(d => !!(d.photo_url))
-      .slice(0,5)
-      .map(d => ({
-        img:   d.photo_url as string,
-        name:  ar?(d.name_ar as string||d.name_en as string):d.name_en as string||"",
-        title: String(ar?d.title_ar??d.title_en:d.title_en??d.title_ar),
-        bio:   String(ar?d.bio_ar??d.bio_en:d.bio_en??d.bio_ar).slice(0,200),
-      })),
-    ...(page.hero_image_url && !doctors.find(d=>d.photo_url===page.hero_image_url)
-      ? [{ img: page.hero_image_url as string, name: clinicName, title: tagline, bio: "" }]
-      : []),
-    ...(page.about_image_url && !doctors.find(d=>d.photo_url===page.about_image_url)
-      ? [{ img: page.about_image_url as string, name: clinicName, title: ar?"مرحباً بكم":"Welcome", bio: "" }]
-      : []),
-  ];
+  // Collect all doctor photos (up to 5 per doctor, all doctors)
+  const slideItems: Array<{img:string; name:string; title:string; bio:string}> = [];
+  doctors.forEach(doc => {
+    const photos = ((doc.photo_urls as string[]) ?? []).filter(Boolean);
+    const mainPhoto = (doc.photo_url as string) || "";
+    const allPhotos = photos.length > 0 ? photos : (mainPhoto ? [mainPhoto] : []);
+    allPhotos.slice(0,5).forEach(img => {
+      slideItems.push({
+        img,
+        name:  ar?(doc.name_ar as string||doc.name_en as string):doc.name_en as string||"",
+        title: String((ar ? (doc.title_ar ?? doc.title_en) : (doc.title_en ?? doc.title_ar)) ?? ""),
+        bio:   String((ar ? (doc.bio_ar ?? doc.bio_en) : (doc.bio_en ?? doc.bio_ar)) ?? "").slice(0,180),
+      });
+    });
+  });
+  // Add hero/about images if no doctor photos
+  if (slideItems.length === 0) {
+    if (page.hero_image_url) slideItems.push({ img: page.hero_image_url as string, name: clinicName, title: tagline, bio: "" });
+    if (page.about_image_url) slideItems.push({ img: page.about_image_url as string, name: clinicName, title: ar?"مرحباً بكم":"Welcome", bio: "" });
+  }
 
   const hasSlider = slideItems.length > 0;
 
@@ -315,7 +453,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
 
       {/* ── SERVICES ──────────────────────────────────────── */}
       {services.length > 0 && (
-        <section id="services" style={{background:"#fff",padding:"5rem 1.5rem"}}>
+        <section id="services" style={{background:"#fff",padding:"3.5rem 1.5rem"}}>
           <div style={{maxWidth:1200,margin:"0 auto"}}>
             <div className="fade-in" style={{textAlign:"center",marginBottom:"0.5rem"}}>
               <div className="section-eyebrow" style={{justifyContent:"center"}}>{ar?"ما نقدمه":"What We Offer"}</div>
@@ -369,33 +507,40 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                     ))}
                   </div>
                 )}
+                {/* Social links under doctor photo */}
+                {socialLinks.length>0 && i===0 && (
+                  <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:"center",marginTop:"0.75rem"}}>
+                    {socialLinks.slice(0,5).map(s=>(
+                      <a key={s.key} href={page[s.key] as string} target="_blank" rel="noopener noreferrer"
+                        style={{display:"flex",alignItems:"center",gap:"0.3rem",padding:"0.3rem 0.7rem",borderRadius:100,border:"1px solid #e5e0d8",background:"#fff",fontSize:"0.72rem",fontWeight:600,color:"#6B7280",textDecoration:"none",transition:"all 0.2s"}}
+                        title={s.label}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="#C9A84C";(e.currentTarget as HTMLElement).style.color="#C9A84C";}}
+                        onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="#e5e0d8";(e.currentTarget as HTMLElement).style.color="#6B7280";}}>
+                        {SI[s.icon]}<span>{s.label}</span>
+                      </a>
+                    ))}
+                    {page.whatsapp && (
+                      <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
+                        style={{display:"flex",alignItems:"center",gap:"0.3rem",padding:"0.3rem 0.7rem",borderRadius:100,border:"1px solid #e5e0d8",background:"#fff",fontSize:"0.72rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}
+                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="#25D366";(e.currentTarget as HTMLElement).style.color="#25D366";}}
+                        onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="#e5e0d8";(e.currentTarget as HTMLElement).style.color="#6B7280";}}>
+                        {SI.whatsapp}<span>WhatsApp</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* ── YOUTUBE ───────────────────────────────────────── */}
-      {!!page.youtube_video_id && (
-        <section className="youtube-section">
-          <div className="youtube-inner">
-            <div className="fade-in" style={{textAlign:"center"}}>
-              <div className="section-eyebrow" style={{justifyContent:"center",color:"#C9A84C"}}>{ar?"شاهد":"Watch"}</div>
-              <h2 className="section-heading" style={{textAlign:"center"}}>
-                {ar?String(page.youtube_title_ar??page.youtube_title_en??""):String(page.youtube_title_en??page.youtube_title_ar??"")}
-              </h2>
-            </div>
-            <div className="youtube-frame fade-in fade-in-delay-2">
-              <iframe src={`https://www.youtube.com/embed/${String(page.youtube_video_id??"")}?rel=0&modestbranding=1&color=white`}
-                title="Clinic video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen/>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── YOUTUBE VIDEOS ──────────────────────────────── */}
+      <YouTubeSection page={page} doctors={doctors} lang={lang} />
 
       {/* ── REVIEWS ───────────────────────────────────────── */}
       {testimonials.length > 0 && (
-        <section id="reviews" style={{padding:"5rem 1.5rem",background:"#fff"}}>
+        <section id="reviews" style={{padding:"3.5rem 1.5rem",background:"#fff"}}>
           <div style={{maxWidth:1200,margin:"0 auto"}}>
             <div className="fade-in" style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexWrap:"wrap",gap:"1rem",marginBottom:"2.5rem"}}>
               <div>
@@ -474,6 +619,9 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
           </div>
         </div>
       </section>
+
+      {/* ── BACK TO TOP ───────────────────────────────────── */}
+      <BackToTop/>
 
       {/* ── FOOTER ────────────────────────────────────────── */}
       <footer className="clinic-footer">

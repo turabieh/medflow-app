@@ -280,22 +280,32 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
               ))}
             </div>
             <div className="mt-4 border-t border-neutral-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-neutral-800">Featured YouTube Video</h3>
-              <div className={row}>
-                <F lbl="YouTube Video ID (e.g. dQw4w9WgXcQ)">
-                  <input value={String(page.youtube_video_id ?? "")} onChange={e => set("youtube_video_id", e.target.value)} className={inp} placeholder="dQw4w9WgXcQ" />
-                </F>
-                <div />
+              <h3 className="mb-2 text-sm font-semibold text-neutral-800">YouTube Videos (up to 5 — appear randomly on the page)</h3>
+              <p className="mb-3 text-xs text-neutral-400">Paste the full YouTube URL or just the video ID (e.g. dQw4w9WgXcQ)</p>
+              <div className="space-y-2">
+                {[0,1,2,3,4].map(i => {
+                  const ids = (page.youtube_video_ids as string[]) ?? [];
+                  const val = ids[i] ?? "";
+                  const extractId = (raw: string) => {
+                    const m = raw.match(/[?&]v=([^&#]+)/) || raw.match(/youtu\.be\/([^?&#]+)/) || raw.match(/embed\/([^?&#]+)/);
+                    return m ? m[1] : raw.replace(/https?:\/\/[^/]*youtube[^/]*\/watch.*v=/,"").split(/[&#]/)[0] || raw;
+                  };
+                  return (
+                    <div key={i} className="flex gap-2 items-center">
+                      <span className="text-xs text-neutral-400 w-4">{i+1}</span>
+                      <input value={val} onChange={e => {
+                        const raw = e.target.value.trim();
+                        const id = raw.includes("youtube") || raw.includes("youtu.be") ? extractId(raw) : raw;
+                        const arr = [...((page.youtube_video_ids as string[])??[])];
+                        arr[i] = id;
+                        set("youtube_video_ids", arr);
+                        if (i===0) set("youtube_video_id", id);
+                      }} className={inp} placeholder="https://youtube.com/watch?v=... or video ID" />
+                      {val && <a href={`https://youtube.com/watch?v=${val}`} target="_blank" className="text-xs text-blue-500 hover:underline flex-shrink-0">▶ Preview</a>}
+                    </div>
+                  );
+                })}
               </div>
-              <div className={row}>
-                <F lbl="Video Title (EN)" inp={<input value={String(page.youtube_title_en ?? "")} onChange={e => set("youtube_title_en", e.target.value)} className={inp} />} />
-                <F lbl="Video Title (AR)" inp={<input value={String(page.youtube_title_ar ?? "")} onChange={e => set("youtube_title_ar", e.target.value)} className={inp} dir="rtl" />} />
-              </div>
-              {!!page.youtube_video_id && (
-                <div className="mt-2 aspect-video w-full max-w-md overflow-hidden rounded-lg">
-                  <iframe src={`https://www.youtube.com/embed/${String(page.youtube_video_id ?? "")}`} className="h-full w-full" allowFullScreen />
-                </div>
-              )}
             </div>
           </Section>
         )}
@@ -416,8 +426,47 @@ function DoctorCard({ doctor: init, onSave, onDelete, isNew }: { doctor: R; onSa
         <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (EN)</label><input value={((d.specialty_en) as string) ?? ""} onChange={e => setD({...d, specialty_en: e.target.value})} className={inp} /></div>
         <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (AR)</label><input value={((d.specialty_ar) as string) ?? ""} onChange={e => setD({...d, specialty_ar: e.target.value})} className={inp} dir="rtl" /></div>
       </div>
-      <div><label className="mb-1 block text-[10px] text-neutral-500">Professional Photo URL</label><input value={((d.photo_url) as string) ?? ""} onChange={e => setD({...d, photo_url: e.target.value})} className={inp} placeholder="https://..." /></div>
-      {!!d.photo_url && <img src={String(d.photo_url ?? "")} alt="" className="h-24 w-24 rounded-full object-cover" />}
+      {/* 5 Photo URLs */}
+      <div className="space-y-2">
+        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">Photos (up to 5 — large professional photos)</label>
+        {[0,1,2,3,4].map(i => {
+          const urls = (d.photo_urls as string[]) ?? [];
+          const val = urls[i] ?? "";
+          return (
+            <div key={i} className="flex gap-2 items-center">
+              <span className="text-[10px] text-neutral-400 w-4 flex-shrink-0">{i+1}</span>
+              <input value={val} onChange={e => {
+                const arr = [...((d.photo_urls as string[])??[])];
+                arr[i] = e.target.value;
+                setD({...d, photo_urls: arr, photo_url: arr[0]??""});
+              }} className={inp} placeholder={i===0?"https://... (main photo)":"https://... (additional photo)"} />
+              {val && <img src={val} alt="" className="h-8 w-8 rounded-lg object-cover flex-shrink-0" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} />}
+            </div>
+          );
+        })}
+      </div>
+      {/* 5 YouTube Video IDs */}
+      <div className="space-y-2">
+        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">YouTube Videos (up to 5 — paste full URL or video ID)</label>
+        <p className="text-[10px] text-neutral-400">e.g. https://youtube.com/watch?v=ABC123 or just ABC123</p>
+        {[0,1,2,3,4].map(i => {
+          const ids = (d.youtube_ids as string[]) ?? [];
+          const val = ids[i] ?? "";
+          return (
+            <div key={i} className="flex gap-2 items-center">
+              <span className="text-[10px] text-neutral-400 w-4 flex-shrink-0">{i+1}</span>
+              <input value={val} onChange={e => {
+                const raw = e.target.value.trim();
+                const id = raw.match(/[?&]v=([^&#]+)/)?.[1] || raw.match(/youtu\.be\/([^?&#]+)/)?.[1] || raw.match(/embed\/([^?&#]+)/)?.[1] || raw.replace(/^https?:\/\//,"").replace(/^www\./,"").split(/[/?&#]/)[0] || raw;
+                const arr = [...((d.youtube_ids as string[])??[])];
+                arr[i] = id.length < 60 ? id : raw;
+                setD({...d, youtube_ids: arr});
+              }} className={inp} placeholder="Paste YouTube URL or video ID" />
+              {val && <span className="text-[10px] text-emerald-600 flex-shrink-0 font-mono">{val.slice(0,12)}</span>}
+            </div>
+          );
+        })}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div><label className="mb-1 block text-[10px] text-neutral-500">Bio (EN)</label><textarea value={((d.bio_en) as string) ?? ""} onChange={e => setD({...d, bio_en: e.target.value})} rows={3} className={`${inp} resize-none`} /></div>
         <div><label className="mb-1 block text-[10px] text-neutral-500">Bio (AR)</label><textarea value={((d.bio_ar) as string) ?? ""} onChange={e => setD({...d, bio_ar: e.target.value})} rows={3} className={`${inp} resize-none`} dir="rtl" /></div>
