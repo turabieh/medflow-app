@@ -72,11 +72,13 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
   async function saveDoctor(d: R, isNew: boolean) {
     const sb = createClient();
     if (isNew) {
-      const { data } = await sb.from("clinic_doctors_public").insert({ ...d, clinic_id: clinicId }).select("id").single();
-      if (data) setDoctors(prev => [...prev, { ...d, id: data.id }]);
+      const { data, error } = await sb.from("clinic_doctors_public").insert({ ...d, clinic_id: clinicId }).select("*").single();
+      if (data) setDoctors(prev => [...prev, data as R]);
+      else if (error) console.error("saveDoctor insert error:", error.message);
     } else {
-      await sb.from("clinic_doctors_public").update(d).eq("id", d.id as string);
-      setDoctors(prev => prev.map(x => x.id === d.id ? d : x));
+      const { error } = await sb.from("clinic_doctors_public").update(d).eq("id", d.id as string);
+      if (!error) setDoctors(prev => prev.map(x => x.id === d.id ? { ...x, ...d } : x));
+      else console.error("saveDoctor update error:", error.message);
     }
   }
 
@@ -404,76 +406,159 @@ function ServiceCard({ service: init, onSave, onDelete, isNew }: { service: R; o
 function DoctorCard({ doctor: init, onSave, onDelete, isNew }: { doctor: R; onSave: (d:R)=>void; onDelete?: ()=>void; isNew?: boolean }) {
   const [d, setD] = useState<R>(init);
   const [open, setOpen] = useState(isNew ?? false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const inp = "w-full rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500";
+
+  // Get first non-empty photo for preview
+  const previewPhoto = ((d.photo_urls as string[]) ?? []).find(Boolean) || (d.photo_url as string) || "";
 
   if (!open) return (
     <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm">
-      {d.photo_url ? <img src={d.photo_url as string} alt="" className="h-10 w-10 rounded-full object-cover" /> : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-xl">👨‍⚕️</div>}
-      <div className="flex-1"><p className="text-sm font-medium">{d.name_en as string || "(no name)"}</p><p className="text-xs text-neutral-400">{d.title_en as string}</p></div>
+      {previewPhoto
+        ? <img src={previewPhoto} alt="" className="h-10 w-10 rounded-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        : <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-xl">👨‍⚕️</div>
+      }
+      <div className="flex-1">
+        <p className="text-sm font-medium">{(d.name_en as string) || (d.name_ar as string) || "(no name)"}</p>
+        <p className="text-xs text-neutral-400">{d.title_en as string}</p>
+      </div>
       <button onClick={() => setOpen(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
       {onDelete && <button onClick={onDelete} className="text-xs text-red-500 hover:underline">Delete</button>}
     </div>
   );
 
+  async function handleSave() {
+    if (!(d.name_en as string)?.trim() && !(d.name_ar as string)?.trim()) {
+      alert("Please enter at least the doctor name."); return;
+    }
+    setSaving(true);
+    // Clean photo_urls — remove empty strings
+    const cleanPhotos = ((d.photo_urls as string[]) ?? []).filter(Boolean);
+    const cleanYT     = ((d.youtube_ids as string[]) ?? []).filter(Boolean);
+    const payload = {
+      ...d,
+      photo_urls:  cleanPhotos,
+      youtube_ids: cleanYT,
+      photo_url:   cleanPhotos[0] ?? (d.photo_url as string) ?? null,
+    };
+    await onSave(payload);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    if (isNew) {
+      // Reset form for next addition
+      setD(init);
+      setOpen(false);
+    } else {
+      setOpen(false);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-neutral-900 bg-white p-4 shadow-sm space-y-3">
       <p className="text-sm font-semibold">{isNew ? "+ Add Doctor" : "Edit Doctor Profile"}</p>
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Name (EN) *</label><input value={((d.name_en) as string) ?? ""} onChange={e => setD({...d, name_en: e.target.value})} className={inp} placeholder="Dr. Ahmad Hassan" /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Name (AR)</label><input value={((d.name_ar) as string) ?? ""} onChange={e => setD({...d, name_ar: e.target.value})} className={inp} dir="rtl" placeholder="د. أحمد حسن" /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Title (EN)</label><input value={((d.title_en) as string) ?? ""} onChange={e => setD({...d, title_en: e.target.value})} className={inp} placeholder="Consultant Neurologist" /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Title (AR)</label><input value={((d.title_ar) as string) ?? ""} onChange={e => setD({...d, title_ar: e.target.value})} className={inp} dir="rtl" /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (EN)</label><input value={((d.specialty_en) as string) ?? ""} onChange={e => setD({...d, specialty_en: e.target.value})} className={inp} /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (AR)</label><input value={((d.specialty_ar) as string) ?? ""} onChange={e => setD({...d, specialty_ar: e.target.value})} className={inp} dir="rtl" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Name (EN) *</label><input value={String(d.name_en ?? "")} onChange={e => setD({...d, name_en: e.target.value})} className={inp} placeholder="Dr. Ahmad Hassan" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Name (AR)</label><input value={String(d.name_ar ?? "")} onChange={e => setD({...d, name_ar: e.target.value})} className={inp} dir="rtl" placeholder="د. أحمد حسن" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Title (EN)</label><input value={String(d.title_en ?? "")} onChange={e => setD({...d, title_en: e.target.value})} className={inp} placeholder="Consultant Neurologist" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Title (AR)</label><input value={String(d.title_ar ?? "")} onChange={e => setD({...d, title_ar: e.target.value})} className={inp} dir="rtl" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (EN)</label><input value={String(d.specialty_en ?? "")} onChange={e => setD({...d, specialty_en: e.target.value})} className={inp} /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (AR)</label><input value={String(d.specialty_ar ?? "")} onChange={e => setD({...d, specialty_ar: e.target.value})} className={inp} dir="rtl" /></div>
       </div>
+
       {/* 5 Photo URLs */}
       <div className="space-y-2">
-        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">Photos (up to 5 — large professional photos)</label>
+        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">
+          Photos (up to 5) — paste image URLs
+        </label>
+        <p className="text-[10px] text-neutral-400">First photo = main/slider photo. All photos appear in slider.</p>
         {[0,1,2,3,4].map(i => {
-          const urls = (d.photo_urls as string[]) ?? [];
-          const val = urls[i] ?? "";
+          const urls = ((d.photo_urls as string[]) ?? []);
+          const val  = urls[i] ?? "";
           return (
             <div key={i} className="flex gap-2 items-center">
               <span className="text-[10px] text-neutral-400 w-4 flex-shrink-0">{i+1}</span>
-              <input value={val} onChange={e => {
-                const arr = [...((d.photo_urls as string[])??[])];
-                arr[i] = e.target.value;
-                setD({...d, photo_urls: arr, photo_url: arr[0]??""});
-              }} className={inp} placeholder={i===0?"https://... (main photo)":"https://... (additional photo)"} />
-              {val && <img src={val} alt="" className="h-8 w-8 rounded-lg object-cover flex-shrink-0" onError={e=>{(e.target as HTMLImageElement).style.display='none'}} />}
+              <input
+                value={val}
+                onChange={e => {
+                  const arr = [...((d.photo_urls as string[]) ?? ["","","","",""])];
+                  while (arr.length < 5) arr.push("");
+                  arr[i] = e.target.value;
+                  setD({...d, photo_urls: arr, photo_url: arr.filter(Boolean)[0] ?? ""});
+                }}
+                className={inp}
+                placeholder={i === 0 ? "https://... (main photo — required for slider)" : "https://... (optional additional photo)"}
+              />
+              {val && (
+                <img
+                  src={val} alt=""
+                  className="h-9 w-9 rounded-lg object-cover flex-shrink-0 border border-neutral-200"
+                  onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+                />
+              )}
             </div>
           );
         })}
       </div>
+
       {/* 5 YouTube Video IDs */}
       <div className="space-y-2">
-        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">YouTube Videos (up to 5 — paste full URL or video ID)</label>
-        <p className="text-[10px] text-neutral-400">e.g. https://youtube.com/watch?v=ABC123 or just ABC123</p>
+        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">
+          YouTube Videos (up to 5)
+        </label>
+        <p className="text-[10px] text-neutral-400">Paste full YouTube URL — ID extracted automatically</p>
         {[0,1,2,3,4].map(i => {
-          const ids = (d.youtube_ids as string[]) ?? [];
+          const ids = ((d.youtube_ids as string[]) ?? []);
           const val = ids[i] ?? "";
+          function extractId(raw: string): string {
+            const m = raw.match(/[?&]v=([^&#]{6,15})/) || raw.match(/youtu\.be\/([^?&#]{6,15})/) || raw.match(/embed\/([^?&#]{6,15})/);
+            return m ? m[1] : (raw.length >= 6 && raw.length <= 15 && !raw.includes("/") ? raw : raw);
+          }
           return (
             <div key={i} className="flex gap-2 items-center">
               <span className="text-[10px] text-neutral-400 w-4 flex-shrink-0">{i+1}</span>
-              <input value={val} onChange={e => {
-                const raw = e.target.value.trim();
-                const id = raw.match(/[?&]v=([^&#]+)/)?.[1] || raw.match(/youtu\.be\/([^?&#]+)/)?.[1] || raw.match(/embed\/([^?&#]+)/)?.[1] || raw.replace(/^https?:\/\//,"").replace(/^www\./,"").split(/[/?&#]/)[0] || raw;
-                const arr = [...((d.youtube_ids as string[])??[])];
-                arr[i] = id.length < 60 ? id : raw;
-                setD({...d, youtube_ids: arr});
-              }} className={inp} placeholder="Paste YouTube URL or video ID" />
-              {val && <span className="text-[10px] text-emerald-600 flex-shrink-0 font-mono">{val.slice(0,12)}</span>}
+              <input
+                value={val}
+                onChange={e => {
+                  const raw = e.target.value.trim();
+                  const id  = extractId(raw);
+                  const arr = [...((d.youtube_ids as string[]) ?? ["","","","",""])];
+                  while (arr.length < 5) arr.push("");
+                  arr[i] = id;
+                  setD({...d, youtube_ids: arr});
+                }}
+                className={inp}
+                placeholder="https://youtube.com/watch?v=..."
+              />
+              {val && (
+                <a href={`https://youtube.com/watch?v=${val}`} target="_blank" rel="noopener noreferrer"
+                  className="text-[10px] text-blue-500 hover:underline flex-shrink-0 whitespace-nowrap">
+                  ▶ Check
+                </a>
+              )}
             </div>
           );
         })}
       </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Bio (EN)</label><textarea value={((d.bio_en) as string) ?? ""} onChange={e => setD({...d, bio_en: e.target.value})} rows={3} className={`${inp} resize-none`} /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Bio (AR)</label><textarea value={((d.bio_ar) as string) ?? ""} onChange={e => setD({...d, bio_ar: e.target.value})} rows={3} className={`${inp} resize-none`} dir="rtl" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Bio (EN)</label><textarea value={String(d.bio_en ?? "")} onChange={e => setD({...d, bio_en: e.target.value})} rows={3} className={`${inp} resize-none`} /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Bio (AR)</label><textarea value={String(d.bio_ar ?? "")} onChange={e => setD({...d, bio_ar: e.target.value})} rows={3} className={`${inp} resize-none`} dir="rtl" /></div>
       </div>
-      <div className="flex gap-2">
-        <button onClick={() => { onSave(d); setOpen(false); if(isNew) setD(init); }} className="rounded-md bg-neutral-900 px-4 py-1.5 text-xs text-white font-semibold">Save</button>
-        <button onClick={() => setOpen(false)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">Cancel</button>
+      <div className="flex gap-2 items-center">
+        <button onClick={handleSave} disabled={saving}
+          className="rounded-md bg-neutral-900 px-5 py-2 text-xs text-white font-semibold disabled:opacity-60">
+          {saving ? "Saving..." : saved ? "✓ Saved" : isNew ? "Add Doctor" : "Save Changes"}
+        </button>
+        <button onClick={() => { setOpen(false); if (isNew) setD(init); }}
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">
+          Cancel
+        </button>
+        {previewPhoto && (
+          <img src={previewPhoto} alt="" className="h-8 w-8 rounded-full object-cover ml-auto border border-neutral-200"
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        )}
       </div>
     </div>
   );
