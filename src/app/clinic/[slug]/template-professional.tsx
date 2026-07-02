@@ -127,42 +127,7 @@ function DocPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
         }}/>
       </div>
 
-      {/* Thumbnail strip — only if more than 1 photo */}
-      {photos.length > 1 && (
-        <div style={{
-          display:"flex",
-          gap:"0.5rem",
-          marginTop:"0.75rem",
-          flexWrap:"wrap",
-        }}>
-          {photos.map((src, i) => (
-            <button
-              key={i}
-              onClick={() => setActive(i)}
-              style={{
-                width:52,
-                height:52,
-                borderRadius:10,
-                overflow:"hidden",
-                border: i === active ? "2px solid #C9A84C" : "2px solid transparent",
-                padding:0,
-                cursor:"pointer",
-                transition:"border-color 0.25s ease",
-                flexShrink:0,
-                background:"#f0ede6",
-              }}
-              aria-label={`Photo ${i+1}`}
-            >
-              <img
-                src={src}
-                alt=""
-                style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top",display:"block"}}
-                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-            </button>
-          ))}
-        </div>
-      )}
+
     </div>
   );
 }
@@ -444,7 +409,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
           <ul className="clinic-nav-links">
             {about    && <li><a href="#about">{ar?"عنّا":"About"}</a></li>}
             {services.length>0 && <li><a href="#services">{ar?"خدماتنا":"Services"}</a></li>}
-            {doctors.length>0  && <li><a href="#team">{ar?"الفريق الطبي":"Our Team"}</a></li>}
+            {doctors.length>0  && <li><a href="#about">{ar?"فريقنا الطبي":"Our Team"}</a></li>}
             {testimonials.length>0 && <li><a href="#reviews">{ar?"التقييمات":"Reviews"}</a></li>}
             <li><a href="#contact">{ar?"تواصل معنا":"Contact"}</a></li>
             <li><a href="#book">{ar?"احجز موعداً":"Book Now"}</a></li>
