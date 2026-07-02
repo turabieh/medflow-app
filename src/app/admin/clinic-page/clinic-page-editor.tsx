@@ -55,8 +55,9 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
   async function saveService(s: R, isNew: boolean) {
     const sb = createClient();
     if (isNew) {
-      const { data } = await sb.from("clinic_services").insert({ ...s, clinic_id: clinicId }).select("id").single();
-      if (data) setServices(prev => [...prev, { ...s, id: data.id }]);
+      const { id: _sid, ...srest } = s; void _sid;
+      const { data } = await sb.from("clinic_services").insert({ ...srest, clinic_id: clinicId }).select("*").single();
+      if (data) setServices(prev => [...prev, data as R]);
     } else {
       await sb.from("clinic_services").update(s).eq("id", s.id as string);
       setServices(prev => prev.map(x => x.id === s.id ? s : x));
@@ -72,13 +73,31 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
   async function saveDoctor(d: R, isNew: boolean) {
     const sb = createClient();
     if (isNew) {
-      const { data, error } = await sb.from("clinic_doctors_public").insert({ ...d, clinic_id: clinicId }).select("*").single();
-      if (data) setDoctors(prev => [...prev, data as R]);
-      else if (error) console.error("saveDoctor insert error:", error.message);
+      // Strip the fake "__new__" id before inserting
+      const { id: _id, ...rest } = d;
+      void _id;
+      const { data, error } = await sb
+        .from("clinic_doctors_public")
+        .insert({ ...rest, clinic_id: clinicId })
+        .select("*")
+        .single();
+      if (data) {
+        setDoctors(prev => [...prev, data as R]);
+      } else {
+        console.error("saveDoctor insert error:", error?.message);
+        alert("Could not save doctor: " + (error?.message ?? "Unknown error"));
+      }
     } else {
-      const { error } = await sb.from("clinic_doctors_public").update(d).eq("id", d.id as string);
-      if (!error) setDoctors(prev => prev.map(x => x.id === d.id ? { ...x, ...d } : x));
-      else console.error("saveDoctor update error:", error.message);
+      const { error } = await sb
+        .from("clinic_doctors_public")
+        .update(d)
+        .eq("id", d.id as string);
+      if (!error) {
+        setDoctors(prev => prev.map(x => x.id === d.id ? { ...x, ...d } : x));
+      } else {
+        console.error("saveDoctor update error:", error.message);
+        alert("Could not update doctor: " + error.message);
+      }
     }
   }
 
@@ -91,8 +110,9 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
   async function saveTestimonial(t: R, isNew: boolean) {
     const sb = createClient();
     if (isNew) {
-      const { data } = await sb.from("clinic_testimonials").insert({ ...t, clinic_id: clinicId }).select("id").single();
-      if (data) setTestimonials(prev => [...prev, { ...t, id: data.id }]);
+      const { id: _tid, ...trest } = t; void _tid;
+      const { data } = await sb.from("clinic_testimonials").insert({ ...trest, clinic_id: clinicId }).select("*").single();
+      if (data) setTestimonials(prev => [...prev, data as R]);
     } else {
       await sb.from("clinic_testimonials").update(t).eq("id", t.id as string);
       setTestimonials(prev => prev.map(x => x.id === t.id ? t : x));
