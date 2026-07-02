@@ -59,6 +59,114 @@ function getAllVideoIds(page: R, doctors: R[]): string[] {
 
 
 
+
+// Small elegant photo slider for doctor side-by-side layout
+function DocPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (photos.length <= 1) return;
+    const t = setInterval(() => setActive(i => (i + 1) % photos.length), 4000);
+    return () => clearInterval(t);
+  }, [photos.length]);
+
+  return (
+    <div style={{position:"relative",userSelect:"none"}}>
+      {/* Main photo */}
+      <div style={{
+        position:"relative",
+        borderRadius:20,
+        overflow:"hidden",
+        aspectRatio:"3/4",
+        maxWidth:340,
+        boxShadow:"0 16px 48px rgba(10,35,66,0.18)",
+      }}>
+        {photos.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={name}
+            style={{
+              position:"absolute",
+              inset:0,
+              width:"100%",
+              height:"100%",
+              objectFit:"cover",
+              objectPosition:"top center",
+              opacity: i === active ? 1 : 0,
+              transition:"opacity 0.9s cubic-bezier(0.4,0,0.2,1)",
+            }}
+            loading={i === 0 ? "eager" : "lazy"}
+            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+          />
+        ))}
+        {/* Subtle bottom gradient */}
+        <div style={{
+          position:"absolute",
+          bottom:0,left:0,right:0,
+          height:"35%",
+          background:"linear-gradient(to top,rgba(10,35,66,0.35),transparent)",
+          pointerEvents:"none",
+        }}/>
+        {/* Gold corner accent */}
+        <div style={{
+          position:"absolute",top:12,right:12,
+          width:32,height:32,
+          borderTop:"2px solid rgba(201,168,76,0.6)",
+          borderRight:"2px solid rgba(201,168,76,0.6)",
+          borderRadius:"0 8px 0 0",
+          pointerEvents:"none",
+        }}/>
+        <div style={{
+          position:"absolute",bottom:12,left:12,
+          width:32,height:32,
+          borderBottom:"2px solid rgba(201,168,76,0.6)",
+          borderLeft:"2px solid rgba(201,168,76,0.6)",
+          borderRadius:"0 0 0 8px",
+          pointerEvents:"none",
+        }}/>
+      </div>
+
+      {/* Thumbnail strip — only if more than 1 photo */}
+      {photos.length > 1 && (
+        <div style={{
+          display:"flex",
+          gap:"0.5rem",
+          marginTop:"0.75rem",
+          flexWrap:"wrap",
+        }}>
+          {photos.map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              style={{
+                width:52,
+                height:52,
+                borderRadius:10,
+                overflow:"hidden",
+                border: i === active ? "2px solid #C9A84C" : "2px solid transparent",
+                padding:0,
+                cursor:"pointer",
+                transition:"border-color 0.25s ease",
+                flexShrink:0,
+                background:"#f0ede6",
+              }}
+              aria-label={`Photo ${i+1}`}
+            >
+              <img
+                src={src}
+                alt=""
+                style={{width:"100%",height:"100%",objectFit:"cover",objectPosition:"top",display:"block"}}
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Back to top button
 function BackToTop() {
   const [visible, setVisible] = useState(false);
@@ -267,7 +375,6 @@ function useNavScroll() {
 // ── MAIN TEMPLATE ────────────────────────────────────────────
 export function TemplateProfessional({ clinic, page, services, doctors, testimonials, slug }: Props) {
   const [lang, setLang] = useState((page.default_lang as string)??"ar");
-  const [slide, setSlide] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval>|null>(null);
 
   const ar = lang==="ar"; const dir = ar?"rtl":"ltr";
@@ -298,23 +405,6 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
   if (slideItems.length === 0) {
     if (page.hero_image_url) slideItems.push({ img: page.hero_image_url as string, name: clinicName, title: tagline, bio: "" });
     if (page.about_image_url) slideItems.push({ img: page.about_image_url as string, name: clinicName, title: ar?"مرحباً بكم":"Welcome", bio: "" });
-  }
-
-  const hasSlider = slideItems.length > 0;
-
-  const nextSlide = useCallback(() => setSlide(s => (s+1) % Math.max(1, slideItems.length)), [slideItems.length]);
-  const prevSlide = useCallback(() => setSlide(s => (s-1+slideItems.length) % slideItems.length), [slideItems.length]);
-
-  useEffect(() => {
-    if (slideItems.length <= 1) return;
-    timerRef.current = setInterval(nextSlide, 5500);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [nextSlide, slideItems.length]);
-
-  function goSlide(i: number) {
-    setSlide(i);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(nextSlide, 5500);
   }
 
   useFadeIn();
@@ -367,87 +457,87 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         </div>
       </header>
 
-      {/* ── PHOTO SLIDER ──────────────────────────────────── */}
-      {hasSlider && (
-        <section className="photo-slider-section">
-          {slideItems.map((item, i) => (
-            <div key={i} className={`photo-slide${slide===i?" active":""}`}>
-              <img src={item.img} alt={item.name} loading={i===0?"eager":"lazy"}/>
-              <div className="photo-slide-overlay"/>
-              <div className="photo-slide-content">
-                <div className="photo-slide-text">
-                  {item.name && (
-                    <>
-                      <div className="photo-slide-eyebrow">
-                        {ar?"فريقنا الطبي":"Medical Team"}
-                      </div>
-                      <h2 className="photo-slide-name">{item.name}</h2>
-                      {item.title && <p className="photo-slide-title">{item.title}</p>}
-                      {item.bio && <p className="photo-slide-bio">{item.bio}</p>}
-                    </>
+
+
+      {/* ── ABOUT + DOCTOR PHOTOS (side by side) ─────────── */}
+      {(about || doctors.length > 0) && (
+        <section id="about" className="clinic-section">
+          {doctors.map((doc, docIdx) => {
+            const photos = ((doc.photo_urls as string[]) ?? []).filter(Boolean);
+            if (photos.length === 0 && doc.photo_url) photos.push(doc.photo_url as string);
+            const docName  = ar ? (doc.name_ar as string || doc.name_en as string) : doc.name_en as string || "";
+            const docTitle = String(ar ? doc.title_ar ?? doc.title_en : doc.title_en ?? doc.title_ar ?? "");
+            const docBio   = String(ar ? doc.bio_ar ?? doc.bio_en : doc.bio_en ?? doc.bio_ar ?? "");
+            const docSpec  = String(ar ? doc.specialty_ar ?? doc.specialty_en : doc.specialty_en ?? doc.specialty_ar ?? "");
+            // Alternate: first doctor photo left (EN) / right (AR), second the opposite
+            const imgOnLeft = ar ? docIdx % 2 !== 0 : docIdx % 2 === 0;
+
+            return (
+              <div key={doc.id as string} className="fade-in" style={{
+                display: "grid",
+                gridTemplateColumns: photos.length > 0 ? "1fr 1.4fr" : "1fr",
+                gap: "3rem",
+                alignItems: "center",
+                marginBottom: docIdx < doctors.length - 1 ? "4rem" : 0,
+                direction: "ltr", // always LTR for grid, we flip the order
+              }}>
+                {/* Photo side */}
+                {photos.length > 0 && (
+                  <div style={{order: imgOnLeft ? 0 : 1}}>
+                    <DocPhotoSlider photos={photos} name={docName} />
+                  </div>
+                )}
+                {/* Text side */}
+                <div style={{order: imgOnLeft ? 1 : 0, textAlign: ar ? "right" : "left"}}>
+                  {docIdx === 0 && (
+                    <div className="section-eyebrow" style={{justifyContent: ar ? "flex-end" : "flex-start"}}>
+                      {ar ? "عن العيادة" : "About Us"}
+                    </div>
                   )}
-                  <a href="#book" style={{marginTop:"1.5rem",display:"inline-flex",alignItems:"center",gap:"0.5rem",background:"#C9A84C",color:"#0A2342",padding:"0.7rem 1.6rem",borderRadius:100,fontWeight:700,fontSize:"0.85rem",textDecoration:"none",letterSpacing:"0.02em"}}>
-                    {ar?"احجز موعداً":"Book an Appointment"}
-                    <span>{ar?"←":"→"}</span>
-                  </a>
+                  {docIdx === 0 && about && (
+                    <p className="section-body" style={{marginBottom: "1.5rem"}}>{about}</p>
+                  )}
+                  <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.6rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>{docName}</h2>
+                  {docTitle && <p style={{fontSize:"0.85rem",fontWeight:700,color:"#C9A84C",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.5rem"}}>{docTitle}</p>}
+                  {docSpec  && <p style={{fontSize:"0.85rem",color:"#6B7280",marginBottom:"0.75rem"}}>{docSpec}</p>}
+                  {docBio   && <p style={{fontSize:"0.9rem",lineHeight:1.8,color:"#555",marginBottom:"1rem"}}>{docBio}</p>}
+                  {((doc.credentials as string[])??[]).length > 0 && (
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:"1rem",justifyContent:ar?"flex-end":"flex-start"}}>
+                      {(doc.credentials as string[]).map((c,j) => (
+                        <span key={j} style={{fontSize:"0.72rem",fontWeight:700,color:"#0A2342",background:"rgba(10,35,66,0.07)",borderRadius:100,padding:"3px 12px"}}>{c}</span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Social links under first doctor only */}
+                  {docIdx === 0 && socialLinks.length > 0 && (
+                    <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:ar?"flex-end":"flex-start",marginTop:"0.5rem"}}>
+                      {socialLinks.map(s => (
+                        <a key={s.key} href={page[s.key] as string} target="_blank" rel="noopener noreferrer"
+                          style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none",transition:"all 0.2s"}}>
+                          {SI[s.icon]}{s.label}
+                        </a>
+                      ))}
+                      {page.whatsapp && (
+                        <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
+                          style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}>
+                          {SI.whatsapp} WhatsApp
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
-          {/* Arrows */}
-          {slideItems.length > 1 && (
-            <>
-              <button onClick={prevSlide} className="slider-arrow prev" aria-label="Previous">‹</button>
-              <button onClick={nextSlide} className="slider-arrow next" aria-label="Next">›</button>
-              {/* Dots */}
-              <div className="slider-dots">
-                {slideItems.map((_,i) => (
-                  <button key={i} onClick={()=>goSlide(i)} className={`slider-dot${slide===i?" active":""}`} aria-label={`Slide ${i+1}`}/>
-                ))}
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      {/* ── ABOUT ─────────────────────────────────────────── */}
-      {about && (
-        <section id="about" className="clinic-section">
-          <div className={`about-layout${!page.about_image_url ? " single-col" : ""}`} style={!page.about_image_url ? {gridTemplateColumns:"1fr",maxWidth:720,margin:"0 auto"} : (ar?{direction:"rtl"}:{})}>
-            {!!page.about_image_url && (
-              <div className="about-image fade-in">
-                <img src={String(page.about_image_url??"")} alt="About the clinic"/>
-              </div>
-            )}
-            <div className="fade-in fade-in-delay-2">
+          {/* About text only (no doctors) */}
+          {doctors.length === 0 && about && (
+            <div className="fade-in" style={{maxWidth:720,margin:"0 auto"}}>
               <div className="section-eyebrow">{ar?"من نحن":"About Us"}</div>
               <h2 className="section-heading">{ar?`مرحباً بكم في ${clinicName}`:`Welcome to ${clinicName}`}</h2>
-              <p className="section-body" style={{marginBottom:"2rem"}}>{about}</p>
-              {/* Stats row */}
-              {avgRating !== null && (
-                <div style={{display:"flex",gap:"2.5rem",flexWrap:"wrap"}}>
-                  <div>
-                    <p style={{fontFamily:"'Playfair Display',serif",fontSize:"2.5rem",fontWeight:700,color:"#0A2342",lineHeight:1}}>{avgRating.toFixed(1)}</p>
-                    <div style={{display:"flex",gap:2,margin:"0.3rem 0"}}><Stars n={avgRating}/></div>
-                    <p style={{fontSize:"0.78rem",color:"#6B7280"}}>{testimonials.length} {ar?"تقييم مريض":"patient reviews"}</p>
-                  </div>
-                  {doctors.length > 0 && (
-                    <div>
-                      <p style={{fontFamily:"'Playfair Display',serif",fontSize:"2.5rem",fontWeight:700,color:"#0A2342",lineHeight:1}}>{doctors.length}</p>
-                      <p style={{fontSize:"0.78rem",color:"#6B7280",marginTop:"0.6rem"}}>{ar?"طبيب متخصص":"Specialists"}</p>
-                    </div>
-                  )}
-                  {services.length > 0 && (
-                    <div>
-                      <p style={{fontFamily:"'Playfair Display',serif",fontSize:"2.5rem",fontWeight:700,color:"#0A2342",lineHeight:1}}>{services.length}</p>
-                      <p style={{fontSize:"0.78rem",color:"#6B7280",marginTop:"0.6rem"}}>{ar?"خدمة متاحة":"Services"}</p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <p className="section-body">{about}</p>
             </div>
-          </div>
+          )}
         </section>
       )}
 
@@ -475,65 +565,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         </section>
       )}
 
-      {/* ── TEAM ──────────────────────────────────────────── */}
-      {doctors.length > 0 && (
-        <section id="team" className="clinic-section">
-          <div className="fade-in" style={{textAlign:"center",marginBottom:"3rem"}}>
-            <div className="section-eyebrow" style={{justifyContent:"center"}}>{ar?"فريقنا":"Our Team"}</div>
-            <h2 className="section-heading" style={{textAlign:"center"}}>{ar?"الفريق الطبي":"Medical Team"}</h2>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"2rem"}}>
-            {doctors.map((doc,i) => (
-              <div key={doc.id as string} className={`fade-in fade-in-delay-${Math.min(i+1,4)}`} style={{textAlign:"center"}}>
-                <div style={{position:"relative",marginBottom:"1.25rem",display:"inline-block"}}>
-                  {doc.photo_url
-                    ? <img src={doc.photo_url as string} alt={ar?doc.name_ar as string:doc.name_en as string}
-                        style={{width:180,height:220,objectFit:"cover",objectPosition:"top",borderRadius:16,display:"block",margin:"0 auto",boxShadow:"0 8px 32px rgba(10,35,66,0.14)"}}/>
-                    : <div style={{width:180,height:220,borderRadius:16,background:"#e8e4dc",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"4rem",margin:"0 auto"}}>👨‍⚕️</div>
-                  }
-                  {/* Gold accent dot */}
-                  <div style={{position:"absolute",bottom:8,right:8,width:14,height:14,borderRadius:"50%",background:"#C9A84C",border:"2px solid #fff"}}/>
-                </div>
-                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.1rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>
-                  {ar?(doc.name_ar as string||doc.name_en as string):doc.name_en as string}
-                </h3>
-                {(ar?doc.title_ar:doc.title_en) && (
-                  <p style={{fontSize:"0.8rem",color:"#C9A84C",fontWeight:600,letterSpacing:"0.04em"}}>{String(ar?doc.title_ar??doc.title_en:doc.title_en??doc.title_ar)}</p>
-                )}
-                {((doc.credentials as string[])??[]).length>0 && (
-                  <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center",marginTop:"0.6rem"}}>
-                    {(doc.credentials as string[]).slice(0,3).map((c,j)=>(
-                      <span key={j} style={{fontSize:"0.7rem",fontWeight:700,color:"#0A2342",background:"rgba(10,35,66,0.06)",borderRadius:100,padding:"2px 10px"}}>{c}</span>
-                    ))}
-                  </div>
-                )}
-                {/* Social links under doctor photo */}
-                {socialLinks.length>0 && i===0 && (
-                  <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:"center",marginTop:"0.75rem"}}>
-                    {socialLinks.slice(0,5).map(s=>(
-                      <a key={s.key} href={page[s.key] as string} target="_blank" rel="noopener noreferrer"
-                        style={{display:"flex",alignItems:"center",gap:"0.3rem",padding:"0.3rem 0.7rem",borderRadius:100,border:"1px solid #e5e0d8",background:"#fff",fontSize:"0.72rem",fontWeight:600,color:"#6B7280",textDecoration:"none",transition:"all 0.2s"}}
-                        title={s.label}
-                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="#C9A84C";(e.currentTarget as HTMLElement).style.color="#C9A84C";}}
-                        onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="#e5e0d8";(e.currentTarget as HTMLElement).style.color="#6B7280";}}>
-                        {SI[s.icon]}<span>{s.label}</span>
-                      </a>
-                    ))}
-                    {page.whatsapp && (
-                      <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
-                        style={{display:"flex",alignItems:"center",gap:"0.3rem",padding:"0.3rem 0.7rem",borderRadius:100,border:"1px solid #e5e0d8",background:"#fff",fontSize:"0.72rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}
-                        onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor="#25D366";(e.currentTarget as HTMLElement).style.color="#25D366";}}
-                        onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor="#e5e0d8";(e.currentTarget as HTMLElement).style.color="#6B7280";}}>
-                        {SI.whatsapp}<span>WhatsApp</span>
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+
 
       {/* ── YOUTUBE VIDEOS ──────────────────────────────── */}
       <YouTubeSection page={page} doctors={doctors} lang={lang} />

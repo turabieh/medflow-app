@@ -969,3 +969,14 @@ html { scroll-behavior: smooth; }
 [dir="rtl"] .photo-slide-eyebrow::before {
   order: 1;
 }
+
+/* ── Doctor side-by-side layout ─────────────────────────────── */
+@media (max-width: 768px) {
+  .clinic-section [style*="grid-template-columns"] {
+    display: block !important;
+  }
+  .clinic-section [style*="grid-template-columns"] > div {
+    order: unset !important;
+    margin-bottom: 1.5rem;
+  }
+}
