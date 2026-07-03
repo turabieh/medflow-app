@@ -7,6 +7,7 @@ import { LogoutButton } from "@/components/ui/logout-button";
 // feature: null = always shown | feature: "key" = only if clinic has that feature
 const NAV_ITEMS = [
   { href:"/admin/dashboard",                label:"Dashboard",             icon:"⊞", feature:null },
+  { href:"/admin/clinic-page",              label:"Public Clinic Page",    icon:"🌐", feature:null },
   { href:"/admin/patients",                 label:"Patient Management",    icon:"🗂", feature:"patients" },
   { href:"/admin/settings/clinic",          label:"Clinic Settings",       icon:"⚙", feature:null },
   { href:"/admin/settings/users",           label:"User Management",       icon:"👥", feature:null },

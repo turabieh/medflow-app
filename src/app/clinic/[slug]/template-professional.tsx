@@ -438,13 +438,13 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             const imgOnLeft = ar ? docIdx % 2 !== 0 : docIdx % 2 === 0;
 
             return (
-              <div key={doc.id as string} className="fade-in" style={{
+              <div key={doc.id as string} className="fade-in doctor-row" style={{
                 display: "grid",
                 gridTemplateColumns: photos.length > 0 ? "1fr 1.4fr" : "1fr",
                 gap: "3rem",
                 alignItems: "center",
                 marginBottom: docIdx < doctors.length - 1 ? "4rem" : 0,
-                direction: "ltr", // always LTR for grid, we flip the order
+                direction: "ltr",
               }}>
                 {/* Photo side */}
                 {photos.length > 0 && (

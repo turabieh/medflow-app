@@ -980,3 +980,19 @@ html { scroll-behavior: smooth; }
     margin-bottom: 1.5rem;
   }
 }
+
+/* ── Doctor row mobile: text first, photo second ─────────── */
+@media (max-width: 768px) {
+  .doctor-row {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+  /* Photo div: always goes second on mobile */
+  .doctor-row > div:first-child {
+    order: 2 !important;
+  }
+  /* Text div: always goes first on mobile */
+  .doctor-row > div:last-child {
+    order: 1 !important;
+  }
+}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ImageUploadButton } from "@/components/ui/image-upload-button";
 
 type R = Record<string,unknown>;
 
@@ -235,12 +236,17 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
                 <textarea value={String(page.hero_subtitle_ar ?? "")} onChange={e => set("hero_subtitle_ar", e.target.value)} rows={3} className={ta} dir="rtl" placeholder="صحتكم أولويتنا..." />
               </F>
             </div>
-            <F lbl="Hero Background Image URL">
-              <input value={String(page.hero_image_url ?? "")} onChange={e => set("hero_image_url", e.target.value)} className={inp} placeholder="https://..." />
+            <F lbl="Hero Background Image">
+              <ImageUploadButton
+                currentUrl={String(page.hero_image_url ?? "") || undefined}
+                folder="hero"
+                shape="landscape"
+                label="Upload Hero Image"
+                onUploaded={url => set("hero_image_url", url)}
+              />
+              <input value={String(page.hero_image_url ?? "")} onChange={e => set("hero_image_url", e.target.value)}
+                className={`${inp} mt-2`} placeholder="or paste URL..." />
             </F>
-            {!!page.hero_image_url && (
-              <img src={String(page.hero_image_url ?? "")} alt="Hero preview" className="mt-2 h-32 w-full rounded-lg object-cover" />
-            )}
           </Section>
         )}
 
@@ -255,12 +261,17 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
                 <textarea value={String(page.about_ar ?? "")} onChange={e => set("about_ar", e.target.value)} rows={6} className={ta} dir="rtl" placeholder="اكتب عن عيادتك..." />
               </F>
             </div>
-            <F lbl="About Section Image URL">
-              <input value={String(page.about_image_url ?? "")} onChange={e => set("about_image_url", e.target.value)} className={inp} placeholder="https://... (clinic photo, team photo)" />
+            <F lbl="About Section Image">
+              <ImageUploadButton
+                currentUrl={String(page.about_image_url ?? "") || undefined}
+                folder="about"
+                shape="portrait"
+                label="Upload About Image"
+                onUploaded={url => set("about_image_url", url)}
+              />
+              <input value={String(page.about_image_url ?? "")} onChange={e => set("about_image_url", e.target.value)}
+                className={`${inp} mt-2`} placeholder="or paste URL..." />
             </F>
-            {!!page.about_image_url && (
-              <img src={String(page.about_image_url ?? "")} alt="About preview" className="mt-2 h-40 w-full rounded-lg object-cover" />
-            )}
           </Section>
         )}
 
@@ -487,36 +498,44 @@ function DoctorCard({ doctor: init, onSave, onDelete, isNew }: { doctor: R; onSa
         <div><label className="mb-1 block text-[10px] text-neutral-500">Specialty (AR)</label><input value={String(d.specialty_ar ?? "")} onChange={e => setD({...d, specialty_ar: e.target.value})} className={inp} dir="rtl" /></div>
       </div>
 
-      {/* 5 Photo URLs */}
-      <div className="space-y-2">
-        <label className="mb-1 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">
-          Photos (up to 5) — paste image URLs
+      {/* 5 Photos — upload or paste URL */}
+      <div className="space-y-3">
+        <label className="block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">
+          Photos (up to 5)
         </label>
-        <p className="text-[10px] text-neutral-400">First photo = main/slider photo. All photos appear in slider.</p>
+        <p className="text-[10px] text-neutral-400 -mt-2">First photo = main photo. Upload directly or paste a URL below.</p>
         {[0,1,2,3,4].map(i => {
           const urls = ((d.photo_urls as string[]) ?? []);
           const val  = urls[i] ?? "";
           return (
-            <div key={i} className="flex gap-2 items-center">
-              <span className="text-[10px] text-neutral-400 w-4 flex-shrink-0">{i+1}</span>
-              <input
-                value={val}
-                onChange={e => {
+            <div key={i} className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+              <p className="text-[10px] font-semibold text-neutral-500 mb-2">Photo {i+1}{i===0?" (main)":""}</p>
+              <ImageUploadButton
+                currentUrl={val || undefined}
+                folder="doctors"
+                shape="portrait"
+                label={`Upload Photo ${i+1}`}
+                onUploaded={url => {
                   const arr = [...((d.photo_urls as string[]) ?? ["","","","",""])];
                   while (arr.length < 5) arr.push("");
-                  arr[i] = e.target.value;
+                  arr[i] = url;
                   setD({...d, photo_urls: arr, photo_url: arr.filter(Boolean)[0] ?? ""});
                 }}
-                className={inp}
-                placeholder={i === 0 ? "https://... (main photo — required for slider)" : "https://... (optional additional photo)"}
               />
-              {val && (
-                <img
-                  src={val} alt=""
-                  className="h-9 w-9 rounded-lg object-cover flex-shrink-0 border border-neutral-200"
-                  onError={e => { (e.target as HTMLImageElement).style.opacity = "0.3"; }}
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-[10px] text-neutral-400">or paste URL:</span>
+                <input
+                  value={val}
+                  onChange={e => {
+                    const arr = [...((d.photo_urls as string[]) ?? ["","","","",""])];
+                    while (arr.length < 5) arr.push("");
+                    arr[i] = e.target.value;
+                    setD({...d, photo_urls: arr, photo_url: arr.filter(Boolean)[0] ?? ""});
+                  }}
+                  className="flex-1 rounded-md border border-neutral-200 px-2 py-1 text-xs outline-none focus:border-neutral-400"
+                  placeholder="https://..."
                 />
-              )}
+              </div>
             </div>
           );
         })}
