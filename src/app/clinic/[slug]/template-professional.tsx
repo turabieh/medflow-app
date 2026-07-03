@@ -60,74 +60,51 @@ function getAllVideoIds(page: R, doctors: R[]): string[] {
 
 
 
-// Small elegant photo slider for doctor side-by-side layout
-function DocPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
+// Photo slider — works on both desktop and mobile
+function DocPhotoSlider({ photos, name, title }: { photos: string[]; name: string; title?: string }) {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
     if (photos.length <= 1) return;
-    const t = setInterval(() => setActive(i => (i + 1) % photos.length), 4000);
+    const t = setInterval(() => setActive(i => (i + 1) % photos.length), 4500);
     return () => clearInterval(t);
   }, [photos.length]);
 
   return (
-    <div style={{position:"relative",userSelect:"none"}}>
-      {/* Main photo */}
-      <div style={{
-        position:"relative",
-        borderRadius:20,
-        overflow:"hidden",
-        aspectRatio:"3/4",
-        maxWidth:340,
-        boxShadow:"0 16px 48px rgba(10,35,66,0.18)",
-      }}>
+    <div className="doc-photo-slider">
+      {/* Stack of images — all same size, fade between them */}
+      <div className="doc-photo-frame">
         {photos.map((src, i) => (
           <img
             key={i}
             src={src}
             alt={name}
-            style={{
-              position:"absolute",
-              inset:0,
-              width:"100%",
-              height:"100%",
-              objectFit:"cover",
-              objectPosition:"top center",
-              opacity: i === active ? 1 : 0,
-              transition:"opacity 0.9s cubic-bezier(0.4,0,0.2,1)",
-            }}
+            className={`doc-photo-img${i === active ? " active" : ""}`}
             loading={i === 0 ? "eager" : "lazy"}
             onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
           />
         ))}
-        {/* Subtle bottom gradient */}
-        <div style={{
-          position:"absolute",
-          bottom:0,left:0,right:0,
-          height:"35%",
-          background:"linear-gradient(to top,rgba(10,35,66,0.35),transparent)",
-          pointerEvents:"none",
-        }}/>
-        {/* Gold corner accent */}
-        <div style={{
-          position:"absolute",top:12,right:12,
-          width:32,height:32,
-          borderTop:"2px solid rgba(201,168,76,0.6)",
-          borderRight:"2px solid rgba(201,168,76,0.6)",
-          borderRadius:"0 8px 0 0",
-          pointerEvents:"none",
-        }}/>
-        <div style={{
-          position:"absolute",bottom:12,left:12,
-          width:32,height:32,
-          borderBottom:"2px solid rgba(201,168,76,0.6)",
-          borderLeft:"2px solid rgba(201,168,76,0.6)",
-          borderRadius:"0 0 0 8px",
-          pointerEvents:"none",
-        }}/>
+        {/* Dark gradient at bottom */}
+        <div className="doc-photo-gradient" />
+        {/* Name overlay — visible on mobile, hidden on desktop */}
+        <div className="doc-photo-overlay">
+          <p className="doc-photo-name">{name}</p>
+          {title && <p className="doc-photo-title">{title}</p>}
+        </div>
+        {/* Gold corner lines */}
+        <div className="doc-corner doc-corner-tr" />
+        <div className="doc-corner doc-corner-bl" />
+        {/* Photo dots */}
+        {photos.length > 1 && (
+          <div className="doc-photo-dots">
+            {photos.map((_, i) => (
+              <button key={i} onClick={() => setActive(i)}
+                className={`doc-photo-dot${i === active ? " active" : ""}`}
+                aria-label={`Photo ${i + 1}`} />
+            ))}
+          </div>
+        )}
       </div>
-
-
     </div>
   );
 }

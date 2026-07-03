@@ -997,17 +997,151 @@ html { scroll-behavior: smooth; }
   margin-right: auto;
 }
 
-/* Mobile: stacked layout — photo top with overlay text, then details below */
+/* ── Doc photo slider ─────────────────────────────────────── */
+.doc-photo-slider {
+  position: relative;
+  user-select: none;
+}
+
+.doc-photo-frame {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  /* Desktop: tall portrait */
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 3 / 4;
+  box-shadow: 0 16px 48px rgba(10, 35, 66, 0.18);
+}
+
+.doc-photo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 0;
+  transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.doc-photo-img.active {
+  opacity: 1;
+}
+
+.doc-photo-gradient {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(to top, rgba(10, 35, 66, 0.7), transparent);
+  pointer-events: none;
+}
+
+/* Doctor name overlay — hidden on desktop, shown on mobile */
+.doc-photo-overlay {
+  display: none;
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1.25rem 1rem 1rem;
+}
+
+.doc-photo-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0 0 0.2rem;
+}
+
+.doc-photo-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #C9A84C;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.doc-photo-dots {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.doc-photo-dot {
+  height: 6px;
+  border: none;
+  border-radius: 100px;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 6px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.doc-photo-dot.active {
+  width: 20px;
+  background: #C9A84C;
+}
+
+/* Gold corner accents */
+.doc-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+}
+
+.doc-corner-tr {
+  top: 12px; right: 12px;
+  border-top: 2px solid rgba(201, 168, 76, 0.6);
+  border-right: 2px solid rgba(201, 168, 76, 0.6);
+  border-radius: 0 8px 0 0;
+}
+
+.doc-corner-bl {
+  bottom: 12px; left: 12px;
+  border-bottom: 2px solid rgba(201, 168, 76, 0.6);
+  border-left: 2px solid rgba(201, 168, 76, 0.6);
+  border-radius: 0 0 0 8px;
+}
+
+/* ── Mobile: full-width landscape, name overlay visible ───── */
 @media (max-width: 768px) {
   .doctor-row-2col {
     display: block !important;
-    gap: 0 !important;
   }
+
   .doctor-photo-col {
     display: block;
     margin-bottom: 1.25rem;
   }
+
   .doctor-text-col {
     text-align: left !important;
+  }
+
+  .doc-photo-frame {
+    max-width: 100%;        /* fill the full mobile width */
+    width: 100%;
+    aspect-ratio: 4 / 3;   /* landscape — shows face + upper body */
+    border-radius: 16px;
+  }
+
+  .doc-photo-img {
+    object-position: center 15%; /* show face on landscape crop */
+  }
+
+  /* Show name overlay on mobile */
+  .doc-photo-overlay {
+    display: block;
+  }
+
+  /* Hide gold corner accents on mobile (too small) */
+  .doc-corner {
+    display: none;
   }
 }
