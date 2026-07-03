@@ -495,7 +495,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                     </div>
                   )}
                   {docIdx === 0 && about && (
-                    <p className="section-body" style={{marginBottom: "1.5rem"}}>{about}</p>
+                    <p className="section-body" style={{marginBottom:"1.5rem",textAlign:ar?"right":"left",direction:ar?"rtl":"ltr"}}>{about}</p>
                   )}
                   <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.6rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>{docName}</h2>
                   {docTitle && <p style={{fontSize:"0.85rem",fontWeight:700,color:"#C9A84C",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.5rem"}}>{docTitle}</p>}

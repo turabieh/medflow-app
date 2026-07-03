@@ -1315,3 +1315,36 @@ html { scroll-behavior: smooth; }
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ── Arabic RTL fixes ────────────────────────────────────────── */
+[dir="rtl"] .section-body {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .service-card-body {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .service-card-body .service-name,
+[dir="rtl"] .service-card-body .service-desc {
+  text-align: right;
+}
+
+[dir="rtl"] .doc-photo-name,
+[dir="rtl"] .doc-photo-title {
+  text-align: right;
+}
+
+[dir="rtl"] .mobile-menu-item {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Phone numbers always LTR regardless of page direction */
+.phone-ltr {
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+}
