@@ -1145,3 +1145,173 @@ html { scroll-behavior: smooth; }
     display: none;
   }
 }
+
+/* ── Service cards with images ──────────────────────────────── */
+.service-item-new {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #fff;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(10,35,66,0.04);
+}
+
+.service-item-new:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(10,35,66,0.12);
+  border-color: transparent;
+}
+
+.service-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e8e4dc 0%, #f0ede6 100%);
+}
+
+.service-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+  display: block;
+}
+
+.service-item-new:hover .service-img {
+  transform: scale(1.05);
+}
+
+.service-icon-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(10,35,66,0.06) 0%, rgba(201,168,76,0.08) 100%);
+}
+
+.service-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10,35,66,0.45) 0%, transparent 55%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.service-item-new:hover .service-img-overlay {
+  opacity: 1;
+}
+
+.service-card-body {
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.service-card-body .service-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin-bottom: 0.35rem;
+}
+
+.service-card-body .service-desc {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Hamburger button — mobile only ─────────────────────────── */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--navy);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.hamburger-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Desktop book CTA — always show */
+#book-cta-desktop {
+  display: flex !important;
+}
+
+/* ── Mobile menu dropdown ────────────────────────────────────── */
+.mobile-menu {
+  display: none;
+  border-top: 1px solid var(--border);
+  background: #fff;
+  padding: 0.5rem 0;
+}
+
+.mobile-menu-item {
+  display: block;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--navy);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  transition: background 0.15s ease;
+}
+
+.mobile-menu-item:hover {
+  background: var(--cream);
+  color: var(--gold);
+}
+
+.mobile-menu-book {
+  margin: 0.5rem 1rem;
+  border: none !important;
+  border-radius: 10px;
+  background: var(--green);
+  color: #fff !important;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.85rem 1rem;
+}
+
+.mobile-menu-book:hover {
+  background: var(--green-mid) !important;
+  color: #fff !important;
+}
+
+/* ── Mobile overrides ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Show hamburger */
+  .hamburger-btn {
+    display: flex;
+  }
+
+  /* Hide desktop nav links */
+  .clinic-nav-links {
+    display: none !important;
+  }
+
+  /* Hide desktop book cta */
+  #book-cta-desktop {
+    display: none !important;
+  }
+
+  /* Show mobile menu when open */
+  .mobile-menu {
+    display: block;
+  }
+
+  /* Services — 1 column on mobile */
+  .services-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

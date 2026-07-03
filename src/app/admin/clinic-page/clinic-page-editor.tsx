@@ -56,9 +56,10 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
   async function saveService(s: R, isNew: boolean) {
     const sb = createClient();
     if (isNew) {
-      const { id: _sid, ...srest } = s; void _sid;
-      const { data } = await sb.from("clinic_services").insert({ ...srest, clinic_id: clinicId }).select("*").single();
+      const { id: _sid, ...srest } = s as R & {id?: unknown}; void _sid;
+      const { data, error } = await sb.from("clinic_services").insert({ ...srest, clinic_id: clinicId }).select("*").single();
       if (data) setServices(prev => [...prev, data as R]);
+      else if (error) { alert("Save error: " + error.message); return; }
     } else {
       await sb.from("clinic_services").update(s).eq("id", s.id as string);
       setServices(prev => prev.map(x => x.id === s.id ? s : x));

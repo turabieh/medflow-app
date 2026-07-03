@@ -317,6 +317,7 @@ function useNavScroll() {
 // ── MAIN TEMPLATE ────────────────────────────────────────────
 export function TemplateProfessional({ clinic, page, services, doctors, testimonials, slug }: Props) {
   const [lang, setLang] = useState((page.default_lang as string)??"ar");
+  const [menuOpen, setMenuOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>|null>(null);
 
   const ar = lang==="ar"; const dir = ar?"rtl":"ltr";
@@ -394,9 +395,32 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
 
           <div className="clinic-nav-actions">
             <button onClick={()=>setLang(ar?"en":"ar")} className="lang-toggle">{ar?"EN":"عربي"}</button>
-            <button onClick={() => { const el = document.getElementById("book"); if(el) el.scrollIntoView({behavior:"smooth"}); }} className="book-cta-nav">{ar?"احجز الآن":"Book Now"}</button>
+            <button onClick={() => { const el = document.getElementById("book"); if(el) el.scrollIntoView({behavior:"smooth"}); }} className="book-cta-nav" style={{display:"none"}} id="book-cta-desktop">{ar?"احجز الآن":"Book Now"}</button>
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="hamburger-btn"
+              aria-label="Menu"
+            >
+              {menuOpen
+                ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+              }
+            </button>
           </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {menuOpen && (
+          <div className="mobile-menu">
+            {about    && <a href="#about"    className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"عنّا":"About Us"}</a>}
+            {services.length>0 && <a href="#services" className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"خدماتنا":"Services"}</a>}
+            {doctors.length>0  && <a href="#about"    className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"فريقنا الطبي":"Our Team"}</a>}
+            {testimonials.length>0 && <a href="#reviews" className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"التقييمات":"Reviews"}</a>}
+            <a href="#contact" className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"تواصل معنا":"Contact Us"}</a>
+            <a href="#book" className="mobile-menu-item mobile-menu-book" onClick={()=>setMenuOpen(false)}>{ar?"احجز موعداً":"Book Appointment"}</a>
+          </div>
+        )}
       </header>
 
       {/* ── HERO IMAGE (if set) ────────────────────────────── */}
@@ -532,22 +556,41 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
       {/* ── SERVICES ──────────────────────────────────────── */}
       {services.length > 0 && (
         <section id="services" style={{background:"#fff",padding:"3.5rem 1.5rem"}}>
-          <div style={{maxWidth:1200,margin:"0 auto"}}>
-            <div className="fade-in" style={{textAlign:"center",marginBottom:"0.5rem"}}>
+          <div style={{maxWidth:1100,margin:"0 auto"}}>
+            <div className="fade-in" style={{textAlign:"center",marginBottom:"2rem"}}>
               <div className="section-eyebrow" style={{justifyContent:"center"}}>{ar?"ما نقدمه":"What We Offer"}</div>
-              <h2 className="section-heading" style={{textAlign:"center",marginBottom:"0.5rem"}}>{ar?"خدماتنا":"Our Services"}</h2>
-              <p style={{textAlign:"center",color:"#6B7280",fontSize:"0.95rem",maxWidth:560,margin:"0 auto"}}>{ar?"نقدم أفضل الخدمات الطبية المتخصصة":"We provide the best specialized medical services"}</p>
+              <h2 className="section-heading" style={{textAlign:"center",marginBottom:"0.4rem"}}>{ar?"خدماتنا":"Our Services"}</h2>
             </div>
             <div className="services-grid">
-              {services.map((s,i) => (
-                <div key={s.id as string} className={`service-item fade-in fade-in-delay-${Math.min(i+1,4)}`}>
-                  <span className="service-icon">{s.icon as string||"⚕"}</span>
-                  <p className="service-name">{ar?s.name_ar as string:s.name_en as string}</p>
-                  {!!(ar?s.description_ar:s.description_en) && (
-                    <p className="service-desc">{String(ar?s.description_ar??s.description_en:s.description_en??s.description_ar)}</p>
-                  )}
-                </div>
-              ))}
+              {services.map((s,i) => {
+                const hasImg = !!(s.image_url as string);
+                return (
+                  <div key={s.id as string} className={`service-item-new fade-in fade-in-delay-${Math.min(i+1,4)}`}>
+                    {/* Service image or fallback */}
+                    <div className="service-img-wrap">
+                      {hasImg
+                        ? <img src={s.image_url as string} alt={ar?s.name_ar as string:s.name_en as string}
+                            className="service-img"
+                            onError={e=>{(e.target as HTMLImageElement).style.display="none";(e.target as HTMLImageElement).nextElementSibling?.removeAttribute("style");}}
+                          />
+                        : null
+                      }
+                      {/* Fallback icon — shown when no image or image fails */}
+                      <div className="service-icon-fallback" style={hasImg?{display:"none"}:{}}>
+                        <span style={{fontSize:"2rem"}}>{s.icon as string||"⚕"}</span>
+                      </div>
+                      {/* Gold overlay on hover */}
+                      <div className="service-img-overlay"/>
+                    </div>
+                    <div className="service-card-body">
+                      <p className="service-name">{ar?s.name_ar as string:s.name_en as string}</p>
+                      {!!(ar?s.description_ar:s.description_en) && (
+                        <p className="service-desc">{String(ar?s.description_ar??s.description_en:s.description_en??s.description_ar)}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
