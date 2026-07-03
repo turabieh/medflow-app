@@ -448,12 +448,12 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
               }}>
                 {/* Photo side */}
                 {photos.length > 0 && (
-                  <div style={{order: imgOnLeft ? 0 : 1}}>
+                  <div className="doctor-photo-col" style={{order: imgOnLeft ? 0 : 1}}>
                     <DocPhotoSlider photos={photos} name={docName} />
                   </div>
                 )}
                 {/* Text side */}
-                <div style={{order: imgOnLeft ? 1 : 0, textAlign: ar ? "right" : "left"}}>
+                <div className="doctor-text-col" style={{order: imgOnLeft ? 1 : 0, textAlign: ar ? "right" : "left"}}>
                   {docIdx === 0 && (
                     <div className="section-eyebrow" style={{justifyContent: ar ? "flex-end" : "flex-start"}}>
                       {ar ? "عن العيادة" : "About Us"}
