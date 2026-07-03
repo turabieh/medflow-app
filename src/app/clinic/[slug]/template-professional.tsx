@@ -417,7 +417,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
 
           <div className="clinic-nav-actions">
             <button onClick={()=>setLang(ar?"en":"ar")} className="lang-toggle">{ar?"EN":"عربي"}</button>
-            <a href="#book" className="book-cta-nav">{ar?"احجز الآن":"Book Now"}</a>
+            <button onClick={() => { const el = document.getElementById("book"); if(el) el.scrollIntoView({behavior:"smooth"}); }} className="book-cta-nav">{ar?"احجز الآن":"Book Now"}</button>
           </div>
         </div>
       </header>
@@ -438,14 +438,12 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             const imgOnLeft = ar ? docIdx % 2 !== 0 : docIdx % 2 === 0;
 
             return (
-              <div key={doc.id as string} className="fade-in doctor-row" style={{
-                display: "grid",
-                gridTemplateColumns: photos.length > 0 ? "1fr 1.4fr" : "1fr",
-                gap: "3rem",
-                alignItems: "center",
-                marginBottom: docIdx < doctors.length - 1 ? "4rem" : 0,
-                direction: "ltr",
-              }}>
+              <div key={doc.id as string}
+                className={`fade-in doctor-row ${photos.length > 0 ? "doctor-row-2col" : "doctor-row-1col"}`}
+                style={{
+                  marginBottom: docIdx < doctors.length - 1 ? "4rem" : 0,
+                  direction: "ltr",
+                }}>
                 {/* Photo side */}
                 {photos.length > 0 && (
                   <div className="doctor-photo-col" style={{order: imgOnLeft ? 0 : 1}}>

@@ -981,18 +981,36 @@ html { scroll-behavior: smooth; }
   }
 }
 
-/* ── Doctor row mobile: text first, photo second ─────────── */
+/* ── Doctor row layout ───────────────────────────────────── */
+.doctor-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 3rem;
+  align-items: center;
+}
+
+.doctor-row-1col {
+  display: grid;
+  grid-template-columns: 1fr;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Mobile: always single column, text first */
 @media (max-width: 768px) {
-  .doctor-row {
-    display: block !important;
+  .doctor-row-2col {
+    display: flex !important;
+    flex-direction: column-reverse !important;
     gap: 1.5rem !important;
   }
   .doctor-photo-col {
-    order: 2 !important;
-    margin-top: 1.5rem;
+    /* photo is flex child — column-reverse puts it below text */
+    order: 0;
   }
   .doctor-text-col {
-    order: 1 !important;
+    /* text is flex child — column-reverse puts it above photo */
+    order: 0;
     text-align: left !important;
   }
 }
