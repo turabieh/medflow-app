@@ -399,7 +399,43 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         </div>
       </header>
 
-
+      {/* ── HERO IMAGE (if set) ────────────────────────────── */}
+      {!!page.hero_image_url && (
+        <div style={{
+          position: "relative",
+          width: "100%",
+          height: "clamp(200px, 40vw, 420px)",
+          overflow: "hidden",
+          background: "#0A2342",
+        }}>
+          <img
+            src={String(page.hero_image_url)}
+            alt={clinicName}
+            style={{
+              width: "100%", height: "100%",
+              objectFit: "cover", objectPosition: "center 30%",
+              opacity: 0.85,
+            }}
+          />
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(10,35,66,0.7) 0%, rgba(10,35,66,0.1) 60%, transparent 100%)",
+          }} />
+          <div style={{
+            position: "absolute", bottom: 0, left: 0, right: 0,
+            padding: "2rem 2rem 1.5rem",
+          }}>
+            <h1 style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(1.4rem, 4vw, 2.2rem)",
+              fontWeight: 700, color: "#fff",
+              margin: "0 0 0.25rem",
+              textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+            }}>{clinicName}</h1>
+            {tagline && <p style={{ fontSize: "0.9rem", color: "#C9A84C", fontWeight: 600, margin: 0 }}>{tagline}</p>}
+          </div>
+        </div>
+      )}
 
       {/* ── ABOUT + DOCTOR PHOTOS (side by side) ─────────── */}
       {(about || doctors.length > 0) && (
@@ -475,7 +511,19 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             <div className="fade-in" style={{maxWidth:720,margin:"0 auto"}}>
               <div className="section-eyebrow">{ar?"من نحن":"About Us"}</div>
               <h2 className="section-heading">{ar?`مرحباً بكم في ${clinicName}`:`Welcome to ${clinicName}`}</h2>
+              {!!page.about_image_url && (
+                <img src={String(page.about_image_url)} alt="About"
+                  style={{width:"100%",borderRadius:16,marginBottom:"1.5rem",objectFit:"cover",maxHeight:320,display:"block"}} />
+              )}
               <p className="section-body">{about}</p>
+            </div>
+          )}
+
+          {/* About image when there ARE doctors — show after last doctor */}
+          {doctors.length > 0 && !!page.about_image_url && (
+            <div className="fade-in" style={{marginTop:"3rem",textAlign:"center"}}>
+              <img src={String(page.about_image_url)} alt="About the clinic"
+                style={{width:"100%",maxWidth:680,borderRadius:16,objectFit:"cover",maxHeight:340,display:"block",margin:"0 auto",boxShadow:"0 8px 32px rgba(10,35,66,0.12)"}} />
             </div>
           )}
         </section>
