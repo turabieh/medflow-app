@@ -447,7 +447,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                 {/* Photo side */}
                 {photos.length > 0 && (
                   <div className="doctor-photo-col" style={{order: imgOnLeft ? 0 : 1}}>
-                    <DocPhotoSlider photos={photos} name={docName} />
+                    <DocPhotoSlider photos={photos} name={docName} title={docTitle} />
                   </div>
                 )}
                 {/* Text side */}

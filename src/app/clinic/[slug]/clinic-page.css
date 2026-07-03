@@ -997,20 +997,17 @@ html { scroll-behavior: smooth; }
   margin-right: auto;
 }
 
-/* Mobile: always single column, text first */
+/* Mobile: stacked layout — photo top with overlay text, then details below */
 @media (max-width: 768px) {
   .doctor-row-2col {
-    display: flex !important;
-    flex-direction: column-reverse !important;
-    gap: 1.5rem !important;
+    display: block !important;
+    gap: 0 !important;
   }
   .doctor-photo-col {
-    /* photo is flex child — column-reverse puts it below text */
-    order: 0;
+    display: block;
+    margin-bottom: 1.25rem;
   }
   .doctor-text-col {
-    /* text is flex child — column-reverse puts it above photo */
-    order: 0;
     text-align: left !important;
   }
 }
