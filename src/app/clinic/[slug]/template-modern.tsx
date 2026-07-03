@@ -208,7 +208,7 @@ export function TemplateModern({ clinic, page, services, doctors, testimonials, 
                     <h3 className="font-bold text-neutral-900">{ar?(doc.name_ar as string||doc.name_en as string):doc.name_en as string}</h3>
                     <p className="text-sm text-indigo-600 font-medium mt-1">{ar?(doc.title_ar as string||doc.title_en as string):doc.title_en as string}</p>
                     {!!(ar?doc.bio_ar:doc.bio_en) && <p className="mt-2 text-xs text-neutral-500 leading-relaxed line-clamp-3">{String(ar?doc.bio_ar??doc.bio_en:doc.bio_en??doc.bio_ar)}</p>}
-                    {doc.credentials && (doc.credentials as string[]).length > 0 && (
+                    {!!(doc.credentials) && (doc.credentials as string[]).length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1">
                         {(doc.credentials as string[]).map((c,i)=><span key={i} className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] text-indigo-700 font-medium">{c}</span>)}
                       </div>
@@ -227,7 +227,7 @@ export function TemplateModern({ clinic, page, services, doctors, testimonials, 
           <div className="mx-auto max-w-3xl px-6">
             <div className="mb-6 text-center">
               <p className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-600">{ar?"شاهد":"Watch"}</p>
-              {(page.youtube_title_en||page.youtube_title_ar) && <h2 className="text-2xl font-extrabold text-neutral-900">{ar?page.youtube_title_ar as string:page.youtube_title_en as string}</h2>}
+              {!!(page.youtube_title_en||page.youtube_title_ar) && <h2 className="text-2xl font-extrabold text-neutral-900">{ar?page.youtube_title_ar as string:page.youtube_title_en as string}</h2>}
             </div>
             <div className="relative rounded-2xl overflow-hidden shadow-xl" style={{paddingBottom:"56.25%"}}>
               <iframe src={`https://www.youtube.com/embed/${page.youtube_video_id}?rel=0`} className="absolute inset-0 h-full w-full" allowFullScreen />
@@ -274,11 +274,11 @@ export function TemplateModern({ clinic, page, services, doctors, testimonials, 
               <h2 className="mb-6 text-3xl font-extrabold text-neutral-900">{ar?"كيف تصلنا":"Find Us"}</h2>
               <div className="space-y-4 mb-6">
                 {address && <ContactRow icon="📍" label={ar?"العنوان":"Address"} value={address} />}
-                {(page.phone||clinic.phone) && <ContactRow icon="📞" label={ar?"هاتف":"Phone"} value={page.phone as string||clinic.phone as string} href={`tel:${page.phone||clinic.phone}`} />}
-                {page.whatsapp && <ContactRow icon="💬" label="WhatsApp" value={page.whatsapp as string} href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} />}
+                {!!(page.phone||clinic.phone) && <ContactRow icon="📞" label={ar?"هاتف":"Phone"} value={page.phone as string||clinic.phone as string} href={`tel:${page.phone||clinic.phone}`} />}
+                {!!page.whatsapp && <ContactRow icon="💬" label="WhatsApp" value={page.whatsapp as string} href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} />}
                 {hours && <ContactRow icon="🕐" label={ar?"أوقات العمل":"Hours"} value={hours} />}
               </div>
-              {hasSocial && (
+              {!!hasSocial && (
                 <div className="mb-6 flex flex-wrap gap-2">
                   {[{k:"social_instagram",i:"📸",l:"Instagram"},{k:"social_facebook",i:"👤",l:"Facebook"},{k:"social_youtube",i:"▶️",l:"YouTube"},{k:"social_twitter",i:"🐦",l:"Twitter"},{k:"social_tiktok",i:"🎵",l:"TikTok"}].filter(s=>page[s.k]).map(s=>(
                     <a key={s.k} href={page[s.k] as string} target="_blank" className="flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-600 hover:border-indigo-300 hover:text-indigo-600 transition">
@@ -287,7 +287,7 @@ export function TemplateModern({ clinic, page, services, doctors, testimonials, 
                   ))}
                 </div>
               )}
-              {page.maps_url && <div className="rounded-2xl overflow-hidden border border-neutral-100 h-52 shadow-sm"><iframe src={page.maps_url as string} className="h-full w-full" loading="lazy" allowFullScreen /></div>}
+              {!!page.maps_url && <div className="rounded-2xl overflow-hidden border border-neutral-100 h-52 shadow-sm"><iframe src={page.maps_url as string} className="h-full w-full" loading="lazy" allowFullScreen /></div>}
             </div>
           </div>
         </div>

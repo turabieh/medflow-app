@@ -482,7 +482,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                           {SI[s.icon]}{s.label}
                         </a>
                       ))}
-                      {page.whatsapp && (
+                      {!!page.whatsapp && (
                         <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
                           style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}>
                           {SI.whatsapp} WhatsApp
@@ -582,7 +582,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
               {phone   && <li><PhoneIcon/><a href={`tel:${phone}`}>{phone}</a></li>}
               {email   && <li><MailIcon/><a href={`mailto:${email}`}>{email}</a></li>}
               {hours   && <li><ClockIcon/><span>{hours}</span></li>}
-              {page.whatsapp && (
+              {!!page.whatsapp && (
                 <li>
                   {SI.whatsapp}
                   <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer">
