@@ -403,33 +403,93 @@ function F({ lbl, children, inp }: { lbl: string; children?: React.ReactNode; in
 function ServiceCard({ service: init, onSave, onDelete, isNew }: { service: R; onSave: (d:R)=>void; onDelete?: ()=>void; isNew?: boolean }) {
   const [s, setS] = useState<R>(init);
   const [open, setOpen] = useState(isNew ?? false);
+  const [saving, setSaving] = useState(false);
   const inp = "w-full rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500";
+
+  const previewImg = (s.image_url as string) || "";
 
   if (!open) return (
     <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm">
-      <span className="text-xl">{s.icon as string ?? "⚕"}</span>
-      <div className="flex-1"><p className="text-sm font-medium">{s.name_en as string || "(no name)"}</p><p className="text-xs text-neutral-400">{s.name_ar as string}</p></div>
+      {previewImg
+        ? <img src={previewImg} alt="" className="h-10 w-16 rounded-lg object-cover flex-shrink-0" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />
+        : <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400 text-xs">No img</div>
+      }
+      <div className="flex-1">
+        <p className="text-sm font-medium">{(s.name_en as string) || (s.name_ar as string) || "(no name)"}</p>
+        <p className="text-xs text-neutral-400" dir="rtl">{s.name_ar as string}</p>
+      </div>
       <button onClick={() => setOpen(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
       {onDelete && <button onClick={onDelete} className="text-xs text-red-500 hover:underline">Delete</button>}
     </div>
   );
 
+  async function handleSave() {
+    if (!(s.name_en as string)?.trim() && !(s.name_ar as string)?.trim()) {
+      alert("Please enter at least a service name."); return;
+    }
+    setSaving(true);
+    const { id: _id, ...rest } = s as R & { id?: unknown }; void _id;
+    await onSave(isNew ? rest : s);
+    setSaving(false);
+    setOpen(false);
+    if (isNew) setS(init);
+  }
+
   return (
     <div className="rounded-xl border border-neutral-900 bg-white p-4 shadow-sm space-y-3">
       <p className="text-sm font-semibold">{isNew ? "+ Add Service" : "Edit Service"}</p>
-      <div className="grid grid-cols-3 gap-3">
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Icon (emoji)</label><input value={((s.icon) as string) ?? ""} onChange={e => setS({...s, icon: e.target.value})} className={inp} placeholder="🧠" /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Name (EN) *</label><input value={((s.name_en) as string) ?? ""} onChange={e => setS({...s, name_en: e.target.value})} className={inp} /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Name (AR) *</label><input value={((s.name_ar) as string) ?? ""} onChange={e => setS({...s, name_ar: e.target.value})} className={inp} dir="rtl" /></div>
+
+      {/* Service image — the main visual */}
+      <div>
+        <label className="mb-2 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">
+          Service Image *
+        </label>
+        <ImageUploadButton
+          currentUrl={previewImg || undefined}
+          folder="services"
+          shape="landscape"
+          label="Upload Service Image"
+          onUploaded={url => setS({...s, image_url: url})}
+        />
+        <input
+          value={previewImg}
+          onChange={e => setS({...s, image_url: e.target.value})}
+          className={`${inp} mt-2`}
+          placeholder="or paste image URL..."
+        />
       </div>
+
+      {/* Names */}
       <div className="grid grid-cols-2 gap-3">
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Description (EN)</label><textarea value={((s.description_en) as string) ?? ""} onChange={e => setS({...s, description_en: e.target.value})} rows={2} className={`${inp} resize-none`} /></div>
-        <div><label className="mb-1 block text-[10px] text-neutral-500">Description (AR)</label><textarea value={((s.description_ar) as string) ?? ""} onChange={e => setS({...s, description_ar: e.target.value})} rows={2} className={`${inp} resize-none`} dir="rtl" /></div>
+        <div>
+          <label className="mb-1 block text-[10px] text-neutral-500">Name (EN) *</label>
+          <input value={String(s.name_en ?? "")} onChange={e => setS({...s, name_en: e.target.value})} className={inp} placeholder="e.g. Neurology" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-neutral-500">Name (AR) *</label>
+          <input value={String(s.name_ar ?? "")} onChange={e => setS({...s, name_ar: e.target.value})} className={inp} dir="rtl" placeholder="مثال: طب الأعصاب" />
+        </div>
       </div>
+
+      {/* Descriptions */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1 block text-[10px] text-neutral-500">Description (EN)</label>
+          <textarea value={String(s.description_en ?? "")} onChange={e => setS({...s, description_en: e.target.value})} rows={2} className={`${inp} resize-none`} />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] text-neutral-500">Description (AR)</label>
+          <textarea value={String(s.description_ar ?? "")} onChange={e => setS({...s, description_ar: e.target.value})} rows={2} className={`${inp} resize-none`} dir="rtl" />
+        </div>
+      </div>
+
       <div className="flex gap-2">
-        <button onClick={() => { onSave(s); setOpen(false); if(isNew) setS(init); }}
-          className="rounded-md bg-neutral-900 px-4 py-1.5 text-xs text-white font-semibold">Save</button>
-        <button onClick={() => setOpen(false)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">Cancel</button>
+        <button onClick={handleSave} disabled={saving}
+          className="rounded-md bg-neutral-900 px-5 py-1.5 text-xs text-white font-semibold disabled:opacity-60">
+          {saving ? "Saving..." : isNew ? "Add Service" : "Save"}
+        </button>
+        <button onClick={() => { setOpen(false); if (isNew) setS(init); }}
+          className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">Cancel</button>
       </div>
     </div>
   );
