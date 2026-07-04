@@ -162,9 +162,6 @@ function YouTubeSection({ page, doctors, lang }: { page: R; doctors: R[]; lang: 
     <section className="youtube-section">
       <div className="youtube-inner">
         <div className="fade-in" style={{textAlign:"center"}}>
-          <div className="section-eyebrow" style={{justifyContent:"center",color:"#C9A84C"}}>
-            {ar?"شاهد":"Watch"}
-          </div>
           <h2 className="section-heading" style={{textAlign: ar?"right":"center"}}>
             {ar
               ? String((page.youtube_title_ar ?? page.youtube_title_en) ?? (ar?"مقاطع مميزة":"Featured Videos"))
@@ -581,8 +578,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         <section id="services" style={{background:"#fff",padding:"3.5rem 1.5rem"}}>
           <div style={{maxWidth:1100,margin:"0 auto"}}>
             <div className="fade-in" style={{textAlign: ar?"right":"center", marginBottom:"2rem"}}>
-              {showTitles && <div className="section-eyebrow" style={{justifyContent: ar?"flex-end":"flex-start", flexDirection: ar?"row-reverse":"row"}}>{ar?"ما نقدمه":"What We Offer"}</div>}
-              {showTitles && <h2 className="section-heading" style={{textAlign: ar?"right":"center", marginBottom:"0.4rem"}}>{ar?"خدماتنا":"Our Services"}</h2>}
+              <h2 className="section-heading" style={{textAlign: ar?"right":"center", marginBottom:"0.4rem"}}>{ar?"خدماتنا":"Our Services"}</h2>
             </div>
             <div className="services-grid">
               {services.map((s,i) => {
@@ -663,8 +659,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         <div className="booking-inner">
           {/* Left: contact info */}
           <div id="contact" className="booking-info fade-in">
-            {showTitles && <div className="section-eyebrow" style={{flexDirection: ar?"row-reverse":"row", justifyContent: ar?"flex-end":"flex-start"}}>{ar?"احجز موعداً":"Book an Appointment"}</div>}
-            {showTitles && <h2 className="section-heading">{ar?"نحن هنا من أجلك":"We're Here for You"}</h2>}
+{showTitles && <h2 className="section-heading">{ar?"نحن هنا من أجلك":"We're Here for You"}</h2>}
             <p>{ar?"احجز موعدك الآن وسنتواصل معك لتأكيد الوقت المناسب. فريقنا الطبي المتخصص مستعد لخدمتك.":"Book your appointment now and we'll contact you to confirm the best time. Our specialist team is ready to serve you."}</p>
             <ul className="contact-list">
               {address && <li><MapIcon/><span>{address}</span></li>}
