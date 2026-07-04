@@ -1052,6 +1052,7 @@ html { scroll-behavior: smooth; }
   color: #fff;
   line-height: 1.2;
   margin: 0 0 0.2rem;
+  /* inherits text-align from dir attribute */
 }
 
 .doc-photo-title {
@@ -1120,9 +1121,7 @@ html { scroll-behavior: smooth; }
     margin-bottom: 1.25rem;
   }
 
-  .doctor-text-col {
-    text-align: left !important;
-  }
+  /* doctor-text-col: direction handled by parent dir attribute, no override */
 
   .doc-photo-frame {
     max-width: 100%;        /* fill the full mobile width */
@@ -1316,20 +1315,30 @@ html { scroll-behavior: smooth; }
   }
 }
 
-/* ── Arabic RTL fixes ────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   Arabic RTL + Justify + Phone fixes
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Justified body text ────────────────────────────────────── */
+.section-body,
+.service-desc,
+.review-quote,
+.booking-info p {
+  text-align: justify;
+  text-justify: inter-word;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+/* ── Arabic RTL: right-align everything inside dir=rtl ──────── */
 [dir="rtl"] .section-body {
-  text-align: right;
+  text-align: justify;
   direction: rtl;
 }
 
-[dir="rtl"] .service-card-body {
+[dir="rtl"] .doc-photo-overlay {
   text-align: right;
   direction: rtl;
-}
-
-[dir="rtl"] .service-card-body .service-name,
-[dir="rtl"] .service-card-body .service-desc {
-  text-align: right;
 }
 
 [dir="rtl"] .doc-photo-name,
@@ -1337,14 +1346,55 @@ html { scroll-behavior: smooth; }
   text-align: right;
 }
 
-[dir="rtl"] .mobile-menu-item {
+/* Doctor text column in Arabic: right-align */
+[dir="rtl"] .doctor-text-col {
+  text-align: right !important;
+  direction: rtl;
+}
+
+/* Service card text RTL */
+[dir="rtl"] .service-card-body {
   text-align: right;
   direction: rtl;
 }
 
-/* Phone numbers always LTR regardless of page direction */
-.phone-ltr {
-  direction: ltr;
+[dir="rtl"] .service-name,
+[dir="rtl"] .service-desc {
+  text-align: right;
+}
+
+/* Contact list items RTL */
+[dir="rtl"] .contact-list li {
+  flex-direction: row-reverse;
+}
+
+/* Mobile Arabic overrides */
+@media (max-width: 768px) {
+  [dir="rtl"] .doctor-text-col {
+    text-align: right !important;
+    direction: rtl;
+  }
+
+  [dir="rtl"] .doc-photo-overlay {
+    text-align: right;
+    direction: rtl;
+    left: 0;
+    right: 0;
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  [dir="rtl"] .section-body {
+    text-align: justify;
+    direction: rtl;
+  }
+}
+
+/* ── Phone numbers: always LTR regardless of page dir ───────── */
+.phone-ltr,
+a[href^="tel"],
+a[href^="tel"] * {
+  direction: ltr !important;
   unicode-bidi: embed;
   display: inline-block;
 }

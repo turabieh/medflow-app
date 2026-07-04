@@ -495,7 +495,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                     </div>
                   )}
                   {docIdx === 0 && about && (
-                    <p className="section-body" style={{marginBottom:"1.5rem",textAlign:ar?"right":"left",direction:ar?"rtl":"ltr"}}>{about}</p>
+                    <p className="section-body" style={{marginBottom: "1.5rem"}}>{about}</p>
                   )}
                   <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.6rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>{docName}</h2>
                   {docTitle && <p style={{fontSize:"0.85rem",fontWeight:700,color:"#C9A84C",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.5rem"}}>{docTitle}</p>}
@@ -645,7 +645,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             <p>{ar?"احجز موعدك الآن وسنتواصل معك لتأكيد الوقت المناسب. فريقنا الطبي المتخصص مستعد لخدمتك.":"Book your appointment now and we'll contact you to confirm the best time. Our specialist team is ready to serve you."}</p>
             <ul className="contact-list">
               {address && <li><MapIcon/><span>{address}</span></li>}
-              {phone   && <li><PhoneIcon/><a href={`tel:${phone}`}>{phone}</a></li>}
+              {phone   && <li><PhoneIcon/><a href={`tel:${phone}`} dir="ltr" style={{unicodeBidi:"embed",direction:"ltr"}}>{phone}</a></li>}
               {email   && <li><MailIcon/><a href={`mailto:${email}`}>{email}</a></li>}
               {hours   && <li><ClockIcon/><span>{hours}</span></li>}
               {!!page.whatsapp && (
