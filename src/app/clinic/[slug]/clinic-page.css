@@ -415,9 +415,9 @@ html { scroll-behavior: smooth; }
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--gold);
   margin-bottom: 1rem;
@@ -426,9 +426,11 @@ html { scroll-behavior: smooth; }
 .section-eyebrow::after {
   content: '';
   flex: 1;
-  height: 1px;
-  background: var(--border);
-  max-width: 60px;
+  height: 2px;
+  background: var(--gold);
+  opacity: 0.3;
+  max-width: 48px;
+  border-radius: 2px;
 }
 
 .section-heading {
@@ -962,8 +964,19 @@ html { scroll-behavior: smooth; }
   right: 0;
 }
 
+/* RTL eyebrow: flip decoration to right side, right-align text */
+[dir="rtl"] .section-eyebrow {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  text-align: right;
+}
+
 [dir="rtl"] .section-eyebrow::after {
-  order: -1;
+  order: 1; /* line goes after text in visual order = to the LEFT in RTL */
+}
+
+[dir="rtl"] .photo-slide-eyebrow {
+  flex-direction: row-reverse;
 }
 
 [dir="rtl"] .photo-slide-eyebrow::before {
@@ -1397,4 +1410,48 @@ a[href^="tel"] * {
   direction: ltr !important;
   unicode-bidi: embed;
   display: inline-block;
+}
+
+/* ── Mobile eyebrow section labels ─────────────────────────── */
+@media (max-width: 768px) {
+  .section-eyebrow {
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Arabic mobile: right-align eyebrows that are centered by inline style */
+  [dir="rtl"] .section-eyebrow {
+    justify-content: flex-start;
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+
+  /* Section headings: bigger on mobile for Arabic */
+  [dir="rtl"] .section-heading {
+    text-align: right;
+    font-size: clamp(1.5rem, 5vw, 2rem);
+  }
+
+  /* Section body text: right + justified */
+  [dir="rtl"] .section-body {
+    text-align: justify;
+    direction: rtl;
+  }
+
+  /* Booking section eyebrow */
+  [dir="rtl"] .booking-info .section-eyebrow {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+  }
+
+  [dir="rtl"] .booking-info .section-heading {
+    text-align: right;
+  }
+
+  [dir="rtl"] .booking-info p {
+    text-align: right;
+    direction: rtl;
+  }
 }
