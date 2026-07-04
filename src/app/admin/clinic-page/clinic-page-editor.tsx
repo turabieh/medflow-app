@@ -429,6 +429,79 @@ function F({ lbl, children, inp }: { lbl: string; children?: React.ReactNode; in
   );
 }
 
+function CustomSectionCard({ section: init, onSave, onDelete, isNew }: { section: R; onSave: (d:R)=>void; onDelete?: ()=>void; isNew?: boolean }) {
+  const [s, setS] = useState<R>(init);
+  const [open, setOpen] = useState(isNew ?? false);
+  const [saving, setSaving] = useState(false);
+  const inp = "w-full rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm outline-none focus:border-neutral-500";
+  const title = (s.title_en as string) || (s.title_ar as string) || "(untitled section)";
+
+  if (!open) return (
+    <div className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm">
+      {s.image_url && <img src={s.image_url as string} alt="" className="h-10 w-14 rounded-lg object-cover flex-shrink-0" onError={e=>{(e.target as HTMLImageElement).style.display="none";}} />}
+      <div className="flex-1">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-neutral-400">{s.image_side === "none" ? "Text only" : `Image ${s.image_side}`}</p>
+      </div>
+      <button onClick={() => setOpen(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
+      {onDelete && <button onClick={onDelete} className="text-xs text-red-500 hover:underline ml-2">Delete</button>}
+    </div>
+  );
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave(s);
+    setSaving(false);
+    setOpen(false);
+    if (isNew) setS(init);
+  }
+
+  return (
+    <div className="rounded-xl border-2 border-neutral-900 bg-white p-4 shadow-sm space-y-3">
+      <p className="text-sm font-semibold">{isNew ? "➕ Add Custom Section" : "Edit Section"}</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Title (EN)</label>
+          <input value={String(s.title_en ?? "")} onChange={e => setS({...s, title_en: e.target.value})} className={inp} placeholder="e.g. Success Stories" /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Title (AR)</label>
+          <input value={String(s.title_ar ?? "")} onChange={e => setS({...s, title_ar: e.target.value})} className={inp} dir="rtl" placeholder="مثال: قصص النجاح" /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Content (EN)</label>
+          <textarea value={String(s.body_en ?? "")} onChange={e => setS({...s, body_en: e.target.value})} rows={5} className={`${inp} resize-none`} placeholder="Write content in English..." /></div>
+        <div><label className="mb-1 block text-[10px] text-neutral-500">Content (AR)</label>
+          <textarea value={String(s.body_ar ?? "")} onChange={e => setS({...s, body_ar: e.target.value})} rows={5} className={`${inp} resize-none`} dir="rtl" placeholder="اكتب المحتوى بالعربية..." /></div>
+      </div>
+      <div>
+        <label className="mb-2 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">Section Image (optional)</label>
+        <ImageUploadButton currentUrl={String(s.image_url ?? "") || undefined} folder="sections" shape="landscape" label="Upload Image" onUploaded={url => setS({...s, image_url: url})} />
+        <input value={String(s.image_url ?? "")} onChange={e => setS({...s, image_url: e.target.value})} className={`${inp} mt-2`} placeholder="or paste image URL..." />
+      </div>
+      <div>
+        <label className="mb-2 block text-[10px] font-semibold text-neutral-600 uppercase tracking-wide">Image Position</label>
+        <div className="flex gap-2 flex-wrap">
+          {([["left","◧ Image Left"],["right","◨ Image Right"],["top","⬆ Image Top"],["none","✎ Text Only"]] as const).map(([val, label]) => (
+            <button key={val} type="button" onClick={() => setS({...s, image_side: val})}
+              className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${s.image_side === val ? "bg-neutral-900 border-neutral-900 text-white" : "border-neutral-200 text-neutral-600 hover:border-neutral-400"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <label className="text-[10px] text-neutral-500">Sort order:</label>
+        <input type="number" value={Number(s.sort_order ?? 0)} onChange={e => setS({...s, sort_order: parseInt(e.target.value)})} className="w-20 rounded-md border border-neutral-300 px-2 py-1 text-sm" min={0} />
+        <span className="text-[10px] text-neutral-400">(lower = appears first)</span>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={handleSave} disabled={saving} className="rounded-md bg-neutral-900 px-5 py-1.5 text-xs text-white font-semibold disabled:opacity-60">
+          {saving ? "Saving..." : isNew ? "Add Section" : "Save"}
+        </button>
+        <button onClick={() => { setOpen(false); if (isNew) setS(init); }} className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function ServiceCard({ service: init, onSave, onDelete, isNew }: { service: R; onSave: (d:R)=>void; onDelete?: ()=>void; isNew?: boolean }) {
   const [s, setS] = useState<R>(init);
   const [open, setOpen] = useState(isNew ?? false);
