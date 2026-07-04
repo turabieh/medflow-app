@@ -471,60 +471,78 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             const docTitle = String(ar ? doc.title_ar ?? doc.title_en : doc.title_en ?? doc.title_ar ?? "");
             const docBio   = String(ar ? doc.bio_ar ?? doc.bio_en : doc.bio_en ?? doc.bio_ar ?? "");
             const docSpec  = String(ar ? doc.specialty_ar ?? doc.specialty_en : doc.specialty_en ?? doc.specialty_ar ?? "");
-            // Alternate: first doctor photo left (EN) / right (AR), second the opposite
             const imgOnLeft = ar ? docIdx % 2 !== 0 : docIdx % 2 === 0;
 
             return (
               <div key={doc.id as string}
-                className={`fade-in doctor-row ${photos.length > 0 ? "doctor-row-2col" : "doctor-row-1col"}`}
-                style={{
-                  marginBottom: docIdx < doctors.length - 1 ? "4rem" : 0,
-                  direction: "ltr",
-                }}>
-                {/* Photo side */}
-                {photos.length > 0 && (
-                  <div className="doctor-photo-col" style={{order: imgOnLeft ? 0 : 1}}>
-                    <DocPhotoSlider photos={photos} name={docName} title={docTitle} />
-                  </div>
-                )}
-                {/* Text side */}
-                <div className="doctor-text-col" style={{order: imgOnLeft ? 1 : 0, textAlign: ar ? "right" : "left"}}>
-                  {docIdx === 0 && (
+                style={{ marginBottom: docIdx < doctors.length - 1 ? "4rem" : 0 }}>
+
+                {/* ── MOBILE LAYOUT: about text first, then photo+name ── */}
+                {/* About text — shows first on mobile, hidden on desktop */}
+                {docIdx === 0 && (about || true) && (
+                  <div className="mobile-about-block">
                     <div className="section-eyebrow" style={{justifyContent: ar ? "flex-end" : "flex-start", flexDirection: ar ? "row-reverse" : "row"}}>
                       {ar ? "عن العيادة" : "About Us"}
                     </div>
-                  )}
-                  {docIdx === 0 && about && (
-                    <p className="section-body" style={{marginBottom: "1.5rem"}}>{about}</p>
-                  )}
-                  <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.6rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>{docName}</h2>
-                  {docTitle && <p style={{fontSize:"0.85rem",fontWeight:700,color:"#C9A84C",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.5rem"}}>{docTitle}</p>}
-                  {docSpec  && <p style={{fontSize:"0.85rem",color:"#6B7280",marginBottom:"0.75rem"}}>{docSpec}</p>}
-                  {docBio   && <p style={{fontSize:"0.9rem",lineHeight:1.8,color:"#555",marginBottom:"1rem"}}>{docBio}</p>}
-                  {((doc.credentials as string[])??[]).length > 0 && (
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:"1rem",justifyContent:ar?"flex-end":"flex-start"}}>
-                      {(doc.credentials as string[]).map((c,j) => (
-                        <span key={j} style={{fontSize:"0.72rem",fontWeight:700,color:"#0A2342",background:"rgba(10,35,66,0.07)",borderRadius:100,padding:"3px 12px"}}>{c}</span>
-                      ))}
+                    {about && (
+                      <p className="section-body" style={{marginBottom: "1.5rem", textAlign: ar ? "justify" : "justify", direction: ar ? "rtl" : "ltr"}}>{about}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* ── DESKTOP + MOBILE photo+name row ── */}
+                <div className={`fade-in doctor-row ${photos.length > 0 ? "doctor-row-2col" : "doctor-row-1col"}`}
+                  style={{ direction: "ltr" }}>
+
+                  {/* Photo */}
+                  {photos.length > 0 && (
+                    <div className="doctor-photo-col" style={{order: imgOnLeft ? 0 : 1}}>
+                      <DocPhotoSlider photos={photos} name={docName} title={docTitle} />
                     </div>
                   )}
-                  {/* Social links under first doctor only */}
-                  {docIdx === 0 && socialLinks.length > 0 && (
-                    <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:ar?"flex-end":"flex-start",marginTop:"0.5rem"}}>
-                      {socialLinks.map(s => (
-                        <a key={s.key} href={page[s.key] as string} target="_blank" rel="noopener noreferrer"
-                          style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none",transition:"all 0.2s"}}>
-                          {SI[s.icon]}{s.label}
-                        </a>
-                      ))}
-                      {!!page.whatsapp && (
-                        <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
-                          style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}>
-                          {SI.whatsapp} WhatsApp
-                        </a>
-                      )}
-                    </div>
-                  )}
+
+                  {/* Text — on desktop shows about+name, on mobile shows name only */}
+                  <div className="doctor-text-col" style={{order: imgOnLeft ? 1 : 0, textAlign: ar ? "right" : "left"}}>
+                    {/* About text — desktop only (hidden on mobile via CSS) */}
+                    {docIdx === 0 && (
+                      <div className="desktop-about-block">
+                        <div className="section-eyebrow" style={{justifyContent: ar ? "flex-end" : "flex-start", flexDirection: ar ? "row-reverse" : "row"}}>
+                          {ar ? "عن العيادة" : "About Us"}
+                        </div>
+                        {about && (
+                          <p className="section-body" style={{marginBottom: "1.5rem", textAlign: "justify"}}>{about}</p>
+                        )}
+                      </div>
+                    )}
+                    {/* Doctor name + details — always visible */}
+                    <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.6rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>{docName}</h2>
+                    {docTitle && <p style={{fontSize:"0.85rem",fontWeight:700,color:"#C9A84C",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:"0.5rem"}}>{docTitle}</p>}
+                    {docSpec  && <p style={{fontSize:"0.85rem",color:"#6B7280",marginBottom:"0.75rem"}}>{docSpec}</p>}
+                    {docBio   && <p style={{fontSize:"0.9rem",lineHeight:1.8,color:"#555",marginBottom:"1rem",textAlign:"justify"}}>{docBio}</p>}
+                    {((doc.credentials as string[])??[]).length > 0 && (
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:"1rem",justifyContent:ar?"flex-end":"flex-start"}}>
+                        {(doc.credentials as string[]).map((c,j) => (
+                          <span key={j} style={{fontSize:"0.72rem",fontWeight:700,color:"#0A2342",background:"rgba(10,35,66,0.07)",borderRadius:100,padding:"3px 12px"}}>{c}</span>
+                        ))}
+                      </div>
+                    )}
+                    {docIdx === 0 && socialLinks.length > 0 && (
+                      <div style={{display:"flex",flexWrap:"wrap",gap:"0.4rem",justifyContent:ar?"flex-end":"flex-start",marginTop:"0.5rem"}}>
+                        {socialLinks.map(s => (
+                          <a key={s.key} href={page[s.key] as string} target="_blank" rel="noopener noreferrer"
+                            style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}>
+                            {SI[s.icon]}{s.label}
+                          </a>
+                        ))}
+                        {!!page.whatsapp && (
+                          <a href={`https://wa.me/${(page.whatsapp as string).replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer"
+                            style={{display:"flex",alignItems:"center",gap:5,padding:"0.35rem 0.8rem",borderRadius:100,border:"1px solid #e5e0d8",fontSize:"0.75rem",fontWeight:600,color:"#6B7280",textDecoration:"none"}}>
+                            {SI.whatsapp} WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             );
