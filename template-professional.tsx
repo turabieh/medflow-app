@@ -386,6 +386,11 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             {about    && <li><a href="#about">{ar?"عنّا":"About"}</a></li>}
             {services.length>0 && <li><a href="#services">{ar?"خدماتنا":"Services"}</a></li>}
             {doctors.length>0  && <li><a href="#about">{ar?"فريقنا الطبي":"Our Team"}</a></li>}
+            {customSections.map(sec => {
+              const title = ar ? (sec.title_ar as string || sec.title_en as string) : (sec.title_en as string || sec.title_ar as string);
+              const anchor = `#section-${sec.id as string}`;
+              return title ? <li key={sec.id as string}><a href={anchor}>{title}</a></li> : null;
+            })}
             {testimonials.length>0 && <li><a href="#reviews">{ar?"التقييمات":"Reviews"}</a></li>}
             <li><a href="#contact">{ar?"تواصل معنا":"Contact"}</a></li>
             <li><a href="#book">{ar?"احجز موعداً":"Book Now"}</a></li>
@@ -414,6 +419,11 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             {about    && <a href="#about"    className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"عنّا":"About Us"}</a>}
             {services.length>0 && <a href="#services" className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"خدماتنا":"Services"}</a>}
             {doctors.length>0  && <a href="#about"    className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"فريقنا الطبي":"Our Team"}</a>}
+            {customSections.map(sec => {
+              const title = ar ? (sec.title_ar as string || sec.title_en as string) : (sec.title_en as string || sec.title_ar as string);
+              const anchor = `#section-${sec.id as string}`;
+              return title ? <a key={sec.id as string} href={anchor} className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{title}</a> : null;
+            })}
             {testimonials.length>0 && <a href="#reviews" className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"التقييمات":"Reviews"}</a>}
             <a href="#contact" className="mobile-menu-item" onClick={()=>setMenuOpen(false)}>{ar?"تواصل معنا":"Contact Us"}</a>
             <a href="#book" className="mobile-menu-item mobile-menu-book" onClick={()=>setMenuOpen(false)}>{ar?"احجز موعداً":"Book Appointment"}</a>
@@ -663,7 +673,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         const bg      = idx % 2 === 0 ? "#fff" : "var(--cream)";
 
         return (
-          <section key={sec.id as string} style={{background: bg, padding:"3.5rem 1.5rem"}}>
+          <section key={sec.id as string} id={`section-${sec.id as string}`} style={{background: bg, padding:"3.5rem 1.5rem"}}>
             <div style={{maxWidth:1100, margin:"0 auto"}}>
 
               {/* Title */}
