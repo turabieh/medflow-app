@@ -199,6 +199,23 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
                   </select>
                 </F>
               </div>
+              {/* Show/hide section titles toggle */}
+              <div className="flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 mt-2">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-800">Show Section Titles</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    Show labels like "About Us", "Our Services", "Watch", "Book Appointment" on the page.
+                    Off by default — sections are self-explanatory.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => set("show_section_titles", !page.show_section_titles)}
+                  className={`relative ml-4 inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${page.show_section_titles ? "bg-neutral-900" : "bg-neutral-300"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${page.show_section_titles ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
             </Section>
             <Section title="Contact & Location">
               <div className={row}>
