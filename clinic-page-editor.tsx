@@ -112,6 +112,26 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
     setDoctors(prev => prev.filter(d => d.id !== id));
   }
 
+  async function saveCustomSection(s: R, isNew: boolean) {
+    const sb = createClient();
+    if (isNew) {
+      const { id: _id, ...rest } = s as R & { id?: unknown }; void _id;
+      const { data, error } = await sb.from("clinic_custom_sections").insert({ ...rest, clinic_id: clinicId }).select("*").single();
+      if (data) setCustomSections(prev => [...prev, data as R]);
+      else if (error) alert("Save error: " + error.message);
+    } else {
+      const { error } = await sb.from("clinic_custom_sections").update(s).eq("id", s.id as string);
+      if (!error) setCustomSections(prev => prev.map(x => x.id === s.id ? { ...x, ...s } : x));
+      else alert("Update error: " + error.message);
+    }
+  }
+
+  async function deleteCustomSection(id: string) {
+    const sb = createClient();
+    await sb.from("clinic_custom_sections").delete().eq("id", id);
+    setCustomSections(prev => prev.filter(x => x.id !== id));
+  }
+
   async function saveTestimonial(t: R, isNew: boolean) {
     const sb = createClient();
     if (isNew) {
