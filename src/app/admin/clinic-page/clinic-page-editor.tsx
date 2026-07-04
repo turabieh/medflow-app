@@ -15,16 +15,18 @@ const TABS = [
   { id:"doctors",      label:"👨‍⚕️ Doctors",    icon:"👨‍⚕️" },
   { id:"social",       label:"📱 Social",      icon:"📱" },
   { id:"testimonials", label:"⭐ Reviews",     icon:"⭐" },
+  { id:"sections",     label:"➕ Custom Sections", icon:"➕" },
   { id:"seo",          label:"🔍 SEO",         icon:"🔍" },
 ];
 
-export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services: initialServices, doctors: initialDoctors, testimonials: initialTestimonials }: {
+export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services: initialServices, doctors: initialDoctors, testimonials: initialTestimonials, customSections: initialCustomSections }: {
   clinicId: string;
   clinic: R;
   page: R | null;
   services: R[];
   doctors: R[];
   testimonials: R[];
+  customSections: R[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState("general");
@@ -32,6 +34,7 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
   const [services, setServices] = useState<R[]>(initialServices);
   const [doctors, setDoctors] = useState<R[]>(initialDoctors);
   const [testimonials, setTestimonials] = useState<R[]>(initialTestimonials);
+  const [customSections, setCustomSections] = useState<R[]>(initialCustomSections ?? []);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -362,6 +365,15 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
         )}
 
         {/* ── TESTIMONIALS ── */}
+        {tab === "sections" && (
+          <div className="space-y-3">
+            <p className="text-xs text-neutral-500 mb-2">Add custom sections like "Success Stories", "Cases", "Our Equipment", etc. Each section appears between Reviews and the Booking form.</p>
+            {customSections.map(s => (
+              <CustomSectionCard key={s.id as string} section={s} onSave={d => saveCustomSection(d, false)} onDelete={() => deleteCustomSection(s.id as string)} />
+            ))}
+            <CustomSectionCard key="new" section={{ id: "__new__", clinic_id: clinicId, sort_order: customSections.length, image_side: "left" }} onSave={d => saveCustomSection(d, true)} isNew />
+          </div>
+        )}
         {tab === "testimonials" && (
           <div className="space-y-3">
             {testimonials.map(t => (

@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { submitBookingRequest } from "@/lib/actions/booking-request";
 
 type R = Record<string, unknown>;
-interface Props { clinic: R; page: R; services: R[]; doctors: R[]; testimonials: R[]; slug: string; }
+interface Props { clinic: R; page: R; services: R[]; doctors: R[]; testimonials: R[]; customSections?: R[]; slug: string; }
 
 function tx(page: R, en: string, ar: string, lang: string): string {
   return (lang==="ar" ? page[ar] as string : page[en] as string) || (page[en] as string) || (page[ar] as string) || "";
@@ -162,9 +162,6 @@ function YouTubeSection({ page, doctors, lang }: { page: R; doctors: R[]; lang: 
     <section className="youtube-section">
       <div className="youtube-inner">
         <div className="fade-in" style={{textAlign:"center"}}>
-          <div className="section-eyebrow" style={{justifyContent:"center",color:"#C9A84C"}}>
-            {ar?"شاهد":"Watch"}
-          </div>
           <h2 className="section-heading" style={{textAlign: ar?"right":"center"}}>
             {ar
               ? String((page.youtube_title_ar ?? page.youtube_title_en) ?? (ar?"مقاطع مميزة":"Featured Videos"))
@@ -315,7 +312,7 @@ function useNavScroll() {
 }
 
 // ── MAIN TEMPLATE ────────────────────────────────────────────
-export function TemplateProfessional({ clinic, page, services, doctors, testimonials, slug }: Props) {
+export function TemplateProfessional({ clinic, page, services, doctors, testimonials, customSections = [], slug }: Props) {
   const [lang, setLang] = useState((page.default_lang as string)??"ar");
   const [menuOpen, setMenuOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>|null>(null);
@@ -581,8 +578,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         <section id="services" style={{background:"#fff",padding:"3.5rem 1.5rem"}}>
           <div style={{maxWidth:1100,margin:"0 auto"}}>
             <div className="fade-in" style={{textAlign: ar?"right":"center", marginBottom:"2rem"}}>
-              {showTitles && <div className="section-eyebrow" style={{justifyContent: ar?"flex-end":"flex-start", flexDirection: ar?"row-reverse":"row"}}>{ar?"ما نقدمه":"What We Offer"}</div>}
-              {showTitles && <h2 className="section-heading" style={{textAlign: ar?"right":"center", marginBottom:"0.4rem"}}>{ar?"خدماتنا":"Our Services"}</h2>}
+              <h2 className="section-heading" style={{textAlign: ar?"right":"center", marginBottom:"0.4rem"}}>{ar?"خدماتنا":"Our Services"}</h2>
             </div>
             <div className="services-grid">
               {services.map((s,i) => {
@@ -658,13 +654,83 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
         </section>
       )}
 
-      {/* ── BOOKING + CONTACT ─────────────────────────────── */}
+      {/* ── CUSTOM SECTIONS ─────────────────────────────────── */}
+      {customSections.map((sec, idx) => {
+        const title   = ar ? (sec.title_ar as string || sec.title_en as string) : (sec.title_en as string || sec.title_ar as string);
+        const body    = ar ? (sec.body_ar   as string || sec.body_en   as string) : (sec.body_en   as string || sec.body_ar   as string);
+        const imgSide = (sec.image_side as string) || "left";
+        const hasImg  = !!(sec.image_url as string);
+        const bg      = idx % 2 === 0 ? "#fff" : "var(--cream)";
+
+        return (
+          <section key={sec.id as string} style={{background: bg, padding:"3.5rem 1.5rem"}}>
+            <div style={{maxWidth:1100, margin:"0 auto"}}>
+
+              {/* Title */}
+              {title && (
+                <h2 style={{
+                  fontFamily:"'Playfair Display',serif",
+                  fontSize:"clamp(1.5rem,3vw,2.2rem)",
+                  fontWeight:700, color:"#0A2342",
+                  marginBottom:"1.75rem",
+                  textAlign: ar ? "right" : "left",
+                }}>
+                  {title}
+                </h2>
+              )}
+
+              {/* Image top layout */}
+              {hasImg && imgSide === "top" && (
+                <img src={sec.image_url as string} alt={title}
+                  style={{width:"100%",maxHeight:380,objectFit:"cover",borderRadius:16,marginBottom:"1.75rem",boxShadow:"0 8px 32px rgba(10,35,66,0.1)"}}
+                  onError={e=>{(e.target as HTMLImageElement).style.display="none";}}
+                />
+              )}
+
+              {/* Text-only layout */}
+              {(!hasImg || imgSide === "none" || imgSide === "top") && body && (
+                <p style={{
+                  fontSize:"1rem", lineHeight:1.85, color:"#555",
+                  textAlign:"justify", direction: ar?"rtl":"ltr",
+                  maxWidth: imgSide === "top" ? "100%" : 720,
+                  margin: ar ? "0 0 0 auto" : "0 auto 0 0",
+                  whiteSpace:"pre-line",
+                }}>{body}</p>
+              )}
+
+              {/* Side-by-side layout (left / right) */}
+              {hasImg && (imgSide === "left" || imgSide === "right") && (
+                <div style={{
+                  display:"grid",
+                  gridTemplateColumns:"1fr 1.3fr",
+                  gap:"3rem",
+                  alignItems:"center",
+                  direction:"ltr",
+                }}>
+                  <div style={{order: imgSide === "left" ? 0 : 1}}>
+                    <img src={sec.image_url as string} alt={title}
+                      style={{width:"100%",borderRadius:16,objectFit:"cover",aspectRatio:"4/3",boxShadow:"0 8px 32px rgba(10,35,66,0.12)",display:"block"}}
+                      onError={e=>{(e.target as HTMLImageElement).style.display="none";}}
+                    />
+                  </div>
+                  <div style={{order: imgSide === "left" ? 1 : 0, textAlign: ar?"right":"left"}}>
+                    {body && (
+                      <p style={{fontSize:"1rem",lineHeight:1.85,color:"#555",textAlign:"justify",direction:ar?"rtl":"ltr",whiteSpace:"pre-line"}}>{body}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })}
+
+            {/* ── BOOKING + CONTACT ─────────────────────────────── */}
       <section id="book" className="booking-section">
         <div className="booking-inner">
           {/* Left: contact info */}
           <div id="contact" className="booking-info fade-in">
-            {showTitles && <div className="section-eyebrow" style={{flexDirection: ar?"row-reverse":"row", justifyContent: ar?"flex-end":"flex-start"}}>{ar?"احجز موعداً":"Book an Appointment"}</div>}
-            {showTitles && <h2 className="section-heading">{ar?"نحن هنا من أجلك":"We're Here for You"}</h2>}
+{showTitles && <h2 className="section-heading">{ar?"نحن هنا من أجلك":"We're Here for You"}</h2>}
             <p>{ar?"احجز موعدك الآن وسنتواصل معك لتأكيد الوقت المناسب. فريقنا الطبي المتخصص مستعد لخدمتك.":"Book your appointment now and we'll contact you to confirm the best time. Our specialist team is ready to serve you."}</p>
             <ul className="contact-list">
               {address && <li><MapIcon/><span>{address}</span></li>}
