@@ -636,8 +636,8 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
           <div style={{maxWidth:1200,margin:"0 auto"}}>
             <div className="fade-in" style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",flexWrap:"wrap",gap:"1rem",marginBottom:"2.5rem"}}>
               <div>
-                <div className="section-eyebrow">{ar?"آراء المرضى":"Patient Reviews"}</div>
-                <h2 className="section-heading" style={{marginBottom:0}}>{ar?"ماذا يقول مرضانا":"What Patients Say"}</h2>
+                {showTitles && <div className="section-eyebrow">{ar?"آراء المرضى":"Patient Reviews"}</div>}
+                {showTitles && <h2 className="section-heading" style={{marginBottom:0}}>{ar?"ماذا يقول مرضانا":"What Patients Say"}</h2>}
               </div>
               {avgRating !== null && (
                 <div style={{textAlign:ar?"left":"right"}}>
