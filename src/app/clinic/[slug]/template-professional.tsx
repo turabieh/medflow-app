@@ -661,7 +661,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                 return (
                   <ServiceCard key={s.id as string} s={s} ar={ar} hasImg={hasImg} idx={i} />
                 );
-              })
+              })}
             </div>
           </div>
         </section>
