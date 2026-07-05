@@ -1607,9 +1607,7 @@ a[href^="tel"] * {
 
 @media (max-width: 768px) {
   .reviews-grid-desktop { display: none; }
-  .reviews-ticker-mobile { display: flex; flex-direction: column; gap: 0.75rem; }
-  /* Review cards on mobile: tap to expand */
-  .reviews-ticker-mobile .review-card { cursor: pointer; }
+  .reviews-ticker-mobile { display: block; }
 }
 
 /* ── Custom sections mobile scroll ──────────────────────────── */
