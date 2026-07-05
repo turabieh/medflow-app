@@ -417,6 +417,60 @@ function ReviewCard({ tm, ar, idx }: { tm: R; ar: boolean; idx: number }) {
   );
 }
 
+
+// Mobile ticker card — tap to expand full text, pauses animation
+function TickerReviewCard({ tm, ar }: { tm: R; ar: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const text   = ar ? (tm.text_ar as string || tm.text_en as string) : (tm.text_en as string || tm.text_ar as string);
+  const author = ar ? (tm.patient_name_ar as string || tm.patient_name_en as string) : (tm.patient_name_en as string || tm.patient_name_ar as string);
+  const rating = Math.round((tm.rating as number) ?? 5);
+  const isLong = text.length > 100;
+
+  return (
+    <div
+      className="review-ticker-card"
+      onClick={() => isLong && setExpanded(e => !e)}
+      style={{
+        cursor: isLong ? "pointer" : "default",
+        // When expanded: pause the whole track animation via CSS
+        position: "relative",
+      }}
+    >
+      <div className="review-ticker-stars">
+        {Array.from({length: rating}).map((_,j) => (
+          <svg key={j} style={{width:14,height:14}} fill="#C9A84C" viewBox="0 0 20 20">
+            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+          </svg>
+        ))}
+      </div>
+      <p
+        className="review-ticker-text"
+        dir={ar ? "rtl" : "ltr"}
+        style={{
+          display: "-webkit-box",
+          WebkitBoxOrient: "vertical",
+          WebkitLineClamp: expanded ? 999 : 3,
+          overflow: "hidden",
+          transition: "all 0.3s ease",
+        }}
+      >
+        {text}
+      </p>
+      {isLong && !expanded && (
+        <p style={{fontSize:"0.68rem",color:"#C9A84C",marginBottom:"0.4rem",textAlign:ar?"right":"left"}}>
+          {ar ? "اقرأ المزيد ▼" : "Read more ▼"}
+        </p>
+      )}
+      {isLong && expanded && (
+        <p style={{fontSize:"0.68rem",color:"#9CA3AF",marginBottom:"0.4rem",textAlign:ar?"right":"left"}}>
+          {ar ? "إخفاء ▲" : "Show less ▲"}
+        </p>
+      )}
+      <p className="review-ticker-author" style={{textAlign:ar?"right":"left"}}>{author}</p>
+    </div>
+  );
+}
+
 // ── MAIN TEMPLATE ────────────────────────────────────────────
 export function TemplateProfessional({ clinic, page, services, doctors, testimonials, customSections = [], slug }: Props) {
   const [lang, setLang] = useState((page.default_lang as string)??"ar");
@@ -741,21 +795,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
               <div className="reviews-ticker-wrap">
                 <div className={`reviews-ticker-track${ar ? " ticker-rtl" : ""}`}>
                   {[...testimonials, ...testimonials].map((tm, i) => (
-                    <div key={i} className="review-ticker-card">
-                      <div className="review-ticker-stars">
-                        {Array.from({length: Math.round((tm.rating as number) ?? 5)}).map((_,j) => (
-                          <svg key={j} style={{width:14,height:14}} fill="#C9A84C" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                          </svg>
-                        ))}
-                      </div>
-                      <p className="review-ticker-text" dir={ar?"rtl":"ltr"}>
-                        {ar?(tm.text_ar as string||tm.text_en as string):(tm.text_en as string||tm.text_ar as string)}
-                      </p>
-                      <p className="review-ticker-author">
-                        {ar?(tm.patient_name_ar as string||tm.patient_name_en as string):(tm.patient_name_en as string||tm.patient_name_ar as string)}
-                      </p>
-                    </div>
+                    <TickerReviewCard key={i} tm={tm} ar={ar} />
                   ))}
                 </div>
               </div>

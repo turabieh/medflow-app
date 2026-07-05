@@ -1565,12 +1565,17 @@ a[href^="tel"] * {
 
 .review-ticker-card {
   flex-shrink: 0;
-  width: 280px;
+  width: 300px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 1.25rem;
   box-shadow: 0 2px 8px rgba(10,35,66,0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.review-ticker-card:active {
+  box-shadow: 0 4px 16px rgba(10,35,66,0.12);
 }
 
 .review-ticker-stars {
@@ -1585,11 +1590,7 @@ a[href^="tel"] * {
   line-height: 1.6;
   color: #555;
   font-style: italic;
-  margin-bottom: 0.75rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .review-ticker-text::before { content: '\201C'; }
