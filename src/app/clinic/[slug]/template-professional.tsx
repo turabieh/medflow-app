@@ -376,6 +376,47 @@ function ServiceCard({ s, ar, hasImg, idx }: { s: R; ar: boolean; hasImg: boolea
   );
 }
 
+
+// Review card with tap-to-expand on mobile
+function ReviewCard({ tm, ar, idx }: { tm: R; ar: boolean; idx: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const text   = ar ? (tm.text_ar as string || tm.text_en as string) : (tm.text_en as string || tm.text_ar as string);
+  const author = ar ? (tm.patient_name_ar as string || tm.patient_name_en as string) : (tm.patient_name_en as string || tm.patient_name_ar as string);
+  const rating = (tm.rating as number) ?? 5;
+
+  return (
+    <div
+      className={`review-card fade-in fade-in-delay-${Math.min(idx+1,4)}`}
+      onClick={() => setExpanded(e => !e)}
+      style={{cursor:"pointer"}}
+    >
+      <Stars n={rating}/>
+      <p className="review-quote" style={{
+        display:"-webkit-box",
+        WebkitLineClamp: expanded ? 999 : 3,
+        WebkitBoxOrient:"vertical",
+        overflow:"hidden",
+        transition:"all 0.3s ease",
+        textAlign: ar?"right":"left",
+        direction: ar?"rtl":"ltr",
+      }}>
+        {text}
+      </p>
+      {!expanded && text && text.length > 120 && (
+        <p style={{fontSize:"0.72rem",color:"#C9A84C",marginTop:"0.4rem",textAlign:ar?"right":"left"}}>
+          {ar?"اقرأ المزيد ▼":"Read more ▼"}
+        </p>
+      )}
+      {expanded && (
+        <p style={{fontSize:"0.72rem",color:"#9CA3AF",marginTop:"0.4rem",textAlign:ar?"right":"left"}}>
+          {ar?"إخفاء ▲":"Show less ▲"}
+        </p>
+      )}
+      <p className="review-author" style={{textAlign:ar?"right":"left"}}>{author}</p>
+    </div>
+  );
+}
+
 // ── MAIN TEMPLATE ────────────────────────────────────────────
 export function TemplateProfessional({ clinic, page, services, doctors, testimonials, customSections = [], slug }: Props) {
   const [lang, setLang] = useState((page.default_lang as string)??"ar");
@@ -688,18 +729,10 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
                 </div>
               )}
             </div>
-            {/* Desktop: grid */}
+            {/* Desktop: grid with tap-to-expand */}
             <div className="reviews-grid reviews-grid-desktop">
               {testimonials.map((tm,i)=>(
-                <div key={tm.id as string} className={`review-card fade-in fade-in-delay-${Math.min(i+1,4)}`}>
-                  <Stars n={(tm.rating as number)??5}/>
-                  <p className="review-quote">
-                    {ar?(tm.text_ar as string||tm.text_en as string):(tm.text_en as string||tm.text_ar as string)}
-                  </p>
-                  <p className="review-author">
-                    {ar?(tm.patient_name_ar as string||tm.patient_name_en as string):(tm.patient_name_en as string||tm.patient_name_ar as string)}
-                  </p>
-                </div>
+                <ReviewCard key={tm.id as string} tm={tm} ar={ar} idx={i} />
               ))}
             </div>
 
