@@ -664,7 +664,7 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
             {/* Mobile: auto-scrolling ticker */}
             <div className="reviews-ticker-mobile">
               <div className="reviews-ticker-wrap">
-                <div className="reviews-ticker-track">
+                <div className={`reviews-ticker-track${ar ? " ticker-rtl" : ""}`}>
                   {[...testimonials, ...testimonials].map((tm, i) => (
                     <div key={i} className="review-ticker-card">
                       <div className="review-ticker-stars">
@@ -735,14 +735,14 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
 
               {/* Side-by-side layout (left / right) */}
               {hasImg && (imgSide === "left" || imgSide === "right") && (
-                <div style={{
+                <div className="custom-section-side" style={{
                   display:"grid",
                   gridTemplateColumns:"1fr 1.3fr",
-                  gap:"3rem",
+                  gap:"2rem",
                   alignItems:"center",
                   direction:"ltr",
                 }}>
-                  <div style={{order: imgSide === "left" ? 0 : 1}}>
+                  <div className="custom-section-img" style={{order: imgSide === "left" ? 0 : 1}}>
                     <img src={sec.image_url as string} alt={title}
                       style={{width:"100%",borderRadius:16,objectFit:"cover",aspectRatio:"4/3",boxShadow:"0 8px 32px rgba(10,35,66,0.12)",display:"block"}}
                       onError={e=>{(e.target as HTMLImageElement).style.display="none";}}
