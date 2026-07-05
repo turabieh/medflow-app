@@ -1,0 +1,26 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/clinic/maali-neurology",
+      "permanent": false,
+      "has": [
+        {
+          "type": "host",
+          "value": "www.maalineurology.com"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "destination": "/clinic/maali-neurology",
+      "permanent": false,
+      "has": [
+        {
+          "type": "host",
+          "value": "maalineurology.com"
+        }
+      ]
+    }
+  ]
+}
