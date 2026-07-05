@@ -3,10 +3,24 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Refreshes the Supabase auth session on every request.
- * Required so server components always see an up-to-date session
- * instead of a stale/expired one.
+ * Also redirects custom domain root to the clinic public page.
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const { pathname, host } = request.nextUrl;
+
+  // ── Redirect custom domain root to clinic public page ──────
+  // Must happen BEFORE auth session refresh so login page is never shown
+  if (
+    (host === "www.maalineurology.com" || host === "maalineurology.com") &&
+    pathname === "/"
+  ) {
+    return NextResponse.redirect(
+      new URL("/clinic/maali-neurology", request.url),
+      { status: 302 }
+    );
+  }
+
+  // ── Refresh Supabase auth session ──────────────────────────
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
