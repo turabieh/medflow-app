@@ -311,6 +311,71 @@ function useNavScroll() {
   }, []);
 }
 
+
+// Service card with tap-to-expand description on mobile
+function ServiceCard({ s, ar, hasImg, idx }: { s: R; ar: boolean; hasImg: boolean; idx: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const desc = String(ar ? s.description_ar ?? s.description_en : s.description_en ?? s.description_ar ?? "");
+
+  return (
+    <div
+      className={`service-item-new fade-in fade-in-delay-${Math.min(idx+1,4)}`}
+      onClick={() => setExpanded(e => !e)}
+      style={{cursor: desc ? "pointer" : "default"}}
+    >
+      {/* Image */}
+      <div className="service-img-wrap">
+        {hasImg
+          ? <img src={s.image_url as string} alt={ar ? s.name_ar as string : s.name_en as string}
+              className="service-img"
+              onError={e => {
+                (e.target as HTMLImageElement).style.display = "none";
+                (e.target as HTMLImageElement).nextElementSibling?.removeAttribute("style");
+              }}
+            />
+          : null
+        }
+        <div className="service-icon-fallback" style={hasImg ? {display:"none"} : {}}>
+          <span style={{fontSize:"2rem"}}>{s.icon as string || "⚕"}</span>
+        </div>
+        <div className="service-img-overlay"/>
+      </div>
+
+      {/* Text */}
+      <div className="service-card-body">
+        <div style={{display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"0.25rem"}}>
+          <p className="service-name" style={{textAlign: ar?"right":"left"}}>{ar ? s.name_ar as string : s.name_en as string}</p>
+          {desc && (
+            <span style={{fontSize:"0.7rem",color:"#9CA3AF",flexShrink:0,marginTop:"0.1rem"}}>
+              {expanded ? "▲" : "▼"}
+            </span>
+          )}
+        </div>
+        {desc && (
+          <p className="service-desc" style={{
+            textAlign: ar ? "right" : "left",
+            direction: ar ? "rtl" : "ltr",
+            // On mobile: clamp when collapsed, full when expanded
+            display: "-webkit-box",
+            WebkitLineClamp: expanded ? 999 : 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            transition: "all 0.3s ease",
+            marginTop: "0.35rem",
+          }}>
+            {desc}
+          </p>
+        )}
+        {desc && !expanded && (
+          <p style={{fontSize:"0.68rem",color:"#C9A84C",marginTop:"0.25rem",textAlign:ar?"right":"left"}}>
+            {ar ? "اقرأ المزيد" : "Read more"}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN TEMPLATE ────────────────────────────────────────────
 export function TemplateProfessional({ clinic, page, services, doctors, testimonials, customSections = [], slug }: Props) {
   const [lang, setLang] = useState((page.default_lang as string)??"ar");
@@ -594,32 +659,9 @@ export function TemplateProfessional({ clinic, page, services, doctors, testimon
               {services.map((s,i) => {
                 const hasImg = !!(s.image_url as string);
                 return (
-                  <div key={s.id as string} className={`service-item-new fade-in fade-in-delay-${Math.min(i+1,4)}`}>
-                    {/* Service image or fallback */}
-                    <div className="service-img-wrap">
-                      {hasImg
-                        ? <img src={s.image_url as string} alt={ar?s.name_ar as string:s.name_en as string}
-                            className="service-img"
-                            onError={e=>{(e.target as HTMLImageElement).style.display="none";(e.target as HTMLImageElement).nextElementSibling?.removeAttribute("style");}}
-                          />
-                        : null
-                      }
-                      {/* Fallback icon — shown when no image or image fails */}
-                      <div className="service-icon-fallback" style={hasImg?{display:"none"}:{}}>
-                        <span style={{fontSize:"2rem"}}>{s.icon as string||"⚕"}</span>
-                      </div>
-                      {/* Gold overlay on hover */}
-                      <div className="service-img-overlay"/>
-                    </div>
-                    <div className="service-card-body">
-                      <p className="service-name">{ar?s.name_ar as string:s.name_en as string}</p>
-                      {!!(ar?s.description_ar:s.description_en) && (
-                        <p className="service-desc">{String(ar?s.description_ar??s.description_en:s.description_en??s.description_ar)}</p>
-                      )}
-                    </div>
-                  </div>
+                  <ServiceCard key={s.id as string} s={s} ar={ar} hasImg={hasImg} idx={i} />
                 );
-              })}
+              })
             </div>
           </div>
         </section>
