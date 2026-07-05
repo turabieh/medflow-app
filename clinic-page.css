@@ -949,7 +949,7 @@ html { scroll-behavior: smooth; }
   .photo-slide-text { max-width: 100%; }
   .clinic-page[dir="rtl"] .photo-slide-content { justify-content: flex-start; }
   .booking-form-card { padding: 1.75rem; }
-  .services-grid { grid-template-columns: 1fr; }
+  /* services-grid: handled by mobile-specific rules below */
   .reviews-grid  { grid-template-columns: 1fr; }
   .photo-slider-section { height: 70vh; min-height: 480px; }
   .photo-slide-overlay {
@@ -1362,10 +1362,7 @@ html { scroll-behavior: smooth; }
     display: block;
   }
 
-  /* Services — 1 column on mobile */
-  .services-grid {
-    grid-template-columns: 1fr !important;
-  }
+  /* Services — 2 columns on mobile (see @media max-width:640px) */
 }
 
 /* ══════════════════════════════════════════════════════════════
