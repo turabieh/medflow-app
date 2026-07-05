@@ -2,20 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  const { pathname, host } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-  // Redirect custom domain root to clinic public page
-  if (
-    (host === "www.maalineurology.com" || host === "maalineurology.com") &&
-    pathname === "/"
-  ) {
+  // Root path always redirects to clinic public page
+  if (pathname === "/") {
     return NextResponse.redirect(
       new URL("/clinic/maali-neurology", request.url),
       { status: 302 }
     );
   }
 
-  // Refresh Supabase auth session on every request
+  // Refresh Supabase auth session on every other request
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
