@@ -4,7 +4,6 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Root path always redirects to clinic public page
   if (pathname === "/") {
     return NextResponse.redirect(
       new URL("/clinic/maali-neurology", request.url),
@@ -12,7 +11,6 @@ export async function proxy(request: NextRequest) {
     );
   }
 
-  // Refresh Supabase auth session on every other request
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
