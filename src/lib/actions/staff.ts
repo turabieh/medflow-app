@@ -138,3 +138,39 @@ export async function deleteStaffMember(userId: string) {
   revalidatePath("/admin/dashboard");
   return { success: true };
 }
+
+export async function uploadDoctorSignature(
+  userId: string,
+  signatureBase64: string,
+  mimeType: string
+): Promise<{ success: boolean; error?: string; url?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated." };
+
+  const { data: profile } = await supabase
+    .from("users").select("role, clinic_id").eq("id", user.id).single();
+  if (!profile) return { success: false, error: "Profile not found." };
+  if (profile.role !== "admin" && user.id !== userId)
+    return { success: false, error: "Not authorized." };
+
+  const adminClient = createAdminClient();
+  const ext = mimeType.split("/")[1]?.split("+")[0] ?? "png";
+  const path = `${profile.clinic_id}/signatures/${userId}.${ext}`;
+  const buffer = Buffer.from(signatureBase64, "base64");
+
+  const { error: uploadError } = await adminClient.storage
+    .from("clinic-assets")
+    .upload(path, buffer, { contentType: mimeType, upsert: true });
+
+  if (uploadError) return { success: false, error: uploadError.message };
+
+  const { data: { publicUrl } } = adminClient.storage
+    .from("clinic-assets").getPublicUrl(path);
+
+  await supabase.from("users")
+    .update({ signature_url: publicUrl }).eq("id", userId);
+
+  revalidatePath("/doctor/settings");
+  return { success: true, url: publicUrl };
+}
