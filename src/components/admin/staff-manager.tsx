@@ -51,7 +51,6 @@ export function StaffManager({ initialStaff }: { initialStaff: StaffMember[] }) 
                 onSave={async(data)=>{ const r=await updateStaffMember(member.id,data); if(r.success){setEditing(null);router.refresh();}else setError(r.error??'Error'); }}
                 onToggle={async()=>{ const action=member.is_active?deactivateStaffMember:reactivateStaffMember; await action(member.id); router.refresh(); }}
                 onDelete={async()=>{
-                  if (!confirm(`Delete ${member.full_name}? This removes their login and all access. This cannot be undone.`)) return;
                   const r = await deleteStaffMember(member.id);
                   if (r.success) router.refresh();
                   else alert(r.error ?? "Delete failed");
@@ -65,31 +64,80 @@ export function StaffManager({ initialStaff }: { initialStaff: StaffMember[] }) 
 }
 
 function StaffRow({member,editing,onEdit,onSave,onToggle,onDelete}:{member:StaffMember;editing:boolean;onEdit:()=>void;onSave:(d:{fullName:string;role:string;specialty?:string})=>Promise<void>;onToggle:()=>void;onDelete:()=>Promise<void>;}) {
-  const [name,setName]=useState(member.full_name); const [role,setRole]=useState(member.role); const [spec,setSpec]=useState(member.specialty??''); const [saving,setSaving]=useState(false);
+  const [name,setName]=useState(member.full_name);
+  const [role,setRole]=useState(member.role);
+  const [spec,setSpec]=useState(member.specialty??'');
+  const [saving,setSaving]=useState(false);
+  const [deleting,setDeleting]=useState(false);
+  const [confirmDelete,setConfirmDelete]=useState(false);
+  const [err,setErr]=useState<string|null>(null);
+
+  async function handleDelete() {
+    setDeleting(true); setErr(null);
+    const r = await onDelete();
+    setDeleting(false);
+  }
+
   return (
-    <li className="px-4 py-2.5">
-      {editing?(
+    <li className="px-4 py-3 border-b border-neutral-100 last:border-0">
+      {err && <div className="mb-2 rounded bg-red-50 px-3 py-1.5 text-xs text-red-700">{err}</div>}
+
+      {/* Confirm delete panel */}
+      {confirmDelete && (
+        <div className="mb-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5">
+          <p className="text-sm font-medium text-red-800 mb-2">Delete <strong>{member.full_name}</strong>? This removes their login permanently.</p>
+          <div className="flex gap-2">
+            <button onClick={handleDelete} disabled={deleting}
+              className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50">
+              {deleting ? "Deleting…" : "Yes, Delete"}
+            </button>
+            <button onClick={()=>setConfirmDelete(false)} disabled={deleting}
+              className="rounded border border-neutral-300 px-3 py-1 text-xs text-neutral-600">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editing ? (
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <input value={name} onChange={e=>setName(e.target.value)} placeholder="Full name" className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>
-            <select value={role} onChange={e=>setRole(e.target.value)} className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm"><option value="secretary">Secretary</option><option value="doctor">Doctor</option><option value="nurse">Nurse</option><option value="admin">Admin</option></select>
+            <select value={role} onChange={e=>setRole(e.target.value)} className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
+              <option value="secretary">Secretary</option>
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
-          {role==="doctor"&&<input value={spec} onChange={e=>setSpec(e.target.value)} placeholder="Specialty" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>}
+          {role==="doctor" && <input value={spec} onChange={e=>setSpec(e.target.value)} placeholder="Specialty" className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/>}
           <div className="flex gap-2">
-            <button onClick={async()=>{setSaving(true);await onSave({fullName:name,role,specialty:spec||undefined});setSaving(false);}} disabled={saving} className="rounded-md bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50">{saving?"Saving...":"Save"}</button>
+            <button onClick={async()=>{setSaving(true);await onSave({fullName:name,role,specialty:spec||undefined});setSaving(false);}} disabled={saving}
+              className="rounded-md bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50">
+              {saving?"Saving...":"Save"}
+            </button>
             <button onClick={onEdit} className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600">Cancel</button>
           </div>
         </div>
-      ):(
-        <div className="flex items-center justify-between">
-          <div>
-            <p className={`text-sm ${member.is_active?"text-neutral-900":"text-neutral-400"}`}>{member.full_name}{!member.is_active&&<span className="ml-2 text-xs">(inactive)</span>}</p>
-            <p className="text-xs text-neutral-500">{member.role}{member.specialty&&` · ${member.specialty}`}{member.email&&` · ${member.email}`}</p>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className={`text-sm font-medium truncate ${member.is_active?"text-neutral-900":"text-neutral-400"}`}>
+              {member.full_name}{!member.is_active && <span className="ml-2 text-xs font-normal">(inactive)</span>}
+            </p>
+            <p className="text-xs text-neutral-500 truncate">
+              {member.role}{member.specialty && ` · ${member.specialty}`}{member.email && ` · ${member.email}`}
+            </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-shrink-0">
             <button onClick={onEdit} className="text-xs text-blue-600 underline hover:text-blue-800">Edit</button>
-            <button onClick={onToggle} className="text-xs text-neutral-500 underline hover:text-neutral-700">{member.is_active?"Deactivate":"Reactivate"}</button>
-            <button onClick={onDelete} className="text-xs text-red-500 underline hover:text-red-700">Delete</button>
+            <button onClick={onToggle} className="text-xs text-neutral-500 underline hover:text-neutral-700">
+              {member.is_active?"Deactivate":"Reactivate"}
+            </button>
+            <button onClick={()=>setConfirmDelete(true)}
+              className="text-xs text-red-500 underline hover:text-red-700">
+              Delete
+            </button>
           </div>
         </div>
       )}
