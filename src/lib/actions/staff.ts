@@ -28,7 +28,7 @@ export interface CreateStaffInput {
   fullName: string;
   email: string;
   password: string;
-  role: "doctor" | "secretary" | "nurse" | "admin" | "technician";
+  role: "doctor" | "secretary" | "nurse" | "admin";
   specialty?: string;
 }
 
@@ -138,60 +138,45 @@ export async function updateStaffMember(userId: string, input: {
   return { success: true };
 }
 
-export async function uploadDoctorSignature(
-  userId: string,
-  signatureBase64: string,
-  mimeType: string
-): Promise<{ success: boolean; error?: string; url?: string }> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated." };
+export async function deleteStaffMember(userId: string) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
 
-  const { data: profile } = await supabase
-    .from("users").select("role, clinic_id").eq("id", user.id).single();
-  if (!profile) return { success: false, error: "Profile not found." };
-  if (profile.role !== "admin" && user.id !== userId) {
-    return { success: false, error: "Not authorized." };
-  }
+  const adminClient = createAdminClient();
 
-  const ext = mimeType.split("/")[1]?.split("+")[0] ?? "png";
-  const path = `${profile.clinic_id}/signatures/${userId}.${ext}`;
-  const buffer = Buffer.from(signatureBase64, "base64");
+  // First verify this user belongs to the admin's clinic
+  const { data: profile } = await auth.supabase
+    .from("users")
+    .select("id, role")
+    .eq("id", userId)
+    .eq("clinic_id", auth.clinicId)
+    .single();
 
-  // Try admin client first, fall back to regular client
-  let uploadError: { message: string } | null = null;
-  let publicUrl = "";
+  if (!profile) return { success: false, error: "User not found in your clinic." };
+  if (profile.role === "admin") return { success: false, error: "Cannot delete an admin account. Deactivate instead." };
 
-  try {
-    const adminClient = createAdminClient();
-    const { error } = await adminClient.storage
-      .from("clinic-assets")
-      .upload(path, buffer, { contentType: mimeType, upsert: true });
-    uploadError = error;
-    if (!error) {
-      const { data: { publicUrl: url } } = adminClient.storage.from("clinic-assets").getPublicUrl(path);
-      publicUrl = url;
-    }
-  } catch {
-    // Admin client not configured — try regular client
-    const { error } = await supabase.storage
-      .from("clinic-assets")
-      .upload(path, buffer, { contentType: mimeType, upsert: true });
-    uploadError = error;
-    if (!error) {
-      const { data: { publicUrl: url } } = supabase.storage.from("clinic-assets").getPublicUrl(path);
-      publicUrl = url;
-    }
-  }
+  // Nullify FK references in chat messages (set sent_by to null)
+  await adminClient.from("chat_messages").update({ sent_by: null }).eq("sent_by", userId);
+  await adminClient.from("chat_threads").update({ created_by: null }).eq("created_by", userId);
 
-  if (uploadError) return { success: false, error: `Upload failed: ${uploadError.message}. Make sure the "clinic-assets" storage bucket exists and is public in Supabase.` };
+  // Nullify other FK references
+  await adminClient.from("appointments").update({ doctor_id: null }).eq("doctor_id", userId);
+  await adminClient.from("expenses").update({ created_by: null }).eq("created_by", userId);
 
-  const { error: dbError } = await supabase.from("users")
-    .update({ signature_url: publicUrl })
-    .eq("id", userId);
+  // Delete the users profile row
+  const { error: profileError } = await adminClient
+    .from("users")
+    .delete()
+    .eq("id", userId)
+    .eq("clinic_id", auth.clinicId);
 
-  if (dbError) return { success: false, error: `Saved to storage but DB update failed: ${dbError.message}` };
+  if (profileError) return { success: false, error: profileError.message };
 
-  revalidatePath("/doctor/settings");
-  return { success: true, url: publicUrl };
+  // Delete the auth user (removes login entirely)
+  const { error: authError } = await adminClient.auth.admin.deleteUser(userId);
+  if (authError) return { success: false, error: "Profile deleted but auth cleanup failed: " + authError.message };
+
+  revalidatePath("/admin/settings/users");
+  revalidatePath("/admin/dashboard");
+  return { success: true };
 }
