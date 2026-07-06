@@ -398,32 +398,6 @@ export default async function AdminFinancePage({
 
   const totalUnclaimed = [...unclaimedInsurance, ...unclaimedHospital].reduce((s, x) => s + x.amount, 0);
 
-
-  // ── Cash payments for Cash tab ───────────────────────────────────────────
-  const { data: cashAppts } = await supabase
-    .from("appointments")
-    .select("id, appt_date, payment_amount, patient_id, users!appointments_doctor_id_fkey(full_name)")
-    .eq("clinic_id", clinicId)
-    .eq("payment_method", "cash")
-    .eq("payment_confirmed", true)
-    .gte("appt_date", fromDate)
-    .lte("appt_date", toDate)
-    .order("appt_date", { ascending: false });
-
-  const cashPtIds = [...new Set((cashAppts ?? []).map((a: { patient_id: string }) => a.patient_id))];
-  const { data: cashPts } = cashPtIds.length
-    ? await supabase.from("patients").select("id, full_name").in("id", cashPtIds)
-    : { data: [] };
-  const cashPtMap = Object.fromEntries((cashPts ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cashPayments = (cashAppts ?? []).map((a: any) => ({
-    id: a.id,
-    appt_date: a.appt_date,
-    payment_amount: a.payment_amount,
-    patientName: cashPtMap[a.patient_id] ?? "Unknown",
-    doctorName: Array.isArray(a.users) ? a.users[0]?.full_name ?? "—" : a.users?.full_name ?? "—",
-  }));
-
   return (
     <div>
       <h1 className="mb-1 text-lg font-medium text-neutral-900">Finance &amp; Reports</h1>

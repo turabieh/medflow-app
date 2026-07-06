@@ -17,7 +17,6 @@ type Expense = { id: string; expense_date: string; category: string; description
 type StaffMember = { id: string; full_name: string; role: string };
 type SalaryEntry = { name: string; role: string; salary: number };
 type MonthlyPoint = { month: string; revenue: number; expenses: number; profit: number };
-type CashPayment = { id: string; appt_date: string; payment_amount: number | null; patientName: string; doctorName: string };
 type UnclaimedEntry = { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string };
 
 function fmt(n: number, currency: string) { return `${n.toFixed(2)} ${currency}`; }
@@ -111,14 +110,6 @@ export function FinanceDashboard({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tab);
   const [error, setError] = useState<string | null>(null);
-  const [cashList, setCashList] = useState<CashPayment[]>(cashPayments ?? []);
-  const [cashFrom, setCashFrom] = useState(fromDate);
-  const [cashTo, setCashTo] = useState(toDate);
-  const [cashLoading, setCashLoading] = useState(false);
-  const [editCashId, setEditCashId] = useState<string | null>(null);
-  const [editCashAmt, setEditCashAmt] = useState("");
-  const [cashSaving, setCashSaving] = useState(false);
-  const [cashSaved, setCashSaved] = useState<string | null>(null);
 
   // Expense form
   const [expDate, setExpDate]     = useState(toDate);
@@ -534,155 +525,6 @@ export function FinanceDashboard({
       )}
 
       {/* ── REPORTS TAB ── */}
-
-      {activeTab === "cash" && (
-        <div>
-          {/* Date filter */}
-          <div className="mb-5 flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">From</label>
-              <input type="date" value={cashFrom} onChange={e => setCashFrom(e.target.value)}
-                className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">To</label>
-              <input type="date" value={cashTo} onChange={e => setCashTo(e.target.value)}
-                className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500" />
-            </div>
-            <button onClick={async () => {
-              setCashLoading(true);
-              const { createClient } = await import("@/lib/supabase/client");
-              const sb = createClient();
-              const { data: appts } = await sb
-                .from("appointments")
-                .select("id, appt_date, payment_amount, patient_id, users!appointments_doctor_id_fkey(full_name)")
-                .eq("clinic_id", clinicId)
-                .eq("payment_method", "cash")
-                .eq("payment_confirmed", true)
-                .gte("appt_date", cashFrom)
-                .lte("appt_date", cashTo)
-                .order("appt_date", { ascending: false });
-              const ids = [...new Set((appts ?? []).map((a: {patient_id: string}) => a.patient_id))];
-              const { data: pts } = ids.length ? await sb.from("patients").select("id, full_name").in("id", ids) : { data: [] };
-              const ptMap = Object.fromEntries((pts ?? []).map((p: {id:string;full_name:string}) => [p.id, p.full_name]));
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setCashList((appts ?? []).map((a: any) => ({
-                id: a.id, appt_date: a.appt_date, payment_amount: a.payment_amount,
-                patientName: ptMap[a.patient_id] ?? "Unknown",
-                doctorName: Array.isArray(a.users) ? a.users[0]?.full_name ?? "—" : a.users?.full_name ?? "—",
-              })));
-              setCashLoading(false);
-            }} disabled={cashLoading}
-              className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-              {cashLoading ? "Loading..." : "Apply"}
-            </button>
-            {[{l:"Today",d:0},{l:"This Week",d:6},{l:"This Month",d:29}].map(({l,d}) => (
-              <button key={l} type="button" onClick={() => {
-                const t = new Date().toISOString().split("T")[0];
-                const f = new Date(Date.now()-d*86400000).toISOString().split("T")[0];
-                setCashFrom(f); setCashTo(t);
-              }} className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-500 transition">{l}</button>
-            ))}
-          </div>
-
-          {/* Summary cards */}
-          <div className="mb-5 flex gap-4 flex-wrap">
-            <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Total Cash</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">
-                {cashList.reduce((s,p)=>s+(p.payment_amount??0),0).toFixed(2)}{" "}
-                <span className="text-sm font-normal text-neutral-400">{currency}</span>
-              </p>
-            </div>
-            <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Transactions</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">{cashList.length}</p>
-            </div>
-          </div>
-
-          {/* Table */}
-          {cashList.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-neutral-300 py-12 text-center text-neutral-400">
-              No cash payments found for this period.
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-200 bg-neutral-50">
-                    {["Date","Patient","Doctor","Amount ("+currency+")","Action"].map(h => (
-                      <th key={h} className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500 ${h==="Action"?"text-center":h.startsWith("Amount")?"text-right":"text-left"}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {cashList.map(p => (
-                    <tr key={p.id} className="hover:bg-neutral-50 transition">
-                      <td className="px-4 py-3 text-neutral-600">{p.appt_date}</td>
-                      <td className="px-4 py-3 font-medium text-neutral-900">{p.patientName}</td>
-                      <td className="px-4 py-3 text-neutral-500">{p.doctorName}</td>
-                      <td className="px-4 py-3 text-right">
-                        {editCashId === p.id ? (
-                          <input type="number" value={editCashAmt}
-                            onChange={e => setEditCashAmt(e.target.value)}
-                            min={0} step={0.01} autoFocus
-                            className="w-28 rounded-md border border-blue-400 px-2 py-1 text-right text-sm font-semibold outline-none"
-                            onKeyDown={e => { if (e.key==="Escape") setEditCashId(null); }}
-                          />
-                        ) : (
-                          <span className={`font-semibold ${cashSaved===p.id?"text-green-600":"text-neutral-900"}`}>
-                            {cashSaved===p.id?"✓ ":""}{(p.payment_amount??0).toFixed(2)}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {editCashId === p.id ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <button disabled={cashSaving} onClick={async () => {
-                              const n = parseFloat(editCashAmt);
-                              if (isNaN(n)||n<0) return;
-                              setCashSaving(true);
-                              const { createClient } = await import("@/lib/supabase/client");
-                              const { error } = await createClient().from("appointments").update({ payment_amount: n }).eq("id", p.id);
-                              setCashSaving(false);
-                              if (error) { alert("Error: "+error.message); return; }
-                              setCashList(prev => prev.map(x => x.id===p.id ? {...x,payment_amount:n} : x));
-                              setEditCashId(null);
-                              setCashSaved(p.id); setTimeout(()=>setCashSaved(null),2500);
-                            }} className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50">
-                              {cashSaving?"...":"Save"}
-                            </button>
-                            <button onClick={()=>setEditCashId(null)}
-                              className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-500">Cancel</button>
-                          </div>
-                        ) : (
-                          <button onClick={()=>{setEditCashId(p.id);setEditCashAmt(String(p.payment_amount??""));}}
-                            className="rounded-md border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-400 transition">
-                            Edit
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-neutral-200 bg-neutral-50">
-                    <td colSpan={3} className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">Total</td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-neutral-900">
-                      {cashList.reduce((s,p)=>s+(p.payment_amount??0),0).toFixed(2)}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          )}
-          <p className="mt-3 text-xs text-neutral-400">
-            Only confirmed cash payments shown. Click Edit → enter correct amount → Save. Press Escape to cancel.
-          </p>
-        </div>
-      )}
-
       {activeTab === "reports" && (
         <div className="space-y-4">
           {/* P&L Summary */}
