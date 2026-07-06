@@ -1,119 +1,91 @@
 "use client";
 import { useState, useRef } from "react";
 
-interface S {
-  login_banner_url: string; login_company_name: string; login_tagline: string;
-  login_description: string; login_contact_email: string; login_contact_phone: string; login_website: string;
-}
+interface S { login_banner_url:string; login_company_name:string; login_tagline:string; login_contact_email:string; login_contact_phone:string; login_website:string; }
 
-export function LoginPageSettings({ initial }: { initial: S }) {
-  const [s, setS]     = useState<S>(initial);
+export function LoginPageSettings({ initial }:{ initial:S }) {
+  const [s, setS] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError]   = useState<string|null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const inp = "w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-700 transition bg-white";
+  const ref = useRef<HTMLInputElement>(null);
+  const inp = {width:"100%",border:"1.5px solid #E5E7EB",borderRadius:8,padding:"0.65rem 0.875rem",fontSize:"0.88rem",outline:"none",background:"#FAFAFA",boxSizing:"border-box" as const};
+  const lbl = {display:"block",fontSize:"0.75rem",fontWeight:600 as const,color:"#6B7280",marginBottom:"0.3rem",textTransform:"uppercase" as const,letterSpacing:"0.05em"};
 
-  async function upload(file: File) {
+  async function upload(file:File) {
     setUploading(true); setError(null);
-    const img = new Image();
-    const objUrl = URL.createObjectURL(file);
+    const img = new Image(); const url = URL.createObjectURL(file);
     img.onload = async () => {
-      URL.revokeObjectURL(objUrl);
-      let { width, height } = img;
-      if (width > 1200) { height = Math.round(height * 1200 / width); width = 1200; }
-      const canvas = document.createElement("canvas");
-      canvas.width = width; canvas.height = height;
-      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-      const base64 = canvas.toDataURL("image/jpeg", 0.88).split(",")[1];
+      URL.revokeObjectURL(url);
+      let {width,height} = img;
+      if (width>1200){height=Math.round(height*1200/width);width=1200;}
+      const c=document.createElement("canvas"); c.width=width; c.height=height;
+      c.getContext("2d")!.drawImage(img,0,0,width,height);
+      const base64=c.toDataURL("image/jpeg",0.88).split(",")[1];
       try {
-        const res = await fetch("/api/superadmin/upload-banner", {
-          method:"POST", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({ base64, mimeType:"image/jpeg" }),
-        });
-        const data = await res.json();
-        if (data.url) setS(p=>({...p,login_banner_url:data.url}));
-        else setError(data.error??"Upload failed");
-      } catch(e) { setError((e as Error).message); }
+        const res=await fetch("/api/superadmin/upload-banner",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({base64,mimeType:"image/jpeg"})});
+        const d=await res.json();
+        if(d.url) setS(p=>({...p,login_banner_url:d.url}));
+        else setError(d.error??"Upload failed");
+      } catch(e){setError(String(e));}
       setUploading(false);
     };
-    img.onerror = () => { setError("Failed to read image"); setUploading(false); };
-    img.src = objUrl;
+    img.onerror=()=>{setError("Failed to read image");setUploading(false);};
+    img.src=url;
   }
 
   async function save() {
     setSaving(true); setError(null); setSaved(false);
     try {
-      const res = await fetch("/api/superadmin/login-settings", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify(s),
-      });
-      if (!res.ok) { const t = await res.text(); throw new Error(t); }
-      const data = await res.json();
-      if (data.ok) { setSaved(true); setTimeout(()=>setSaved(false),3000); }
-      else setError(data.error??"Save failed");
-    } catch(e) { setError((e as Error).message); }
+      const res=await fetch("/api/superadmin/login-settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(s)});
+      const d=await res.json();
+      if(d.ok){setSaved(true);setTimeout(()=>setSaved(false),3000);}
+      else setError(d.error??"Save failed");
+    } catch(e){setError(String(e));}
     setSaving(false);
   }
 
   return (
-    <div style={{maxWidth:640}}>
-      <h2 className="mb-1 text-xl font-bold text-neutral-900">Login Page Settings</h2>
-      <p className="mb-6 text-sm text-neutral-500">These settings appear on the left side of the MedFlow login page.</p>
+    <div style={{fontFamily:"'Inter','Segoe UI',sans-serif",maxWidth:600}}>
+      <h2 style={{fontSize:"1.25rem",fontWeight:700,color:"#0A2342",marginBottom:"0.25rem"}}>Login Page Settings</h2>
+      <p style={{fontSize:"0.85rem",color:"#9CA3AF",marginBottom:"1.5rem"}}>Edit what appears on the MedFlow login screen.</p>
 
-      {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div style={{marginBottom:"1rem",padding:"0.75rem 1rem",borderRadius:8,background:"#FEF2F2",border:"1px solid #FECACA",fontSize:"0.83rem",color:"#DC2626"}}>{error}</div>}
 
       {/* Banner */}
-      <div className="mb-5 rounded-xl border border-neutral-200 bg-white p-5">
-        <p className="mb-1 text-sm font-semibold text-neutral-800">Banner Image</p>
-        <p className="mb-3 text-xs text-neutral-400">Displayed on the login page left panel. White background, max 1200px wide.</p>
-        {s.login_banner_url && (
-          <div className="mb-3 rounded-lg overflow-hidden border border-neutral-200" style={{maxWidth:300}}>
-            <img src={s.login_banner_url} alt="" className="w-full object-contain"/>
-          </div>
-        )}
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)upload(f);}}/>
-        <div className="flex gap-2 flex-wrap items-center">
-          <button onClick={()=>fileRef.current?.click()} disabled={uploading}
-            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 transition">
-            {uploading?"Uploading…":"Upload Image"}
-          </button>
-          {s.login_banner_url && (
-            <button onClick={()=>setS(p=>({...p,login_banner_url:""}))}
-              className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Remove</button>
-          )}
+      <div style={{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"1.25rem",marginBottom:"1rem"}}>
+        <p style={{fontSize:"0.85rem",fontWeight:600,color:"#111827",marginBottom:"0.75rem"}}>Banner Image</p>
+        {s.login_banner_url && <div style={{marginBottom:"0.75rem",borderRadius:8,overflow:"hidden",border:"1px solid #E5E7EB",maxWidth:280}}><img src={s.login_banner_url} alt="" style={{width:"100%",display:"block",objectFit:"contain"}}/></div>}
+        <input ref={ref} type="file" accept="image/*" style={{display:"none"}} onChange={e=>{const f=e.target.files?.[0];if(f)upload(f);}}/>
+        <div style={{display:"flex",gap:"0.5rem",flexWrap:"wrap",marginBottom:"0.75rem"}}>
+          <button onClick={()=>ref.current?.click()} disabled={uploading} style={{padding:"0.5rem 1rem",borderRadius:8,border:"1px solid #D1D5DB",background:"#fff",fontSize:"0.82rem",fontWeight:600,cursor:"pointer",opacity:uploading?0.5:1}}>{uploading?"Uploading…":"Upload Image"}</button>
+          {s.login_banner_url && <button onClick={()=>setS(p=>({...p,login_banner_url:""}))} style={{padding:"0.5rem 1rem",borderRadius:8,border:"1px solid #FCA5A5",background:"#FEF2F2",fontSize:"0.82rem",fontWeight:600,cursor:"pointer",color:"#DC2626"}}>Remove</button>}
         </div>
-        <input value={s.login_banner_url} onChange={e=>setS(p=>({...p,login_banner_url:e.target.value}))}
-          className={`${inp} mt-2`} placeholder="or paste image URL…"/>
+        <label style={lbl}>Or paste URL</label>
+        <input style={inp} value={s.login_banner_url} onChange={e=>setS(p=>({...p,login_banner_url:e.target.value}))} placeholder="https://..."/>
       </div>
 
-      {/* Text */}
-      <div className="mb-5 rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
-        <p className="text-sm font-semibold text-neutral-800">Branding</p>
-        <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-400">Company Name</label>
-          <input value={s.login_company_name} onChange={e=>setS(p=>({...p,login_company_name:e.target.value}))} className={inp} placeholder="VeloTech"/></div>
-        <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-400">Tagline</label>
-          <input value={s.login_tagline} onChange={e=>setS(p=>({...p,login_tagline:e.target.value}))} className={inp} placeholder="Smart Clinic Management"/></div>
+      {/* Branding */}
+      <div style={{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"1.25rem",marginBottom:"1rem",display:"flex",flexDirection:"column",gap:"1rem"}}>
+        <p style={{fontSize:"0.85rem",fontWeight:600,color:"#111827",margin:0}}>Branding</p>
+        <div><label style={lbl}>Company Name</label><input style={inp} value={s.login_company_name} onChange={e=>setS(p=>({...p,login_company_name:e.target.value}))} placeholder="VeloTech"/></div>
+        <div><label style={lbl}>Tagline</label><input style={inp} value={s.login_tagline} onChange={e=>setS(p=>({...p,login_tagline:e.target.value}))} placeholder="Smart Clinic Management"/></div>
       </div>
 
       {/* Contact */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
-        <p className="text-sm font-semibold text-neutral-800">Contact Information</p>
-        <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-400">Email</label>
-          <input value={s.login_contact_email} onChange={e=>setS(p=>({...p,login_contact_email:e.target.value}))} className={inp} placeholder="hello@velotech.app"/></div>
-        <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-400">Phone</label>
-          <input value={s.login_contact_phone} onChange={e=>setS(p=>({...p,login_contact_phone:e.target.value}))} className={inp} placeholder="+962 79 000 0000"/></div>
-        <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-400">Website</label>
-          <input value={s.login_website} onChange={e=>setS(p=>({...p,login_website:e.target.value}))} className={inp} placeholder="https://velotech.app"/></div>
+      <div style={{background:"#fff",borderRadius:12,border:"1px solid #E5E7EB",padding:"1.25rem",marginBottom:"1.5rem",display:"flex",flexDirection:"column",gap:"1rem"}}>
+        <p style={{fontSize:"0.85rem",fontWeight:600,color:"#111827",margin:0}}>Contact Info</p>
+        <div><label style={lbl}>Email</label><input style={inp} value={s.login_contact_email} onChange={e=>setS(p=>({...p,login_contact_email:e.target.value}))} placeholder="hello@velotech.app"/></div>
+        <div><label style={lbl}>Phone</label><input style={inp} value={s.login_contact_phone} onChange={e=>setS(p=>({...p,login_contact_phone:e.target.value}))} placeholder="+962 79 000 0000"/></div>
+        <div><label style={lbl}>Website</label><input style={inp} value={s.login_website} onChange={e=>setS(p=>({...p,login_website:e.target.value}))} placeholder="https://velotech.app"/></div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button onClick={save} disabled={saving}
-          className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 transition">
+      <div style={{display:"flex",alignItems:"center",gap:"1rem"}}>
+        <button onClick={save} disabled={saving} style={{padding:"0.75rem 2rem",borderRadius:10,background:saving?"#6B7280":"#0A2342",color:"#fff",fontSize:"0.9rem",fontWeight:700,border:"none",cursor:saving?"not-allowed":"pointer"}}>
           {saving?"Saving…":"Save Changes"}
         </button>
-        {saved && <span className="text-sm font-semibold text-emerald-600">✓ Saved</span>}
+        {saved && <span style={{fontSize:"0.85rem",fontWeight:600,color:"#059669"}}>✓ Saved</span>}
       </div>
     </div>
   );
