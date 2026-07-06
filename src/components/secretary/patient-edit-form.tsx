@@ -28,6 +28,7 @@ interface PatientEditFormProps {
     blood_type: string | null;
     allergies: string | null;
     insurance_company_id: string | null;
+  insurance_coverage_pct?: number | null;
     insurance_policy_number: string | null;
     insurance_expiry_date: string | null;
     preferred_doctor_id: string | null;
@@ -52,6 +53,7 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
   const [email, setEmail] = useState(patient.email ?? "");
   const [bloodType, setBloodType] = useState(patient.blood_type ?? "");
   const [allergies, setAllergies] = useState(patient.allergies ?? "");
+  const [coveragePct, setCoveragePct] = useState<number>(patient.insurance_coverage_pct ?? 100);
   const [insuranceCompanyId, setInsuranceCompanyId] = useState(patient.insurance_company_id ?? "");
   const [preferredDoctorId, setPreferredDoctorId] = useState(patient.preferred_doctor_id ?? "");
   const [policyNumber, setPolicyNumber] = useState(patient.insurance_policy_number ?? "");
@@ -240,6 +242,38 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
               ))}
             </select>
           </div>
+
+      {/* Insurance Coverage % */}
+      {!!insuranceCompanyId && (
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Insurance Coverage %
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number" min={0} max={100} step={5}
+              value={coveragePct}
+              onChange={e => setCoveragePct(Math.min(100, Math.max(0, Number(e.target.value))))}
+              className="w-24 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold outline-none focus:border-neutral-500"
+            />
+            <span className="text-sm text-neutral-500">%</span>
+            <div className="flex gap-1.5 flex-wrap">
+              {[70, 75, 80, 85, 90, 100].map(p => (
+                <button key={p} type="button" onClick={() => setCoveragePct(p)}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold transition ${coveragePct === p ? "bg-neutral-900 text-white" : "border border-neutral-300 text-neutral-500 hover:border-neutral-500"}`}>
+                  {p}%
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="mt-1.5 text-[11px] text-neutral-400">
+            {coveragePct === 100
+              ? "Insurance covers 100% — patient pays nothing in cash."
+              : `Insurance covers ${coveragePct}%, patient pays ${100 - coveragePct}% in cash.`}
+          </p>
+        </div>
+      )}
+
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Policy number</label>
             <input type="text" value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)}
