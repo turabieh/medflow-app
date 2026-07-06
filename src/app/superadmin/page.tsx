@@ -105,11 +105,11 @@ export default async function SuperAdminDashboard() {
                       <td style={{ padding:"12px 14px" }}>
                         <span style={{ fontSize:"12px", fontWeight:"600" }}
                           className={STATUS_COLOR[sub?.status ?? "active"]}>
-                          ● {sub?.status ?? "active"}
+                          \u25cf {sub?.status ?? "active"}
                         </span>
                       </td>
                       <td style={{ padding:"12px 14px", color:"#737373", fontSize:"12px", fontFamily:"monospace" }}>
-                        {sub?.current_period_end ?? "—"}
+                        {sub?.current_period_end ?? "\u2014"}
                       </td>
                       <td style={{ padding:"12px 14px", color:"#818cf8", fontFamily:"monospace", fontWeight:"600" }}>
                         ${sub?.monthly_price ?? 0}/mo
@@ -117,7 +117,7 @@ export default async function SuperAdminDashboard() {
                       <td style={{ padding:"12px 14px" }}>
                         <Link href={`/superadmin/clinics/${c.id}`}
                           style={{ color:"#6366f1", textDecoration:"none", fontSize:"12px", fontWeight:"600" }}>
-                          Manage →
+                          Manage \u2192
                         </Link>
                       </td>
                     </tr>
@@ -156,10 +156,39 @@ export default async function SuperAdminDashboard() {
                     <span style={{ fontSize:"13px", fontWeight:"600", color:"#d4d4d4" }}>{cn?.name}</span>
                     <span style={{ fontSize:"13px", fontWeight:"700", color:"#34d399", fontFamily:"monospace" }}>+${p.amount}</span>
                   </div>
-                  <div style={{ fontSize:"11px", color:"#525252", marginTop:"2px" }}>{p.payment_date} · {p.method}</div>
+                  <div style={{ fontSize:"11px", color:"#525252", marginTop:"2px" }}>{p.payment_date} \u00b7 {p.method}</div>
                 </div>
               );
             })}
+          </div>
+
+          {/* Quick Links */}
+          <div style={{ background:"#111", border:"1px solid #1f1f1f", borderRadius:"12px", padding:"16px" }}>
+            <h3 style={{ fontSize:"12px", fontWeight:"700", color:"#737373", textTransform:"uppercase", letterSpacing:"0.5px", margin:"0 0 12px" }}>Settings</h3>
+            <div style={{ display:"flex", flexDirection:"column", gap:"8px" }}>
+              <Link href="/superadmin/login-settings"
+                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", background:"#1a1a1a", borderRadius:"8px", textDecoration:"none", border:"1px solid #222", transition:"all 0.2s" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                  <span style={{ fontSize:"16px" }}>🎨</span>
+                  <div>
+                    <div style={{ fontSize:"13px", fontWeight:"600", color:"#d4d4d4" }}>Login Page</div>
+                    <div style={{ fontSize:"11px", color:"#525252" }}>Banner, tagline, contact info</div>
+                  </div>
+                </div>
+                <span style={{ color:"#525252", fontSize:"12px" }}>→</span>
+              </Link>
+              <Link href="/superadmin/tiers"
+                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 12px", background:"#1a1a1a", borderRadius:"8px", textDecoration:"none", border:"1px solid #222" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                  <span style={{ fontSize:"16px" }}>💎</span>
+                  <div>
+                    <div style={{ fontSize:"13px", fontWeight:"600", color:"#d4d4d4" }}>Subscription Tiers</div>
+                    <div style={{ fontSize:"11px", color:"#525252" }}>Plans & pricing</div>
+                  </div>
+                </div>
+                <span style={{ color:"#525252", fontSize:"12px" }}>→</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
