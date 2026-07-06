@@ -436,6 +436,7 @@ export function FinanceDashboard({
   monthlyTrend,
   staff, latestSalaries, clinicId,
   unclaimedInsurance, unclaimedHospital, totalUnclaimed, debugData,
+  cashMgmtList = [],
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
