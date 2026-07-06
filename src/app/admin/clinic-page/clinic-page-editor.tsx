@@ -211,6 +211,7 @@ export function ClinicPageEditor({ clinicId, clinic, page: initialPage, services
                     <option value="professional">Professional (Navy + Gold)</option>
                     <option value="modern">Modern (Light + Indigo)</option>
                     <option value="minimal">Minimal (White + Black)</option>
+                    <option value="calm">Calm (Lavender + Dusty Blue)</option>
                   </select>
                 </F>
               </div>

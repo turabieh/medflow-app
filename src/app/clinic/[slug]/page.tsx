@@ -2,6 +2,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { TemplateProfessional } from "./template-professional";
+import { TemplateCalm } from "./template-calm";
 import { TemplateModern } from "./template-modern";
 
 export const dynamic = "force-dynamic";
@@ -60,5 +61,6 @@ export default async function ClinicPublicPage({ params }: Props) {
 
   const template = (page?.template ?? "professional") as string;
   if (template === "modern") return <TemplateModern {...data} />;
+  if (template === "calm") return <TemplateCalm {...data} />;
   return <TemplateProfessional {...data} />;
 }
