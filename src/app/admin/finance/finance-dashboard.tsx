@@ -18,6 +18,7 @@ type StaffMember = { id: string; full_name: string; role: string };
 type SalaryEntry = { name: string; role: string; salary: number };
 type MonthlyPoint = { month: string; revenue: number; expenses: number; profit: number };
 type CashPayment = { id: string; appt_date: string; payment_amount: number | null; patientName: string; doctorName: string };
+type UnclaimedEntry = { id: string; name: string; amount: number; count: number; earliestDate: string; latestDate: string };
 
 function fmt(n: number, currency: string) { return `${n.toFixed(2)} ${currency}`; }
 
@@ -36,22 +37,76 @@ function StatCard({ label, value, sub, color="text-neutral-900", highlight }: { 
   );
 }
 
+
+function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; toDate: string; activeTab: string }) {
+  const router = useRouter();
+  const [from, setFrom] = useState(fromDate);
+  const [to, setTo]     = useState(toDate);
+  const [open, setOpen] = useState(false);
+
+  function apply() {
+    if (!from || !to) return;
+    router.push(`/admin/finance?tab=${activeTab}&from=${from}&to=${to}`);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative flex items-center gap-2">
+      <span className="text-xs text-neutral-500 font-medium">{fromDate} → {toDate}</span>
+      <button onClick={() => setOpen(o => !o)}
+        className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50">
+        Custom range
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-20 rounded-lg border border-neutral-200 bg-white p-4 shadow-lg space-y-3 w-64">
+          <p className="text-xs font-semibold text-neutral-700">Select date range</p>
+          <div className="space-y-2">
+            <div>
+              <label className="mb-1 block text-[10px] text-neutral-500">From</label>
+              <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] text-neutral-500">To</label>
+              <input type="date" value={to} onChange={e => setTo(e.target.value)}
+                className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={apply}
+              className="flex-1 rounded-md bg-neutral-900 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+              Apply
+            </button>
+            <button onClick={() => setOpen(false)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-600">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function FinanceDashboard({
   currency, fromDate, toDate, period, tab,
   cashTotal, hospitalPaid, insurancePaid, totalRevenue,
-  hospOutstanding, insOutstanding, methodBreakdown,
+  hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, methodBreakdown,
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
   staff, latestSalaries, clinicId,
+  unclaimedInsurance, unclaimedHospital, totalUnclaimed, debugData,
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
-  hospOutstanding: number; insOutstanding: number; methodBreakdown: Record<string, number>;
+  hospOutstanding: number; insOutstanding: number; hospWrittenOff: number; insWrittenOff: number; methodBreakdown: Record<string, number>;
   expenses: Expense[]; totalExpenses: number; expByCategory: Record<string, number>;
   totalSalaries: number; totalCosts: number; netProfit: number;
   monthlyTrend: MonthlyPoint[];
   staff: StaffMember[]; latestSalaries: SalaryEntry[]; clinicId: string;
-  cashPayments?: CashPayment[];
+  unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  debugData: any;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tab);
@@ -86,8 +141,8 @@ export function FinanceDashboard({
     { id:"revenue",   label:"Revenue" },
     { id:"expenses",  label:"Expenses" },
     { id:"salaries",  label:"Staff & Salaries" },
-    { id:"cash",      label:"💵 Cash Payments" },
     { id:"reports",   label:"Reports" },
+    { id:"unclaimed",  label:"Unclaimed Revenue 🔴" },
   ];
 
   async function handleAddExpense(e: React.FormEvent) {
@@ -128,13 +183,7 @@ export function FinanceDashboard({
             </Link>
           ))}
         </div>
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
-          <Link href={`/admin/finance?tab=${activeTab}&from=${fromDate}&to=${toDate}`}
-            className="rounded-md border border-neutral-300 px-2.5 py-1.5 hover:bg-neutral-50">
-            Custom range
-          </Link>
-          <span className="font-medium text-neutral-700">{fromDate} \u2192 {toDate}</span>
-        </div>
+        <CustomRangePicker fromDate={fromDate} toDate={toDate} activeTab={activeTab} />
       </div>
 
       {/* Tabs */}
@@ -149,7 +198,7 @@ export function FinanceDashboard({
         ))}
       </div>
 
-      {/* \u2500\u2500 OVERVIEW \u2500\u2500 */}
+      {/* ── OVERVIEW ── */}
       {activeTab === "overview" && (
         <div className="space-y-5">
           {/* KPI cards */}
@@ -157,8 +206,26 @@ export function FinanceDashboard({
             <StatCard label="Total Revenue" value={fmt(totalRevenue, currency)} color="text-green-700" />
             <StatCard label="Total Costs"   value={fmt(totalCosts, currency)}   color="text-red-600" />
             <StatCard label="Net Profit"    value={fmt(netProfit, currency)}    color={netProfit >= 0 ? "text-emerald-700" : "text-red-700"} highlight={netProfit < 0} />
-            <StatCard label="Outstanding (claims)" value={fmt(hospOutstanding + insOutstanding, currency)} color="text-amber-700" sub="Not yet received" />
+            <div className={`rounded-xl border p-4 shadow-sm ${(hospOutstanding + insOutstanding + totalUnclaimed) > 0 ? "border-amber-200 bg-amber-50" : "border-neutral-200 bg-white"}`}>
+              <p className={`text-xl font-bold ${(hospOutstanding + insOutstanding) > 0 ? "text-amber-700" : "text-neutral-400"}`}>
+                {fmt(hospOutstanding + insOutstanding, currency)}
+              </p>
+              <p className="text-xs font-medium text-neutral-700 mt-0.5">Outstanding Claims</p>
+              <p className="text-[10px] text-neutral-400">Claimed but not yet paid</p>
+              {totalUnclaimed > 0 && (
+                <div className="mt-2 pt-2 border-t border-amber-200">
+                  <p className="text-xs font-bold text-red-600">{fmt(totalUnclaimed, currency)}</p>
+                  <p className="text-[10px] text-red-500">+ Not yet invoiced</p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Debug — remove after confirming */}
+          <details className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-neutral-600">
+            <summary className="cursor-pointer font-medium text-blue-800">🔍 Debug data (click to expand)</summary>
+            <pre className="mt-2 text-[10px] overflow-auto whitespace-pre-wrap">{JSON.stringify({ hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, totalUnclaimed, cashTotal, hospitalPaid, insurancePaid, ...debugData }, null, 2)}</pre>
+          </details>
 
           {/* Revenue breakdown */}
           <div className="grid grid-cols-3 gap-3">
@@ -196,22 +263,31 @@ export function FinanceDashboard({
             </div>
 
             <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 mb-3">Outstanding Claims</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400 mb-3">Claims Status</p>
               {[
-                { label:"Hospital claims", value: hospOutstanding, color:"bg-amber-400" },
-                { label:"Insurance claims", value: insOutstanding, color:"bg-orange-400" },
+                { label:"Hospital — outstanding", value: hospOutstanding, color:"bg-amber-400", textColor:"text-amber-700" },
+                { label:"Insurance — outstanding", value: insOutstanding, color:"bg-orange-400", textColor:"text-orange-700" },
               ].map(r => (
                 <div key={r.label} className="mb-3">
                   <div className="flex justify-between text-xs text-neutral-600">
                     <span>{r.label}</span>
-                    <span className="font-medium text-amber-700">{r.value.toFixed(2)} {currency}</span>
+                    <span className={`font-medium ${r.textColor}`}>{r.value.toFixed(2)} {currency}</span>
                   </div>
-                  <MiniBar value={r.value} max={(hospOutstanding + insOutstanding) || 1} color={r.color} />
+                  <MiniBar value={r.value} max={(hospOutstanding + insOutstanding + hospWrittenOff + insWrittenOff) || 1} color={r.color} />
                 </div>
               ))}
-              <div className="mt-3 border-t border-neutral-100 pt-3 text-xs font-semibold text-amber-700">
-                Total: {fmt(hospOutstanding + insOutstanding, currency)}
+              <div className="mt-3 border-t border-neutral-100 pt-3 text-xs font-bold text-amber-700">
+                Outstanding: {fmt(hospOutstanding + insOutstanding, currency)}
               </div>
+              {(hospWrittenOff + insWrittenOff) > 0 && (
+                <div className="mt-2 pt-2 border-t border-dashed border-neutral-100">
+                  <div className="flex justify-between text-xs text-neutral-400">
+                    <span>Closed at partial (written off)</span>
+                    <span className="font-medium">{fmt(hospWrittenOff + insWrittenOff, currency)}</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-300 mt-0.5">Doctor closed — no longer requested</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -244,7 +320,7 @@ export function FinanceDashboard({
         </div>
       )}
 
-      {/* \u2500\u2500 REVENUE TAB \u2500\u2500 */}
+      {/* ── REVENUE TAB ── */}
       {activeTab === "revenue" && (
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -271,7 +347,7 @@ export function FinanceDashboard({
 
           {/* Outstanding */}
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-700">Total Outstanding (All Time)</p>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-700">Outstanding (All Time)</p>
             <div className="grid grid-cols-2 gap-4">
               <div><p className="text-xl font-bold text-amber-800">{fmt(hospOutstanding, currency)}</p><p className="text-xs text-amber-600">Hospital claims</p></div>
               <div><p className="text-xl font-bold text-amber-800">{fmt(insOutstanding, currency)}</p><p className="text-xs text-amber-600">Insurance claims</p></div>
@@ -279,11 +355,23 @@ export function FinanceDashboard({
             <p className="mt-3 text-sm font-bold text-amber-900 border-t border-amber-200 pt-3">
               Total outstanding: {fmt(hospOutstanding + insOutstanding, currency)}
             </p>
+            {(hospWrittenOff + insWrittenOff) > 0 && (
+              <div className="mt-3 border-t border-dashed border-amber-200 pt-3">
+                <p className="text-xs text-amber-700 font-semibold mb-1">Closed at partial — written off</p>
+                <div className="grid grid-cols-2 gap-3 text-xs text-amber-600">
+                  {hospWrittenOff > 0 && <div>Hospital: <strong>{fmt(hospWrittenOff, currency)}</strong></div>}
+                  {insWrittenOff  > 0 && <div>Insurance: <strong>{fmt(insWrittenOff, currency)}</strong></div>}
+                </div>
+                <p className="text-[10px] text-amber-500 mt-2">
+                  These amounts were claimed but doctor closed them — no longer being pursued.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* \u2500\u2500 EXPENSES TAB \u2500\u2500 */}
+      {/* ── EXPENSES TAB ── */}
       {activeTab === "expenses" && (
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
@@ -331,7 +419,7 @@ export function FinanceDashboard({
               <div className="col-span-2">
                 <label className="mb-1 block text-xs text-neutral-600">Description</label>
                 <input value={expDesc} onChange={e => setExpDesc(e.target.value)}
-                  placeholder="e.g. Monthly electricity bill \u2014 EDCO"
+                  placeholder="e.g. Monthly electricity bill — EDCO"
                   className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
               </div>
               <div>
@@ -363,7 +451,7 @@ export function FinanceDashboard({
                     <tr key={e.id} className="hover:bg-neutral-50">
                       <td className="px-3 py-2 text-xs text-neutral-600">{e.expense_date}</td>
                       <td className="px-3 py-2 text-xs font-medium text-neutral-800">{e.category}</td>
-                      <td className="px-3 py-2 text-xs text-neutral-500">{e.description ?? "\u2014"}</td>
+                      <td className="px-3 py-2 text-xs text-neutral-500">{e.description ?? "—"}</td>
                       <td className="px-3 py-2 text-right font-mono text-sm font-medium text-red-600">{e.amount.toFixed(2)} {currency}</td>
                       <td className="px-3 py-2 text-right">
                         <button onClick={async () => { if (confirm("Delete this expense?")) { await deleteExpense(e.id); router.refresh(); } }}
@@ -383,7 +471,7 @@ export function FinanceDashboard({
         </div>
       )}
 
-      {/* \u2500\u2500 SALARIES TAB \u2500\u2500 */}
+      {/* ── SALARIES TAB ── */}
       {activeTab === "salaries" && (
         <div className="space-y-4">
           {/* Current salaries */}
@@ -445,7 +533,8 @@ export function FinanceDashboard({
         </div>
       )}
 
-      {/* \u2500\u2500 REPORTS TAB \u2500\u2500 */}
+      {/* ── REPORTS TAB ── */}
+
       {activeTab === "cash" && (
         <div>
           {/* Date filter */}
@@ -475,11 +564,12 @@ export function FinanceDashboard({
                 .order("appt_date", { ascending: false });
               const ids = [...new Set((appts ?? []).map((a: {patient_id: string}) => a.patient_id))];
               const { data: pts } = ids.length ? await sb.from("patients").select("id, full_name").in("id", ids) : { data: [] };
-              const ptMap = Object.fromEntries((pts ?? []).map((p: {id: string; full_name: string}) => [p.id, p.full_name]));
-              setCashList((appts ?? []).map((a: {id: string; appt_date: string; payment_amount: number|null; patient_id: string; users: unknown}) => ({
+              const ptMap = Object.fromEntries((pts ?? []).map((p: {id:string;full_name:string}) => [p.id, p.full_name]));
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setCashList((appts ?? []).map((a: any) => ({
                 id: a.id, appt_date: a.appt_date, payment_amount: a.payment_amount,
                 patientName: ptMap[a.patient_id] ?? "Unknown",
-                doctorName: Array.isArray(a.users) ? (a.users[0] as {full_name: string})?.full_name ?? "—" : (a.users as {full_name: string}|null)?.full_name ?? "—",
+                doctorName: Array.isArray(a.users) ? a.users[0]?.full_name ?? "—" : a.users?.full_name ?? "—",
               })));
               setCashLoading(false);
             }} disabled={cashLoading}
@@ -495,11 +585,14 @@ export function FinanceDashboard({
             ))}
           </div>
 
-          {/* Summary */}
+          {/* Summary cards */}
           <div className="mb-5 flex gap-4 flex-wrap">
             <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Total Cash</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">{cashList.reduce((s,p)=>s+(p.payment_amount??0),0).toFixed(2)} <span className="text-sm font-normal text-neutral-400">{currency}</span></p>
+              <p className="mt-1 text-2xl font-bold text-neutral-900">
+                {cashList.reduce((s,p)=>s+(p.payment_amount??0),0).toFixed(2)}{" "}
+                <span className="text-sm font-normal text-neutral-400">{currency}</span>
+              </p>
             </div>
             <div className="rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Transactions</p>
@@ -509,17 +602,17 @@ export function FinanceDashboard({
 
           {/* Table */}
           {cashList.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-neutral-300 py-12 text-center text-neutral-400">No cash payments found for this period.</div>
+            <div className="rounded-xl border border-dashed border-neutral-300 py-12 text-center text-neutral-400">
+              No cash payments found for this period.
+            </div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-neutral-200 bg-neutral-50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Patient</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Doctor</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">Amount ({currency})</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-500">Action</th>
+                    {["Date","Patient","Doctor","Amount ("+currency+")","Action"].map(h => (
+                      <th key={h} className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-neutral-500 ${h==="Action"?"text-center":h.startsWith("Amount")?"text-right":"text-left"}`}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
@@ -530,49 +623,40 @@ export function FinanceDashboard({
                       <td className="px-4 py-3 text-neutral-500">{p.doctorName}</td>
                       <td className="px-4 py-3 text-right">
                         {editCashId === p.id ? (
-                          <input type="number" value={editCashAmt} onChange={e => setEditCashAmt(e.target.value)}
+                          <input type="number" value={editCashAmt}
+                            onChange={e => setEditCashAmt(e.target.value)}
                             min={0} step={0.01} autoFocus
                             className="w-28 rounded-md border border-blue-400 px-2 py-1 text-right text-sm font-semibold outline-none"
-                            onKeyDown={async e => {
-                              if (e.key === "Enter") {
-                                const newAmt = parseFloat(editCashAmt);
-                                if (isNaN(newAmt)) return;
-                                setCashSaving(true);
-                                const { createClient } = await import("@/lib/supabase/client");
-                                await createClient().from("appointments").update({ payment_amount: newAmt }).eq("id", p.id);
-                                setCashList(prev => prev.map(x => x.id === p.id ? {...x, payment_amount: newAmt} : x));
-                                setEditCashId(null); setCashSaving(false);
-                                setCashSaved(p.id); setTimeout(() => setCashSaved(null), 2000);
-                              }
-                              if (e.key === "Escape") setEditCashId(null);
-                            }} />
+                            onKeyDown={e => { if (e.key==="Escape") setEditCashId(null); }}
+                          />
                         ) : (
-                          <span className={`font-semibold ${cashSaved === p.id ? "text-green-600" : "text-neutral-900"}`}>
-                            {cashSaved === p.id ? "✓ " : ""}{(p.payment_amount ?? 0).toFixed(2)}
+                          <span className={`font-semibold ${cashSaved===p.id?"text-green-600":"text-neutral-900"}`}>
+                            {cashSaved===p.id?"✓ ":""}{(p.payment_amount??0).toFixed(2)}
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {editCashId === p.id ? (
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={async () => {
-                              const newAmt = parseFloat(editCashAmt);
-                              if (isNaN(newAmt)) return;
+                            <button disabled={cashSaving} onClick={async () => {
+                              const n = parseFloat(editCashAmt);
+                              if (isNaN(n)||n<0) return;
                               setCashSaving(true);
                               const { createClient } = await import("@/lib/supabase/client");
-                              await createClient().from("appointments").update({ payment_amount: newAmt }).eq("id", p.id);
-                              setCashList(prev => prev.map(x => x.id === p.id ? {...x, payment_amount: newAmt} : x));
-                              setEditCashId(null); setCashSaving(false);
-                              setCashSaved(p.id); setTimeout(() => setCashSaved(null), 2000);
-                            }} disabled={cashSaving}
-                              className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50">
-                              {cashSaving ? "..." : "Save"}
+                              const { error } = await createClient().from("appointments").update({ payment_amount: n }).eq("id", p.id);
+                              setCashSaving(false);
+                              if (error) { alert("Error: "+error.message); return; }
+                              setCashList(prev => prev.map(x => x.id===p.id ? {...x,payment_amount:n} : x));
+                              setEditCashId(null);
+                              setCashSaved(p.id); setTimeout(()=>setCashSaved(null),2500);
+                            }} className="rounded-md bg-neutral-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50">
+                              {cashSaving?"...":"Save"}
                             </button>
-                            <button onClick={() => setEditCashId(null)}
+                            <button onClick={()=>setEditCashId(null)}
                               className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-500">Cancel</button>
                           </div>
                         ) : (
-                          <button onClick={() => { setEditCashId(p.id); setEditCashAmt(String(p.payment_amount ?? "")); }}
+                          <button onClick={()=>{setEditCashId(p.id);setEditCashAmt(String(p.payment_amount??""));}}
                             className="rounded-md border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-400 transition">
                             Edit
                           </button>
@@ -584,14 +668,18 @@ export function FinanceDashboard({
                 <tfoot>
                   <tr className="border-t-2 border-neutral-200 bg-neutral-50">
                     <td colSpan={3} className="px-4 py-3 text-right text-sm font-semibold text-neutral-700">Total</td>
-                    <td className="px-4 py-3 text-right text-sm font-bold">{cashList.reduce((s,p)=>s+(p.payment_amount??0),0).toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-sm font-bold text-neutral-900">
+                      {cashList.reduce((s,p)=>s+(p.payment_amount??0),0).toFixed(2)}
+                    </td>
                     <td />
                   </tr>
                 </tfoot>
               </table>
             </div>
           )}
-          <p className="mt-3 text-xs text-neutral-400">Only confirmed cash payments shown. Click Edit then Save to correct an amount. Press Enter to save quickly.</p>
+          <p className="mt-3 text-xs text-neutral-400">
+            Only confirmed cash payments shown. Click Edit → enter correct amount → Save. Press Escape to cancel.
+          </p>
         </div>
       )}
 
@@ -600,10 +688,12 @@ export function FinanceDashboard({
           {/* P&L Summary */}
           <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
             <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3 flex justify-between items-center">
-              <p className="text-sm font-semibold text-neutral-900">Profit &amp; Loss \u2014 {fromDate} to {toDate}</p>
-              <button onClick={() => window.print()} className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
+              <p className="text-sm font-semibold text-neutral-900">Profit &amp; Loss — {fromDate} to {toDate}</p>
+              <a href={`/print/finance-report?from=${fromDate}&to=${toDate}&currency=${currency}`}
+                target="_blank" rel="noreferrer"
+                className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
                 Print Report
-              </button>
+              </a>
             </div>
             <div className="p-4">
               <table className="w-full text-sm">
@@ -648,10 +738,16 @@ export function FinanceDashboard({
                       {netProfit >= 0 ? "+" : ""}{fmt(netProfit, currency)}
                     </td>
                   </tr>
-                  <tr className="border-t border-neutral-200">
-                    <td className="py-2 pl-2 text-xs text-neutral-500">Outstanding (uncollected claims)</td>
+                  <tr>
+                    <td className="py-2 pl-2 text-xs text-neutral-500">Outstanding (uncollected)</td>
                     <td className="py-2 text-right font-mono text-xs text-amber-700">{fmt(hospOutstanding + insOutstanding, currency)}</td>
                   </tr>
+                  {(hospWrittenOff + insWrittenOff) > 0 && (
+                    <tr>
+                      <td className="py-2 pl-2 text-xs text-neutral-400">Closed at partial — written off</td>
+                      <td className="py-2 text-right font-mono text-xs text-neutral-400">{fmt(hospWrittenOff + insWrittenOff, currency)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -660,7 +756,7 @@ export function FinanceDashboard({
           {/* Tax estimate */}
           <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
             <p className="mb-3 text-sm font-semibold text-neutral-900">Tax Estimate</p>
-            <p className="text-xs text-neutral-500 mb-3">Taxable income = Revenue \u2212 Allowable expenses. Consult your accountant for the exact rate.</p>
+            <p className="text-xs text-neutral-500 mb-3">Taxable income = Revenue − Allowable expenses. Consult your accountant for the exact rate.</p>
             <table className="w-full text-sm">
               <tbody>
                 <tr className="border-b border-neutral-100">
@@ -669,7 +765,7 @@ export function FinanceDashboard({
                 </tr>
                 <tr className="border-b border-neutral-100">
                   <td className="py-1.5 text-neutral-600">Deductible Expenses</td>
-                  <td className="text-right font-mono text-red-600">\u2212{fmt(totalCosts, currency)}</td>
+                  <td className="text-right font-mono text-red-600">−{fmt(totalCosts, currency)}</td>
                 </tr>
                 <tr className="border-b border-neutral-200 font-bold">
                   <td className="py-2">Taxable Net Profit</td>
@@ -708,6 +804,109 @@ export function FinanceDashboard({
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── UNCLAIMED REVENUE TAB ── */}
+      {activeTab === "unclaimed" && (
+        <div className="space-y-5">
+          <div className={`rounded-xl border p-4 shadow-sm ${totalUnclaimed > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}>
+            <p className={`text-2xl font-bold ${totalUnclaimed > 0 ? "text-red-700" : "text-green-700"}`}>{fmt(totalUnclaimed, currency)}</p>
+            <p className="text-sm font-medium text-neutral-700 mt-0.5">{totalUnclaimed > 0 ? "Total unclaimed revenue — ready to generate claims" : "All revenue is claimed ✓"}</p>
+          </div>
+
+          {unclaimedInsurance.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                <p className="text-sm font-semibold text-neutral-900">🏦 Insurance Companies — Unclaimed</p>
+                <p className="text-xs text-neutral-400 mt-0.5">Grouped by company · one claim per company covers all unclaimed visits</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-neutral-100 text-left">
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Insurance Company</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Unclaimed Period</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-center">Visits</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-right">Total to Claim</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr></thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {unclaimedInsurance.map(e => (
+                    <tr key={e.id} className="hover:bg-amber-50/30">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-neutral-900">{e.name}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">
+                        {e.earliestDate} → {e.latestDate}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700">{e.count} visits</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="font-mono text-lg font-bold text-amber-700">{fmt(e.amount, currency)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <a href="/secretary/insurance-claims"
+                          className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 whitespace-nowrap">
+                          Generate Claim →
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot><tr className="border-t-2 border-neutral-200 bg-neutral-50">
+                  <td colSpan={3} className="px-4 py-3 text-sm font-bold text-neutral-700 text-right">Total unclaimed from insurance</td>
+                  <td className="px-4 py-3 text-right font-mono text-lg font-bold text-amber-700">{fmt(unclaimedInsurance.reduce((s, e) => s + e.amount, 0), currency)}</td>
+                  <td />
+                </tr></tfoot>
+              </table>
+            </div>
+          )}
+
+          {unclaimedHospital.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
+                <p className="text-sm font-semibold text-neutral-900">🏨 Hospitals — Unclaimed</p>
+                <p className="text-xs text-neutral-400 mt-0.5">Completed inpatient visits not yet included in any claim</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-neutral-100 text-left">
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Hospital</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500">Period</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-center">Visits</th>
+                  <th className="px-4 py-2.5 text-xs font-medium text-neutral-500 text-right">Amount</th>
+                  <th className="px-4 py-2.5"></th>
+                </tr></thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {unclaimedHospital.map(e => (
+                    <tr key={e.id} className="hover:bg-blue-50/30">
+                      <td className="px-4 py-3 font-semibold text-neutral-900">{e.name}</td>
+                      <td className="px-4 py-3 text-xs text-neutral-500">{e.earliestDate} → {e.latestDate}</td>
+                      <td className="px-4 py-3 text-center"><span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">{e.count}</span></td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-blue-700">{fmt(e.amount, currency)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <a href={`/doctor/claims`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+                          Generate Claim →
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot><tr className="border-t border-neutral-200 bg-neutral-50">
+                  <td colSpan={3} className="px-4 py-2.5 text-xs font-semibold text-right text-neutral-600">Total unclaimed (hospitals)</td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-blue-700">{fmt(unclaimedHospital.reduce((s, e) => s + e.amount, 0), currency)}</td>
+                  <td />
+                </tr></tfoot>
+              </table>
+            </div>
+          )}
+
+          {unclaimedInsurance.length === 0 && unclaimedHospital.length === 0 && (
+            <div className="rounded-xl border border-dashed border-neutral-300 p-12 text-center">
+              <p className="text-2xl mb-2">✅</p>
+              <p className="text-sm font-medium text-neutral-700">All revenue has been claimed</p>
+              <p className="text-xs text-neutral-400 mt-1">No outstanding unclaimed visits found</p>
             </div>
           )}
         </div>
