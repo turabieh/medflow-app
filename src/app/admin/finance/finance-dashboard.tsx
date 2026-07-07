@@ -829,7 +829,7 @@ export function FinanceDashboard({
                         <span className="font-mono text-lg font-bold text-amber-700">{fmt(e.amount, currency)}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <a href="/secretary/insurance-claims"
+                        <a href={`/admin/finance/claims?company=${e.id}&from=${e.earliestDate}&to=${e.latestDate}&amount=${e.amount.toFixed(2)}&visits=${e.count}`}
                           className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 whitespace-nowrap">
                           Generate Claim →
                         </a>
@@ -868,7 +868,7 @@ export function FinanceDashboard({
                       <td className="px-4 py-3 text-center"><span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-700">{e.count}</span></td>
                       <td className="px-4 py-3 text-right font-mono font-bold text-blue-700">{fmt(e.amount, currency)}</td>
                       <td className="px-4 py-3 text-right">
-                        <a href={`/doctor/claims`} className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
+                        <a href="/admin/finance/claims" className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">
                           Generate Claim →
                         </a>
                       </td>
