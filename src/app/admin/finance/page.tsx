@@ -245,7 +245,7 @@ export default async function AdminFinancePage({
   // All appointments for insured patients (any status)
   const { data: allInsPatientAppts } = insuredPatientIds.length ? await supabase
     .from("appointments")
-    .select("id, appt_date, insurance_fee, insurance_claim_amount, payment_method, patient_id, status")
+    .select("id, appt_date, insurance_fee, patient_id, status")
     .eq("clinic_id", clinicId)
     .in("patient_id", insuredPatientIds) : { data: [] };
 
@@ -264,7 +264,7 @@ export default async function AdminFinancePage({
   const extraApptIds = apptIdsWithProcs.filter(id => !(allInsPatientAppts ?? []).find(a => a.id === id));
   const { data: extraAppts } = extraApptIds.length ? await supabase
     .from("appointments")
-    .select("id, appt_date, insurance_fee, insurance_claim_amount, payment_method, patient_id, status, patients(id, insurance_company_id, insurance_companies(id, name))")
+    .select("id, appt_date, insurance_fee, patient_id, status, patients(id, insurance_company_id, insurance_companies(id, name))")
     .in("id", extraApptIds) : { data: [] };
 
   // Proc fee map
@@ -289,7 +289,7 @@ export default async function AdminFinancePage({
   }
 
   // All appointment dates
-  const apptDateMap = new Map<string, { appt_date: string; insurance_fee: number | null; insurance_claim_amount?: number | null; payment_method?: string | null }>();
+  const apptDateMap = new Map<string, { appt_date: string; insurance_fee: number | null }>();
   for (const a of allInsPatientAppts ?? []) apptDateMap.set(a.id, a);
   for (const a of extraAppts ?? []) { if (!apptDateMap.has(a.id)) apptDateMap.set(a.id, a); }
 
@@ -303,13 +303,8 @@ export default async function AdminFinancePage({
     const a   = apptDateMap.get(apptId);
     const ins = apptInsMap.get(apptId);
     if (!a || !ins || !a.appt_date) continue;
-    // Skip if payment method is not insurance (cash/card patients skip insurance claim)
-    if (a.payment_method && a.payment_method !== "insurance") continue;
 
-    // Use insurance_claim_amount (new) or insurance_fee (legacy), whichever is set
-    const visitFee = (a.insurance_claim_amount != null && a.insurance_claim_amount > 0)
-      ? a.insurance_claim_amount
-      : (a.insurance_fee ?? 0);
+    const visitFee = a.insurance_fee ?? 0;
     const procFee  = procFeeByAppt.get(apptId) ?? 0;
     const total    = visitFee + procFee;
     if (total <= 0) continue;
@@ -403,6 +398,27 @@ export default async function AdminFinancePage({
 
   const totalUnclaimed = [...unclaimedInsurance, ...unclaimedHospital].reduce((s, x) => s + x.amount, 0);
 
+
+  // ── Insurance Claims tab data ─────────────────────────────────────────────
+  const { data: insuranceCompanies } = await supabase
+    .from("insurance_companies")
+    .select("id, name, name_ar, phone, email, portal_url")
+    .eq("clinic_id", clinicId)
+    .eq("is_active", true)
+    .order("name");
+
+  const { data: insuranceClaimsData } = await supabase
+    .from("insurance_claims")
+    .select("id, claim_number, claim_seq, from_date, to_date, total_claimed, total_paid, paid_date, status, notes, created_at, is_followup, parent_claim_id, insurance_companies(name)")
+    .eq("clinic_id", clinicId)
+    .order("claim_seq", { ascending: false });
+
+  const claimsForTab = (insuranceClaimsData ?? []).map(cl => ({
+    ...cl,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    insuranceName: (Array.isArray(cl.insurance_companies) ? cl.insurance_companies[0] : cl.insurance_companies as any)?.name ?? "—",
+  }));
+
   return (
     <div>
       <h1 className="mb-1 text-lg font-medium text-neutral-900">Finance &amp; Reports</h1>
@@ -436,6 +452,8 @@ export default async function AdminFinancePage({
         unclaimedHospital={unclaimedHospital}
         totalUnclaimed={totalUnclaimed}
         debugData={debugData}
+        insuranceCompanies={insuranceCompanies ?? []}
+        claimsForTab={claimsForTab}
       />
     </div>
   );

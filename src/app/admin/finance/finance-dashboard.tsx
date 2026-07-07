@@ -33,6 +33,7 @@ function StatCard({ label, value, sub, color="text-neutral-900", highlight }: { 
       <p className={`text-xl font-bold ${color}`}>{value}</p>
       <p className="text-xs font-medium text-neutral-600 mt-0.5">{label}</p>
       {sub && <p className="text-[10px] text-neutral-400 mt-0.5">{sub}</p>}
+            
     </div>
   );
 }
@@ -84,6 +85,7 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
           </div>
         </div>
       )}
+      
     </div>
   );
 }
@@ -117,6 +119,7 @@ export function FinanceDashboard({
   monthlyTrend,
   staff, latestSalaries, clinicId,
   unclaimedInsurance, unclaimedHospital, totalUnclaimed, debugData,
+  insuranceCompanies = [], claimsForTab = [],
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
   cashTotal: number; hospitalPaid: number; insurancePaid: number; totalRevenue: number;
@@ -128,6 +131,8 @@ export function FinanceDashboard({
   unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debugData: any;
+  insuranceCompanies?: { id: string; name: string; name_ar: string | null; phone: string | null; email: string | null; portal_url: string | null }[];
+  claimsForTab?: { id: string; claim_number: string; from_date: string; to_date: string; total_claimed: number; total_paid: number | null; paid_date: string | null; status: string; notes: string | null; created_at: string; insuranceName: string; is_followup: boolean; parent_claim_id: string | null }[];
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(tab);
@@ -249,7 +254,7 @@ export function FinanceDashboard({
       {/* Tabs */}
       <div className="flex gap-1 border-b border-neutral-200">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id === "claims") loadClaims(); }}
+          <button key={t.id} onClick={() => setActiveTab(t.id)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === t.id ? "border-neutral-900 text-neutral-900" : "border-transparent text-neutral-500 hover:text-neutral-700"
             }`}>
@@ -987,7 +992,12 @@ export function FinanceDashboard({
             />
           )}
           {!claimsLoading && !claimsLoaded && (
-            <div className="py-12 text-center text-neutral-400 text-sm">Initializing...</div>
+            <div className="py-12 text-center">
+              <button onClick={loadClaims}
+                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
+                Load Insurance Claims
+              </button>
+            </div>
           )}
         </div>
       )}
