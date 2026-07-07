@@ -249,7 +249,7 @@ export function FinanceDashboard({
       {/* Tabs */}
       <div className="flex gap-1 border-b border-neutral-200">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
+          <button key={t.id} onClick={() => { setActiveTab(t.id); if (t.id === "claims") loadClaims(); }}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === t.id ? "border-neutral-900 text-neutral-900" : "border-transparent text-neutral-500 hover:text-neutral-700"
             }`}>
@@ -987,12 +987,7 @@ export function FinanceDashboard({
             />
           )}
           {!claimsLoading && !claimsLoaded && (
-            <div className="py-12 text-center">
-              <button onClick={loadClaims}
-                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
-                Load Insurance Claims
-              </button>
-            </div>
+            <div className="py-12 text-center text-neutral-400 text-sm">Initializing...</div>
           )}
         </div>
       )}
