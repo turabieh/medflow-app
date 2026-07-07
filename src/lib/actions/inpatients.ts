@@ -20,6 +20,7 @@ export async function admitInpatient(input: {
   patientMiddleName?: string;
   patientLastName?: string;
   patientFirstNameAr?: string;
+  patientMiddleNameAr?: string;
   patientLastNameAr?: string;
   patientDob?: string;
   patientGender?: string;
@@ -51,6 +52,7 @@ export async function admitInpatient(input: {
         middle_name:    input.patientMiddleName?.trim() || null,
         last_name:      input.patientLastName?.trim() || null,
         first_name_ar:  input.patientFirstNameAr?.trim() || null,
+        middle_name_ar: input.patientMiddleNameAr?.trim() || null,
         last_name_ar:   input.patientLastNameAr?.trim() || null,
         dob:            input.patientDob || null,
         gender:       input.patientGender || null,
@@ -142,4 +144,41 @@ export async function updateInpatientLocation(inpatientId: string, location: str
   if (error) return { success: false, error: error.message };
   revalidatePath(`/doctor/inpatients/${inpatientId}`);
   return { success: true };
+}
+
+export async function createInpatientVisitWithDetails(
+  inpatientId: string,
+  details: {
+    visitDate: string;
+    visitTime: string;
+    visitType: string;
+    visitFee?: number;
+  }
+): Promise<{ success: boolean; error?: string; visitId?: string }> {
+  const auth = await getAuth();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const { data: admission } = await auth.supabase
+    .from("inpatients").select("patient_id").eq("id", inpatientId).single();
+  if (!admission) return { success: false, error: "Inpatient record not found." };
+
+  const { data: visit, error } = await auth.supabase
+    .from("visits").insert({
+      clinic_id:      auth.clinicId,
+      patient_id:     admission.patient_id,
+      doctor_id:      auth.userId,
+      inpatient_id:   inpatientId,
+      visit_context:  "inpatient",
+      visit_date:     details.visitDate,
+      visit_time:     details.visitTime,
+      visit_type:     details.visitType === "urgent" ? "urgent" : "consultation",
+      visit_fee:      details.visitFee ?? null,
+      visit_fee_type: details.visitType,
+      status:         "in_progress",
+    }).select("id").single();
+
+  if (error || !visit) return { success: false, error: error?.message ?? "Could not create visit." };
+
+  revalidatePath(`/doctor/inpatients/${inpatientId}`);
+  return { success: true, visitId: visit.id };
 }
