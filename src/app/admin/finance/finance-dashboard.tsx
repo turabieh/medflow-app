@@ -877,6 +877,19 @@ export function FinanceDashboard({
 
       {activeTab === "unclaimed" && (
         <div className="space-y-5">
+          {/* Quick link to Insurance Claims tab */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-neutral-400">
+              {claimsForTab.length > 0
+                ? `${claimsForTab.length} claim${claimsForTab.length !== 1 ? "s" : ""} created`
+                : "No claims created yet"}
+            </p>
+            <button
+              onClick={() => setActiveTab("claims")}
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 transition flex items-center gap-1.5">
+              🏦 {claimsForTab.length > 0 ? `View ${claimsForTab.length} Claim${claimsForTab.length !== 1 ? "s" : ""}` : "View Claims"} →
+            </button>
+          </div>
           <div className={`rounded-xl border p-4 shadow-sm ${totalUnclaimed > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}>
             <p className={`text-2xl font-bold ${totalUnclaimed > 0 ? "text-red-700" : "text-green-700"}`}>{fmt(totalUnclaimed, currency)}</p>
             <p className="text-sm font-medium text-neutral-700 mt-0.5">{totalUnclaimed > 0 ? "Total unclaimed revenue — ready to generate claims" : "All revenue is claimed ✓"}</p>
