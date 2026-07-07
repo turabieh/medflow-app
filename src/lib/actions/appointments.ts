@@ -11,12 +11,8 @@ export interface ConfirmBookingInput {
   doctorId: string;
 
   // Patient demographics (editable by secretary during the call)
-  firstName: string;
-  middleName?: string | null;
-  lastName?: string | null;
-  firstNameAr?: string | null;
-  middleNameAr?: string | null;
-  lastNameAr?: string | null;
+  fullName: string;
+  fullNameAr?: string;
   gender?: "male" | "female";
   dob?: string;
   address?: string;
@@ -60,8 +56,8 @@ export async function confirmBooking(
     return { success: false, error: "Not authenticated." };
   }
 
-  if (!input.firstName?.trim() || !input.phone?.trim()) {
-    return { success: false, error: "First name and phone are required." };
+  if (!input.fullName?.trim() || !input.phone?.trim()) {
+    return { success: false, error: "Name and phone are required." };
   }
   if (!input.doctorId?.trim()) {
     return { success: false, error: "A doctor must be selected." };
@@ -74,12 +70,8 @@ export async function confirmBooking(
   const { error: patientError } = await supabase
     .from("patients")
     .update({
-      first_name:     input.firstName.trim(),
-      middle_name:    input.middleName?.trim() || null,
-      last_name:      input.lastName?.trim() || null,
-      first_name_ar:  input.firstNameAr?.trim() || null,
-      middle_name_ar: input.middleNameAr?.trim() || null,
-      last_name_ar:   input.lastNameAr?.trim() || null,
+      full_name: input.fullName.trim(),
+      full_name_ar: input.fullNameAr?.trim() || null,
       gender: input.gender || null,
       dob: input.dob || null,
       address: input.address?.trim() || null,
@@ -232,16 +224,12 @@ export async function logConfirmationCallAttempt(
     return { success: false, error: "Could not find appointment." };
   }
 
-  const newAttempts = (appt.confirmation_call_attempts ?? 0) + 1;
-  const shouldFlag  = newAttempts >= 3;
-
   const { error } = await supabase
     .from("appointments")
     .update({
-      confirmation_call_attempts: newAttempts,
+      confirmation_call_attempts: (appt.confirmation_call_attempts ?? 0) + 1,
       confirmation_last_call_at: new Date().toISOString(),
-      no_answer_flag: shouldFlag,
-      // status stays 'booked' — appointment remains in system
+      // status intentionally left untouched -- stays 'booked'
     })
     .eq("id", appointmentId);
 
@@ -264,8 +252,7 @@ export async function rescheduleAppointment(
   appointmentId: string,
   newDate: string,
   newStartTime: string,
-  visitType: VisitType,
-  isOverbooked?: boolean
+  visitType: VisitType
 ): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
 
@@ -281,14 +268,16 @@ export async function rescheduleAppointment(
       appt_date: newDate,
       start_time: newStartTime,
       end_time: endTime,
-      is_overbooked: isOverbooked ?? false,
-      status: "booked",
+      status: "booked", // reset to booked -- a moved appointment needs reconfirming
       confirmation_call_attempts: 0,
       confirmation_last_call_at: null,
     })
     .eq("id", appointmentId);
 
-  if (error) return { success: false, error: error.message };
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -372,47 +361,23 @@ export async function markArrived(appointmentId: string): Promise<ConfirmBooking
 }
 
 /**
- * Doctor calls the patient in -- moves to with_doctor and auto-creates
- * the visit record that clinical documentation will attach to.
+ * Doctor calls the patient in -- moves to with_doctor. From this point,
+ * the secretary cannot cancel or reschedule (enforced by a database
+ * trigger, not just hidden in the UI) until the doctor marks it done.
  */
 export async function markWithDoctor(appointmentId: string): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
-
-  const { data: appt, error: apptError } = await supabase
-    .from("appointments")
-    .select("id, clinic_id, patient_id, doctor_id, visit_type, appt_date")
-    .eq("id", appointmentId)
-    .single();
-
-  if (apptError || !appt) {
-    return { success: false, error: "Could not find appointment." };
-  }
 
   const { error } = await supabase
     .from("appointments")
     .update({ status: "with_doctor" })
     .eq("id", appointmentId);
 
-  if (error) return { success: false, error: error.message };
-
-  // Auto-create the visit record so clinical documentation has somewhere
-  // to attach immediately. Uses upsert on appointment_id (unique index)
-  // to avoid duplicates if called twice.
-  await supabase.from("visits").upsert(
-    {
-      clinic_id:      appt.clinic_id,
-      patient_id:     appt.patient_id,
-      doctor_id:      appt.doctor_id,
-      appointment_id: appt.id,
-      visit_date:     appt.appt_date,
-      visit_type:     appt.visit_type,
-      status:         "in_progress",
-    },
-    { onConflict: "appointment_id" }
-  );
+  if (error) {
+    return { success: false, error: error.message };
+  }
 
   revalidatePath("/dashboard");
-  revalidatePath("/secretary/dashboard");
   return { success: true };
 }
 
@@ -489,7 +454,6 @@ export interface BookWalkInInput {
   visitType: VisitType;
   secretaryNotes?: string;
   symptomIds: string[];
-  isOverbooked?: boolean;
 }
 
 /**
@@ -526,7 +490,6 @@ export async function bookWalkInAppointment(
       visit_type: input.visitType,
       status: "booked",
       heard_from: "walk_in",
-      is_overbooked: input.isOverbooked ?? false,
       secretary_notes: input.secretaryNotes?.trim() || null,
     })
     .select("id")
@@ -587,8 +550,13 @@ export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBooking
 
 export async function confirmPayment(
   appointmentId: string,
-  method: "cash" | "insurance" | "card" | "other",
-  amount?: number
+  data: {
+    paymentMethod:        "cash" | "card" | "insurance" | "other";
+    visitFee:             number;
+    patientCashAmount:    number;
+    insuranceClaimAmount: number;
+    patientPaymentMethod?: "cash" | "card" | "other";
+  }
 ): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -597,10 +565,14 @@ export async function confirmPayment(
   const { error } = await supabase
     .from("appointments")
     .update({
-      payment_method:       method,
-      payment_amount:       amount ?? null,
-      payment_confirmed:    true,
-      payment_confirmed_at: new Date().toISOString(),
+      payment_method:        data.paymentMethod,
+      visit_fee:             data.visitFee,
+      payment_amount:        data.patientCashAmount,
+      patient_cash_amount:   data.patientCashAmount,
+      insurance_claim_amount:data.insuranceClaimAmount,
+      patient_payment_method:data.patientPaymentMethod ?? null,
+      payment_confirmed:     true,
+      payment_confirmed_at:  new Date().toISOString(),
     })
     .eq("id", appointmentId);
 
