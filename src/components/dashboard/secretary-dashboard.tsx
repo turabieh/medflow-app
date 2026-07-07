@@ -167,6 +167,25 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const currency = currencySetting?.value ?? "JOD";
 
+
+  // Unclaimed insurance revenue banner
+  const { data: unclaimedAppts } = await supabase
+    .from("appointments")
+    .select("id, insurance_claim_amount, insurance_fee")
+    .eq("clinic_id", clinicId)
+    .eq("payment_method", "insurance")
+    .eq("payment_confirmed", true);
+  const { data: claimedLinks } = await supabase
+    .from("insurance_claim_appointments")
+    .select("appointment_id");
+  const claimedSet = new Set(
+    (claimedLinks ?? []).map((r: { appointment_id: string }) => r.appointment_id)
+  );
+  const unclaimedCount = (unclaimedAppts ?? []).filter(a => !claimedSet.has(a.id)).length;
+  const unclaimedAmount = (unclaimedAppts ?? [])
+    .filter(a => !claimedSet.has(a.id))
+    .reduce((s, a) => s + ((a.insurance_claim_amount ?? a.insurance_fee) ?? 0), 0);
+
   return (
     <>
       {unclaimedCount > 0 && (
