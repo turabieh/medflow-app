@@ -16,8 +16,11 @@ async function getAuth() {
 export async function admitInpatient(input: {
   // Patient \u2014 existing or new
   patientId?: string;
-  patientName?: string;
-  patientNameAr?: string;
+  patientFirstName?: string;
+  patientMiddleName?: string;
+  patientLastName?: string;
+  patientFirstNameAr?: string;
+  patientLastNameAr?: string;
   patientDob?: string;
   patientGender?: string;
   patientPhone?: string;
@@ -38,14 +41,18 @@ export async function admitInpatient(input: {
 
   // Create patient if not existing
   if (!patientId) {
-    if (!input.patientName || !input.patientPhone) {
-      return { success: false, error: "Patient name and phone are required for new patients." };
+    if (!input.patientFirstName || !input.patientPhone) {
+      return { success: false, error: "Patient first name and phone are required for new patients." };
     }
     const { data: newPatient, error: patientError } = await auth.supabase
       .from("patients").insert({
-        clinic_id:    auth.clinicId,
-        full_name:    input.patientName.trim(),
-        dob:          input.patientDob || null,
+        clinic_id:      auth.clinicId,
+        first_name:     input.patientFirstName!.trim(),
+        middle_name:    input.patientMiddleName?.trim() || null,
+        last_name:      input.patientLastName?.trim() || null,
+        first_name_ar:  input.patientFirstNameAr?.trim() || null,
+        last_name_ar:   input.patientLastNameAr?.trim() || null,
+        dob:            input.patientDob || null,
         gender:       input.patientGender || null,
         phone:        input.patientPhone.trim(),
         blood_type:   input.patientBloodType || null,
