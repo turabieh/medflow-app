@@ -138,7 +138,7 @@ export function FinanceDashboard({
   ];
 
   // ── Cash tab state ───────────────────────────────────────────────────────
-  type CRow = { id: string; appt_date: string; payment_amount: number | null; patientName: string; doctorName: string };
+  type CRow = { id: string; appt_date: string; payment_amount: number | null; payment_method?: string; patientName: string; doctorName: string };
   const [cashRows, setCashRows]         = useState<CRow[]>([]);
   const [cashDateFrom, setCashDateFrom] = useState(fromDate);
   const [cashDateTo, setCashDateTo]     = useState(toDate);
@@ -682,22 +682,38 @@ export function FinanceDashboard({
               setCashLoading(true);
               const { createClient } = await import("@/lib/supabase/client");
               const sb = createClient();
+              // Fetch all confirmed payments that have any cash component:
+              // - payment_method = cash or card (full cash)
+              // - payment_method = insurance but patient_cash_amount > 0 (split payment)
               const { data: appts } = await sb.from("appointments")
-                .select("id,appt_date,payment_amount,patient_id,users!appointments_doctor_id_fkey(full_name)")
+                .select("id,appt_date,payment_amount,patient_cash_amount,payment_method,patient_id,users!appointments_doctor_id_fkey(full_name)")
                 .eq("clinic_id", clinicId)
-                .eq("payment_method", "cash")
                 .eq("payment_confirmed", true)
                 .gte("appt_date", cashDateFrom)
                 .lte("appt_date", cashDateTo)
                 .order("appt_date", { ascending: false });
-              const ids = [...new Set((appts ?? []).map((a: { patient_id: string }) => a.patient_id))];
+              // Filter: only rows with actual cash collected
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const cashAppts = (appts ?? []).filter((a: any) => {
+                if (a.payment_method === "insurance") {
+                  return (a.patient_cash_amount ?? 0) > 0;
+                }
+                return a.payment_method === "cash" || a.payment_method === "card" || a.payment_method === "other";
+              });
+              const ids = [...new Set(cashAppts.map((a: { patient_id: string }) => a.patient_id))];
               const { data: pts } = ids.length
                 ? await sb.from("patients").select("id,full_name").in("id", ids)
                 : { data: [] };
               const pm = Object.fromEntries((pts ?? []).map((p: { id: string; full_name: string }) => [p.id, p.full_name]));
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setCashRows((appts ?? []).map((a: any) => ({
-                id: a.id, appt_date: a.appt_date, payment_amount: a.payment_amount,
+              setCashRows(cashAppts.map((a: any) => ({
+                id: a.id,
+                appt_date: a.appt_date,
+                // For insurance splits, show patient_cash_amount; for pure cash/card show payment_amount
+                payment_amount: a.payment_method === "insurance"
+                  ? (a.patient_cash_amount ?? 0)
+                  : (a.payment_amount ?? 0),
+                payment_method: a.payment_method,
                 patientName: pm[a.patient_id] ?? "Unknown",
                 doctorName: Array.isArray(a.users) ? a.users[0]?.full_name ?? "—" : a.users?.full_name ?? "—",
               })));
@@ -742,7 +758,12 @@ export function FinanceDashboard({
                   {cashRows.map(p => (
                     <tr key={p.id} className="hover:bg-neutral-50">
                       <td className="px-4 py-3 text-neutral-600">{p.appt_date}</td>
-                      <td className="px-4 py-3 font-medium">{p.patientName}</td>
+                      <td className="px-4 py-3 font-medium">
+                        {p.patientName}
+                        {p.payment_method === "insurance" && (
+                          <span className="ml-2 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">split</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-neutral-500">{p.doctorName}</td>
                       <td className="px-4 py-3 text-right">
                         {editCashId===p.id
