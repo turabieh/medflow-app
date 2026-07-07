@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { InsuranceClaimsManager } from "@/app/secretary/insurance-claims/insurance-claims-manager";
 import { addExpense, deleteExpense, upsertStaffSalary } from "@/lib/actions/finance";
 
 const EXPENSE_CATEGORIES = [
@@ -32,6 +33,33 @@ function StatCard({ label, value, sub, color="text-neutral-900", highlight }: { 
       <p className={`text-xl font-bold ${color}`}>{value}</p>
       <p className="text-xs font-medium text-neutral-600 mt-0.5">{label}</p>
       {sub && <p className="text-[10px] text-neutral-400 mt-0.5">{sub}</p>}
+      {/* ── INSURANCE CLAIMS TAB ── */}
+      {activeTab === "claims" && (
+        <div>
+          {claimsLoading && (
+            <div className="py-12 text-center text-neutral-400 text-sm">Loading claims...</div>
+          )}
+          {!claimsLoading && claimsLoaded && (
+            <ClaimsTabContent
+              companies={claimsCompanies}
+              claims={claimsData}
+              currency={currency}
+              clinicId={clinicId}
+              onRefresh={async () => { setClaimsLoaded(false); await loadClaims(); }}
+            />
+          )}
+          {!claimsLoading && !claimsLoaded && (
+            <div className="py-12 text-center">
+              <button onClick={loadClaims}
+                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
+                Load Insurance Claims
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+
     </div>
   );
 }
@@ -83,7 +111,55 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
           </div>
         </div>
       )}
+      {/* ── INSURANCE CLAIMS TAB ── */}
+      {activeTab === "claims" && (
+        <div>
+          {claimsLoading && (
+            <div className="py-12 text-center text-neutral-400 text-sm">Loading claims...</div>
+          )}
+          {!claimsLoading && claimsLoaded && (
+            <ClaimsTabContent
+              companies={claimsCompanies}
+              claims={claimsData}
+              currency={currency}
+              clinicId={clinicId}
+              onRefresh={async () => { setClaimsLoaded(false); await loadClaims(); }}
+            />
+          )}
+          {!claimsLoading && !claimsLoaded && (
+            <div className="py-12 text-center">
+              <button onClick={loadClaims}
+                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
+                Load Insurance Claims
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+
     </div>
+  );
+}
+
+
+// ── Claims tab wrapper ───────────────────────────────────────────────────────
+function ClaimsTabContent({
+  companies, claims, currency, clinicId, onRefresh,
+}: {
+  companies: { id: string; name: string; name_ar: string | null; phone: string | null; email: string | null; portal_url: string | null }[];
+  claims: { id: string; claim_number: string; from_date: string; to_date: string; total_claimed: number; total_paid: number | null; paid_date: string | null; status: string; notes: string | null; created_at: string; insuranceName: string; is_followup: boolean; parent_claim_id: string | null }[];
+  currency: string;
+  clinicId: string;
+  onRefresh: () => Promise<void>;
+}) {
+  return (
+    <InsuranceClaimsManager
+      insuranceCompanies={companies}
+      claims={claims}
+      currency={currency}
+      clinicId={clinicId}
+    />
   );
 }
 
@@ -136,6 +212,41 @@ export function FinanceDashboard({
     { id:"cash",       label:"💵 Cash" },
     { id:"unclaimed",  label:"Unclaimed Revenue 🔴" },
   ];
+
+  // ── Insurance Claims tab state
+  type IClaim = {
+    id: string; claim_number: string; from_date: string; to_date: string;
+    total_claimed: number; total_paid: number | null; paid_date: string | null;
+    status: string; notes: string | null; created_at: string;
+    insuranceName: string; is_followup: boolean; parent_claim_id: string | null;
+  };
+  type ICompany = { id: string; name: string; name_ar: string | null; phone: string | null; email: string | null; portal_url: string | null; };
+  const [claimsData, setClaimsData]           = useState<IClaim[]>([]);
+  const [claimsCompanies, setClaimsCompanies] = useState<ICompany[]>([]);
+  const [claimsLoaded, setClaimsLoaded]       = useState(false);
+  const [claimsLoading, setClaimsLoading]     = useState(false);
+
+  async function loadClaims() {
+    if (claimsLoaded) return;
+    setClaimsLoading(true);
+    const { createClient } = await import("@/lib/supabase/client");
+    const sb = createClient();
+    const [{ data: cos }, { data: cls }] = await Promise.all([
+      sb.from("insurance_companies").select("id,name,name_ar,phone,email,portal_url")
+        .eq("clinic_id", clinicId).eq("is_active", true).order("name"),
+      sb.from("insurance_claims")
+        .select("id,claim_number,claim_seq,from_date,to_date,total_claimed,total_paid,paid_date,status,notes,created_at,is_followup,parent_claim_id,insurance_companies(name)")
+        .eq("clinic_id", clinicId).order("claim_seq", { ascending: false }),
+    ]);
+    setClaimsCompanies(cos ?? []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setClaimsData((cls ?? []).map((cl: any) => ({
+      ...cl,
+      insuranceName: (Array.isArray(cl.insurance_companies) ? cl.insurance_companies[0] : cl.insurance_companies)?.name ?? "—",
+    })));
+    setClaimsLoaded(true);
+    setClaimsLoading(false);
+  }
 
   // ── Cash tab state ───────────────────────────────────────────────────────
   type CRow = { id: string; appt_date: string; payment_amount: number | null; payment_method?: string; patientName: string; doctorName: string };
@@ -914,6 +1025,33 @@ export function FinanceDashboard({
           )}
         </div>
       )}
+      {/* ── INSURANCE CLAIMS TAB ── */}
+      {activeTab === "claims" && (
+        <div>
+          {claimsLoading && (
+            <div className="py-12 text-center text-neutral-400 text-sm">Loading claims...</div>
+          )}
+          {!claimsLoading && claimsLoaded && (
+            <ClaimsTabContent
+              companies={claimsCompanies}
+              claims={claimsData}
+              currency={currency}
+              clinicId={clinicId}
+              onRefresh={async () => { setClaimsLoaded(false); await loadClaims(); }}
+            />
+          )}
+          {!claimsLoading && !claimsLoaded && (
+            <div className="py-12 text-center">
+              <button onClick={loadClaims}
+                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
+                Load Insurance Claims
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+
     </div>
   );
 }
