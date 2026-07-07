@@ -14,7 +14,7 @@ async function getAuth() {
 }
 
 export async function admitInpatient(input: {
-  // Patient — existing or new
+  // Patient \u2014 existing or new
   patientId?: string;
   patientName?: string;
   patientNameAr?: string;
@@ -45,7 +45,6 @@ export async function admitInpatient(input: {
       .from("patients").insert({
         clinic_id:    auth.clinicId,
         full_name:    input.patientName.trim(),
-        full_name_ar: input.patientNameAr?.trim() || null,
         dob:          input.patientDob || null,
         gender:       input.patientGender || null,
         phone:        input.patientPhone.trim(),
@@ -63,11 +62,11 @@ export async function admitInpatient(input: {
     .from("inpatients").insert({
       clinic_id:           auth.clinicId,
       patient_id:          patientId,
-      hospital_id:         input.hospitalId || null,
+      hospital_id:         input.hospitalId?.trim() || null,
       hospital_patient_id: input.hospitalPatientId?.trim() || null,
       doctor_id:           auth.userId,
       admission_date:      input.admissionDate,
-      location:            input.location.trim(),
+      location:            input.location?.trim() || null,
       diagnosis_summary:   input.diagnosisSummary?.trim() || null,
       fee_per_visit:       input.feePerVisit || null,
       status:              "active",
@@ -135,71 +134,5 @@ export async function updateInpatientLocation(inpatientId: string, location: str
 
   if (error) return { success: false, error: error.message };
   revalidatePath(`/doctor/inpatients/${inpatientId}`);
-  return { success: true };
-}
-
-export async function createInpatientVisitWithDetails(
-  inpatientId: string,
-  details: {
-    visitDate: string;
-    visitTime: string;
-    visitType: string;
-    visitFee?: number;
-  }
-): Promise<{ success: boolean; error?: string; visitId?: string }> {
-  const auth = await getAuth();
-  if (!auth.ok) return { success: false, error: auth.error };
-
-  const { data: admission } = await auth.supabase
-    .from("inpatients").select("patient_id").eq("id", inpatientId).single();
-  if (!admission) return { success: false, error: "Inpatient record not found." };
-
-  const { data: visit, error } = await auth.supabase
-    .from("visits").insert({
-      clinic_id:     auth.clinicId,
-      patient_id:    admission.patient_id,
-      doctor_id:     auth.userId,
-      inpatient_id:  inpatientId,
-      visit_context: "inpatient",
-      visit_date:    details.visitDate,
-      visit_time:    details.visitTime,
-      visit_type:    details.visitType === "urgent" ? "urgent" : "consultation",
-      visit_fee:     details.visitFee ?? null,
-      visit_fee_type: details.visitType,
-      status:        "in_progress",
-    }).select("id").single();
-
-  if (error || !visit) return { success: false, error: error?.message ?? "Could not create visit." };
-
-  revalidatePath(`/doctor/inpatients/${inpatientId}`);
-  return { success: true, visitId: visit.id };
-}
-
-export async function addInpatientProcedure(
-  visitId: string,
-  clinicId: string,
-  data: { procedureId?: string; procedureName: string; price: number; notes?: string }
-): Promise<{ success: boolean; error?: string }> {
-  const auth = await getAuth();
-  if (!auth.ok) return { success: false, error: auth.error };
-
-  const { error } = await auth.supabase.from("inpatient_visit_procedures").insert({
-    visit_id:       visitId,
-    clinic_id:      clinicId,
-    procedure_id:   data.procedureId || null,
-    procedure_name: data.procedureName.trim(),
-    price:          data.price,
-    notes:          data.notes?.trim() || null,
-  });
-
-  if (error) return { success: false, error: error.message };
-  revalidatePath(`/doctor/inpatients`);
-  return { success: true };
-}
-
-export async function removeInpatientProcedure(id: string): Promise<{ success: boolean }> {
-  const auth = await getAuth();
-  if (!auth.ok) return { success: false };
-  await auth.supabase.from("inpatient_visit_procedures").delete().eq("id", id);
   return { success: true };
 }

@@ -1,5 +1,4 @@
 "use client";
-import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -53,7 +52,6 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
     e.preventDefault();
     setError(null);
     if (!hospitalId) { setError("Select a hospital."); return; }
-    if (!location.trim()) { setError("Location is required (room, floor, unit)."); return; }
     if (!isNewPatient && !selectedPatient) { setError("Select an existing patient or switch to new patient."); return; }
 
     setSaving(true);
@@ -128,7 +126,7 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
                   className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-600">الاسم بالعربية</label>
+                <label className="mb-1 block text-xs text-neutral-600">\u0627\u0644\u0627\u0633\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629</label>
                 <input value={newNameAr} onChange={e => setNewNameAr(e.target.value)} dir="rtl"
                   className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </div>
@@ -139,13 +137,14 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Date of Birth</label>
-                <JordanDateInput value={newDob} onChange={setNewDob} className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+                <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)}
+                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-neutral-600">Gender</label>
                 <select value={newGender} onChange={e => setNewGender(e.target.value)}
                   className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                  <option value="">—</option>
+                  <option value="">\u2014</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                 </select>
@@ -154,7 +153,7 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
                 <label className="mb-1 block text-xs text-neutral-600">Blood Type</label>
                 <select value={newBloodType} onChange={e => setNewBloodType(e.target.value)}
                   className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                  <option value="">—</option>
+                  <option value="">\u2014</option>
                   {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t => <option key={t}>{t}</option>)}
                 </select>
               </div>
@@ -177,7 +176,7 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
             <label className="mb-1 block text-xs text-neutral-600">Hospital *</label>
             <select value={hospitalId} onChange={e => setHospitalId(e.target.value)} required
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-              {hospitals.length === 0 && <option value="">No hospitals — add in Admin</option>}
+              {hospitals.length === 0 && <option value="">No hospitals \u2014 add in Admin</option>}
               {hospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
           </div>
@@ -189,13 +188,13 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-600">Admission Date *</label>
-            <JordanDateInput value={admissionDate} onChange={setAdmissionDate} required
+            <input type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-600">Location / Room *</label>
-            <input value={location} onChange={e => setLocation(e.target.value)} required
-              placeholder="e.g. Room 304, 3rd Floor · ICU · Emergency"
+            <label className="mb-1 block text-xs text-neutral-600">Location / Room (optional)</label>
+            <input value={location} onChange={e => setLocation(e.target.value)}
+              placeholder="e.g. Room 304, 3rd Floor \u00b7 ICU \u00b7 Emergency"
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
           </div>
           <div className="col-span-2">
