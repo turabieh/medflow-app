@@ -33,33 +33,6 @@ function StatCard({ label, value, sub, color="text-neutral-900", highlight }: { 
       <p className={`text-xl font-bold ${color}`}>{value}</p>
       <p className="text-xs font-medium text-neutral-600 mt-0.5">{label}</p>
       {sub && <p className="text-[10px] text-neutral-400 mt-0.5">{sub}</p>}
-      {/* ── INSURANCE CLAIMS TAB ── */}
-      {activeTab === "claims" && (
-        <div>
-          {claimsLoading && (
-            <div className="py-12 text-center text-neutral-400 text-sm">Loading claims...</div>
-          )}
-          {!claimsLoading && claimsLoaded && (
-            <ClaimsTabContent
-              companies={claimsCompanies}
-              claims={claimsData}
-              currency={currency}
-              clinicId={clinicId}
-              onRefresh={async () => { setClaimsLoaded(false); await loadClaims(); }}
-            />
-          )}
-          {!claimsLoading && !claimsLoaded && (
-            <div className="py-12 text-center">
-              <button onClick={loadClaims}
-                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
-                Load Insurance Claims
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-
     </div>
   );
 }
@@ -111,33 +84,6 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
           </div>
         </div>
       )}
-      {/* ── INSURANCE CLAIMS TAB ── */}
-      {activeTab === "claims" && (
-        <div>
-          {claimsLoading && (
-            <div className="py-12 text-center text-neutral-400 text-sm">Loading claims...</div>
-          )}
-          {!claimsLoading && claimsLoaded && (
-            <ClaimsTabContent
-              companies={claimsCompanies}
-              claims={claimsData}
-              currency={currency}
-              clinicId={clinicId}
-              onRefresh={async () => { setClaimsLoaded(false); await loadClaims(); }}
-            />
-          )}
-          {!claimsLoading && !claimsLoaded && (
-            <div className="py-12 text-center">
-              <button onClick={loadClaims}
-                className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800">
-                Load Insurance Claims
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-
     </div>
   );
 }
