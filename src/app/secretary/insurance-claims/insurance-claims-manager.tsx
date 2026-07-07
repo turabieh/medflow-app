@@ -1,8 +1,7 @@
 "use client";
-import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   createInsuranceClaim,
   updateInsuranceClaimPayment,
@@ -35,10 +34,20 @@ export function InsuranceClaimsManager({
   clinicId: string;
 }) {
   const router = useRouter();
-  const [showNew, setShowNew] = useState(false);
-  const [insuranceId, setInsuranceId] = useState(insuranceCompanies[0]?.id ?? "");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
+  const params = useSearchParams();
+  // Pre-fill from "Generate Claim →" button on Finance page
+  const preCompany  = params.get("company")  ?? "";
+  const preFrom     = params.get("from")     ?? "";
+  const preTo       = params.get("to")       ?? new Date().toISOString().split("T")[0];
+  const preAmount   = params.get("amount")   ?? "";
+  const preVisits   = params.get("visits")   ?? "";
+
+  const [showNew, setShowNew] = useState(!!preCompany);
+  const [insuranceId, setInsuranceId] = useState(
+    preCompany && insuranceCompanies.find(c => c.id === preCompany) ? preCompany : (insuranceCompanies[0]?.id ?? "")
+  );
+  const [fromDate, setFromDate] = useState(preFrom);
+  const [toDate, setToDate] = useState(preTo);
   const [notes, setNotes] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +181,11 @@ export function InsuranceClaimsManager({
         <form onSubmit={handleCreate}
           className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
           <h2 className="text-sm font-semibold text-neutral-900">New Insurance Claim</h2>
+          {(preAmount || preVisits) && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+              📋 From unclaimed revenue: <strong>{preVisits} visits</strong> totalling <strong>{preAmount} {currency}</strong> — dates pre-filled below
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="mb-1 block text-xs text-neutral-600">Insurance Company *</label>
@@ -182,12 +196,12 @@ export function InsuranceClaimsManager({
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-600">From Date *</label>
-              <JordanDateInput value={fromDate} onChange={setFromDate} required
+              <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} required
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-600">To Date *</label>
-              <JordanDateInput value={toDate} onChange={setToDate} required
+              <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} required
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
             </div>
             <div className="col-span-2">
@@ -291,7 +305,8 @@ export function InsuranceClaimsManager({
                           </div>
                           <div>
                             <label className="mb-1 block text-xs text-green-700">Payment Date</label>
-                            <JordanDateInput value={paidDate} onChange={setPaidDate} className="rounded-md border border-green-300 bg-white px-3 py-1.5 text-sm" />
+                            <input type="date" value={paidDate} onChange={e => setPaidDate(e.target.value)}
+                              className="rounded-md border border-green-300 bg-white px-3 py-1.5 text-sm" />
                           </div>
                           <button onClick={() => handleSavePayment(c.id)} disabled={savingPay || !paidAmount}
                             className="rounded-md bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">

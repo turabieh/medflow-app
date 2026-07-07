@@ -245,7 +245,7 @@ export default async function AdminFinancePage({
   // All appointments for insured patients (any status)
   const { data: allInsPatientAppts } = insuredPatientIds.length ? await supabase
     .from("appointments")
-    .select("id, appt_date, insurance_fee, patient_id, status")
+    .select("id, appt_date, insurance_fee, insurance_claim_amount, payment_method, patient_id, status")
     .eq("clinic_id", clinicId)
     .in("patient_id", insuredPatientIds) : { data: [] };
 
@@ -264,7 +264,7 @@ export default async function AdminFinancePage({
   const extraApptIds = apptIdsWithProcs.filter(id => !(allInsPatientAppts ?? []).find(a => a.id === id));
   const { data: extraAppts } = extraApptIds.length ? await supabase
     .from("appointments")
-    .select("id, appt_date, insurance_fee, patient_id, status, patients(id, insurance_company_id, insurance_companies(id, name))")
+    .select("id, appt_date, insurance_fee, insurance_claim_amount, payment_method, patient_id, status, patients(id, insurance_company_id, insurance_companies(id, name))")
     .in("id", extraApptIds) : { data: [] };
 
   // Proc fee map
@@ -289,7 +289,7 @@ export default async function AdminFinancePage({
   }
 
   // All appointment dates
-  const apptDateMap = new Map<string, { appt_date: string; insurance_fee: number | null }>();
+  const apptDateMap = new Map<string, { appt_date: string; insurance_fee: number | null; insurance_claim_amount?: number | null; payment_method?: string | null }>();
   for (const a of allInsPatientAppts ?? []) apptDateMap.set(a.id, a);
   for (const a of extraAppts ?? []) { if (!apptDateMap.has(a.id)) apptDateMap.set(a.id, a); }
 
@@ -303,8 +303,13 @@ export default async function AdminFinancePage({
     const a   = apptDateMap.get(apptId);
     const ins = apptInsMap.get(apptId);
     if (!a || !ins || !a.appt_date) continue;
+    // Skip if payment method is not insurance (cash/card patients skip insurance claim)
+    if (a.payment_method && a.payment_method !== "insurance") continue;
 
-    const visitFee = a.insurance_fee ?? 0;
+    // Use insurance_claim_amount (new) or insurance_fee (legacy), whichever is set
+    const visitFee = (a.insurance_claim_amount != null && a.insurance_claim_amount > 0)
+      ? a.insurance_claim_amount
+      : (a.insurance_fee ?? 0);
     const procFee  = procFeeByAppt.get(apptId) ?? 0;
     const total    = visitFee + procFee;
     if (total <= 0) continue;
