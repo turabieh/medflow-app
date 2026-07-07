@@ -1,4 +1,3 @@
-import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
@@ -10,6 +9,23 @@ export default async function AdminDashboardPage() {
 
   const clinicId = profile?.clinic_id ?? "";
 
+  // Unclaimed revenue summary
+  const { data: unclaimedInsRows } = await supabase
+    .from("appointments")
+    .select("id, insurance_claim_amount, insurance_fee, payment_method")
+    .eq("clinic_id", clinicId)
+    .eq("payment_method", "insurance")
+    .eq("payment_confirmed", true);
+
+  // Count appointments NOT in any claim
+  const { data: claimedIds } = await supabase
+    .from("insurance_claim_appointments")
+    .select("appointment_id");
+  const claimedSet = new Set((claimedIds ?? []).map(r => r.appointment_id));
+  const unclaimedInsTotal = (unclaimedInsRows ?? [])
+    .filter(a => !claimedSet.has(a.id))
+    .reduce((s, a) => s + (a.insurance_claim_amount ?? a.insurance_fee ?? 0), 0);
+
   const [
     { count: patientCount },
     { count: pendingCount },
@@ -18,7 +34,7 @@ export default async function AdminDashboardPage() {
   ] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
     supabase.from("appointments").select("id", { count: "exact", head: true }).eq("status", "pending").eq("is_archived", false),
-    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("appt_date", todayClinic()).neq("status", "pending"),
+    supabase.from("appointments").select("id", { count: "exact", head: true }).eq("appt_date", new Date().toISOString().split("T")[0]).neq("status", "pending"),
     supabase.from("users").select("id, full_name, role, is_active").eq("clinic_id", clinicId).order("role"),
   ]);
 
@@ -61,6 +77,13 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <Link href="/admin/finance?tab=unclaimed" className={`rounded-lg border p-4 shadow-sm hover:opacity-90 ${unclaimedInsTotal > 0 ? "border-amber-300 bg-amber-50" : "border-neutral-200 bg-white"}`}>
+          <p className="text-sm font-medium text-neutral-900">🔴 Unclaimed Revenue</p>
+          <p className={`mt-1 text-lg font-bold ${unclaimedInsTotal > 0 ? "text-amber-700" : "text-green-700"}`}>
+            {unclaimedInsTotal > 0 ? `${unclaimedInsTotal.toFixed(2)} JOD` : "All clear ✓"}
+          </p>
+          <p className="text-xs text-neutral-500">Insurance &amp; hospital claims pending</p>
+        </Link>
         <Link href="/admin/finance" className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm hover:bg-neutral-50">
           <p className="text-sm font-medium text-neutral-900">💰 Finance & Reports</p>
           <p className="mt-1 text-xs text-neutral-500">Income, expenses, daily and monthly reports.</p>

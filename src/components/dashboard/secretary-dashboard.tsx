@@ -2,7 +2,6 @@ import { PendingList } from "@/components/secretary/pending-list";
 import { ConfirmationCallForm } from "@/components/secretary/confirmation-call-form";
 import { TodayQueue } from "@/components/secretary/today-queue";
 import { computeConfirmationCallDate, type ExistingAppointmentForSlots } from "@/lib/scheduling/slots";
-import { todayClinic } from "@/lib/clinic-timezone";
 import { createClient } from "@/lib/supabase/server";
 
 export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
@@ -24,7 +23,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
   const { data: patients } = patientIds.length
     ? await supabase
         .from("patients")
-        .select("id, full_name, full_name_ar, first_name, middle_name, last_name, first_name_ar, middle_name_ar, last_name_ar, gender, dob, address, phone, phone2, phone2_relation")
+        .select("id, full_name, full_name_ar, gender, dob, address, phone, phone2, phone2_relation")
         .in("id", patientIds)
     : { data: [] };
 
@@ -40,7 +39,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: symptomsCatalog } = await supabase
     .from("symptoms_catalog")
-    .select("id, name, name_ar, category")
+    .select("id, name, name_ar")
     .eq("is_active", true)
     .order("name");
 
@@ -85,11 +84,11 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: bookedAppointments } = await supabase
     .from("appointments")
-    .select("id, appt_date, start_time, visit_type, doctor_id, confirmation_call_attempts, no_answer_flag, patient_id")
+    .select("id, appt_date, start_time, visit_type, doctor_id, confirmation_call_attempts, patient_id")
     .eq("status", "booked")
     .order("appt_date", { ascending: true });
 
-  const todayStr = todayClinic();
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const doctorWorkingDaysMap = new Map<string, number[]>();
   for (const wh of workingHoursData ?? []) {
@@ -113,14 +112,14 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   const { data: todayAppointments } = await supabase
     .from("appointments")
-    .select("id, start_time, status, is_overbooked, no_answer_flag, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed, secretary_arrival_note")
+    .select("id, start_time, status, is_overbooked, visit_type, patient_id, vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at, payment_confirmed, payment_method, visit_fee, patient_cash_amount, insurance_claim_amount")
     .eq("appt_date", todayStr)
     .neq("status", "pending")
     .order("start_time", { ascending: true });
 
   const todayPatientIds = (todayAppointments ?? []).map((a) => a.patient_id);
   const { data: todayPatients } = todayPatientIds.length
-    ? await supabase.from("patients").select("id, full_name, full_name_ar, phone").in("id", todayPatientIds)
+    ? await supabase.from("patients").select("id, full_name, full_name_ar, phone, insurance_company_id, insurance_coverage_pct, insurance_companies(id, name, default_coverage_pct)").in("id", todayPatientIds)
     : { data: [] };
   const todayPatientsById = new Map((todayPatients ?? []).map((p) => [p.id, p]));
 
@@ -144,8 +143,18 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
       vital_weight_kg: appt.vital_weight_kg,
       vital_height_cm: appt.vital_height_cm,
       vitals_recorded_at: appt.vitals_recorded_at,
-      payment_confirmed: appt.payment_confirmed,
-      secretary_arrival_note: (appt as Record<string,unknown>).secretary_arrival_note as string | null,
+      payment_confirmed:    appt.payment_confirmed,
+      payment_method:       appt.payment_method ?? null,
+      visit_fee:            appt.visit_fee ?? null,
+      patient_cash_amount:  appt.patient_cash_amount ?? null,
+      insurance_claim_amount: appt.insurance_claim_amount ?? null,
+      // Insurance from patient profile
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      insuranceCompanyId:   (patient as any)?.insurance_company_id ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      insuranceCompanyName: (patient as any)?.insurance_companies?.name ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      insuranceCoveragePct: (patient as any)?.insurance_coverage_pct ?? (patient as any)?.insurance_companies?.default_coverage_pct ?? 80,
     };
   });
 
@@ -160,6 +169,16 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
 
   return (
     <>
+      {unclaimedCount > 0 && (
+        <a href="/secretary/insurance-claims"
+          className="mb-4 flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100 transition">
+          <div>
+            <p className="text-sm font-semibold text-amber-900">🔴 {unclaimedCount} unclaimed insurance visit{unclaimedCount !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-amber-700">{unclaimedAmount.toFixed(2)} JOD not yet claimed from insurance companies</p>
+          </div>
+          <span className="text-xs font-semibold text-amber-800">Generate Claims →</span>
+        </a>
+      )}
       <div className="mb-6 grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -197,7 +216,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
         Today&apos;s queue
       </h2>
       <div className="mb-6">
-        <TodayQueue items={todayQueueItems} currency={currency} symptomsCatalog={(symptomsCatalog ?? []) as {id:string;name:string;name_ar:string|null;category?:string}[]} clinicId={clinicId} />
+        <TodayQueue items={todayQueueItems} currency={currency} />
       </div>
 
       {callTodayAppointments.length > 0 && (
