@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { markWithDoctor, markDone } from "@/lib/actions/appointments";
 
 interface DoctorQueueItem {
@@ -10,6 +11,7 @@ interface DoctorQueueItem {
   status: string;
   visit_type: string;
   patientName: string;
+  visitId?: string | null;
 }
 
 export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
@@ -65,13 +67,24 @@ export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
               {item.start_time?.slice(0, 5)} · currently with you
             </p>
           </div>
-          <button
-            disabled={loadingId === item.id}
-            onClick={() => handleDone(item.id)}
-            className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
-          >
-            {loadingId === item.id ? "Saving..." : "Mark done"}
-          </button>
+          <div className="flex items-center gap-2">
+            {item.visitId && (
+              <Link href={`/doctor/visit/${item.visitId}`}
+                className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
+                Open Note
+              </Link>
+            )}
+            {!item.visitId && (
+              <span className="text-xs text-neutral-400">Note loading...</span>
+            )}
+            <button
+              disabled={loadingId === item.id}
+              onClick={() => handleDone(item.id)}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+            >
+              {loadingId === item.id ? "Saving..." : "Mark done"}
+            </button>
+          </div>
         </div>
       ))}
 

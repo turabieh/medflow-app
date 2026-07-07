@@ -8,7 +8,7 @@ export async function DoctorDashboard({ doctorId }: { doctorId: string }) {
 
   const { data: appointments } = await supabase
     .from("appointments")
-    .select("id, start_time, status, visit_type, patient_id")
+    .select("id, start_time, status, visit_type, patient_id, visits(id)")
     .eq("doctor_id", doctorId)
     .eq("appt_date", todayStr)
     .in("status", ["arrived", "with_doctor"])
@@ -26,6 +26,8 @@ export async function DoctorDashboard({ doctorId }: { doctorId: string }) {
     status: appt.status,
     visit_type: appt.visit_type,
     patientName: patientsById.get(appt.patient_id)?.full_name ?? "Unknown patient",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    visitId: Array.isArray((appt as any).visits) ? (appt as any).visits[0]?.id ?? null : (appt as any).visits?.id ?? null,
   }));
 
   const withDoctorCount = items.filter((i) => i.status === "with_doctor").length;
