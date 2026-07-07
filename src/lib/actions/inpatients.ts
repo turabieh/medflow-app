@@ -30,7 +30,7 @@ export async function admitInpatient(input: {
   hospitalId: string;
   hospitalPatientId?: string;
   admissionDate: string;
-  location: string;
+  location?: string;
   diagnosisSummary?: string;
   feePerVisit?: number;
 }): Promise<{ success: boolean; error?: string; inpatientId?: string; patientId?: string }> {
@@ -41,8 +41,8 @@ export async function admitInpatient(input: {
 
   // Create patient if not existing
   if (!patientId) {
-    if (!input.patientFirstName || !input.patientPhone) {
-      return { success: false, error: "Patient first name and phone are required for new patients." };
+    if (!input.patientFirstName) {
+      return { success: false, error: "Patient first name is required." };
     }
     const { data: newPatient, error: patientError } = await auth.supabase
       .from("patients").insert({

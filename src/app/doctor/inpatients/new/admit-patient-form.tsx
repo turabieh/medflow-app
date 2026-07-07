@@ -4,29 +4,28 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { admitInpatient } from "@/lib/actions/inpatients";
 
-interface Hospital { id: string; name: string; primary_phone: string; }
-interface ExistingPatient { id: string; full_name: string; phone: string; dob: string | null; }
+interface Hospital { id: string; name: string; }
+interface ExistingPatient { id: string; full_name: string; phone: string; }
 
 export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
   const router = useRouter();
 
-  // Patient search
   const [patientSearch, setPatientSearch] = useState("");
   const [searchResults, setSearchResults] = useState<ExistingPatient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<ExistingPatient | null>(null);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [searching, setSearching] = useState(false);
 
-  // New patient fields
-  const [newName, setNewName] = useState("");
-  const [newNameAr, setNewNameAr] = useState("");
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newMiddleName, setNewMiddleName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newFirstNameAr, setNewFirstNameAr] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newDob, setNewDob] = useState("");
   const [newGender, setNewGender] = useState("");
   const [newBloodType, setNewBloodType] = useState("");
   const [newAllergies, setNewAllergies] = useState("");
 
-  // Admission fields
   const [hospitalId, setHospitalId] = useState(hospitals[0]?.id ?? "");
   const [hospitalPatientId, setHospitalPatientId] = useState("");
   const [admissionDate, setAdmissionDate] = useState(new Date().toISOString().split("T")[0]);
@@ -51,169 +50,185 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!hospitalId) { setError("Select a hospital."); return; }
-    if (!isNewPatient && !selectedPatient) { setError("Select an existing patient or switch to new patient."); return; }
-
+    if (!isNewPatient && !selectedPatient) {
+      setError("Please select an existing patient or click 'New patient'.");
+      return;
+    }
+    if (isNewPatient && !newFirstName.trim()) {
+      setError("First name is required.");
+      return;
+    }
     setSaving(true);
     const result = await admitInpatient({
       patientId:          selectedPatient?.id,
-      patientName:        isNewPatient ? newName : undefined,
-      patientNameAr:      isNewPatient ? newNameAr : undefined,
-      patientPhone:       isNewPatient ? newPhone : undefined,
-      patientDob:         isNewPatient ? newDob : undefined,
-      patientGender:      isNewPatient ? newGender : undefined,
-      patientBloodType:   isNewPatient ? newBloodType : undefined,
-      patientAllergies:   isNewPatient ? newAllergies : undefined,
-      hospitalId,
-      hospitalPatientId,
+      patientFirstName:   isNewPatient ? newFirstName.trim() : undefined,
+      patientMiddleName:  isNewPatient ? newMiddleName.trim() || undefined : undefined,
+      patientLastName:    isNewPatient ? newLastName.trim() || undefined : undefined,
+      patientFirstNameAr: isNewPatient ? newFirstNameAr.trim() || undefined : undefined,
+      patientPhone:       isNewPatient ? newPhone.trim() || undefined : undefined,
+      patientDob:         isNewPatient ? newDob || undefined : undefined,
+      patientGender:      isNewPatient ? newGender || undefined : undefined,
+      patientBloodType:   isNewPatient ? newBloodType || undefined : undefined,
+      patientAllergies:   isNewPatient ? newAllergies.trim() || undefined : undefined,
+      hospitalId:         hospitalId || "",
+      hospitalPatientId:  hospitalPatientId.trim() || undefined,
       admissionDate,
-      location,
-      diagnosisSummary,
+      location:           location.trim() || undefined,
+      diagnosisSummary:   diagnosisSummary.trim() || undefined,
       feePerVisit:        feePerVisit ? parseFloat(feePerVisit) : undefined,
     });
     setSaving(false);
-
     if (!result.success) { setError(result.error ?? "Could not admit patient."); return; }
     router.push(`/doctor/inpatients/${result.inpatientId}`);
   }
 
+  const inp = "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500";
+  const lbl = "mb-1 block text-xs font-medium text-neutral-600";
+
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
-      {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">{error}</div>}
 
-      {/* Patient selection */}
-      <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
+      {/* ── PATIENT ─────────────────────────────────── */}
+      <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium text-neutral-900">Patient</h2>
-          <button type="button" onClick={() => { setIsNewPatient(!isNewPatient); setSelectedPatient(null); setSearchResults([]); setPatientSearch(""); }}
+          <h2 className="text-sm font-semibold text-neutral-900">Patient</h2>
+          <button type="button"
+            onClick={() => { setIsNewPatient(p => !p); setSelectedPatient(null); setSearchResults([]); setPatientSearch(""); }}
             className="text-xs text-blue-600 hover:underline">
             {isNewPatient ? "Search existing patient instead" : "New patient (not in system)"}
           </button>
         </div>
 
         {!isNewPatient ? (
-          <div className="relative">
-            <input type="text" value={patientSearch} onChange={e => handlePatientSearch(e.target.value)}
-              placeholder="Search by name or phone..."
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+          <div>
+            <label className={lbl}>Search by name or phone</label>
+            <input value={patientSearch} onChange={e => handlePatientSearch(e.target.value)}
+              placeholder="Type to search..." className={inp} />
             {searching && <p className="mt-1 text-xs text-neutral-400">Searching...</p>}
-            {searchResults.length > 0 && !selectedPatient && (
-              <ul className="absolute z-10 mt-1 w-full rounded-md border border-neutral-200 bg-white shadow-lg">
+            {searchResults.length > 0 && (
+              <ul className="mt-1 rounded-md border border-neutral-200 bg-white shadow-sm divide-y divide-neutral-100 max-h-48 overflow-y-auto">
                 {searchResults.map(p => (
                   <li key={p.id}>
-                    <button type="button" onClick={() => { setSelectedPatient(p); setPatientSearch(p.full_name); setSearchResults([]); }}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-neutral-50">
-                      {p.full_name} <span className="text-xs text-neutral-400 font-mono">{p.phone}</span>
+                    <button type="button" onClick={() => { setSelectedPatient(p); setSearchResults([]); setPatientSearch(p.full_name); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50">
+                      <span className="font-medium">{p.full_name}</span>
+                      <span className="ml-2 text-xs text-neutral-400">{p.phone}</span>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
             {selectedPatient && (
-              <div className="mt-2 flex items-center justify-between rounded-md bg-green-50 border border-green-200 px-3 py-2">
-                <p className="text-sm font-medium text-green-800">{selectedPatient.full_name}</p>
-                <button type="button" onClick={() => { setSelectedPatient(null); setPatientSearch(""); }}
-                  className="text-xs text-green-600 hover:text-green-800">Change</button>
+              <div className="mt-2 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+                ✓ Selected: <strong>{selectedPatient.full_name}</strong>
               </div>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs text-neutral-600">Full Name (English) *</label>
-                <input required value={newName} onChange={e => setNewName(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-neutral-600">Full Name (Arabic)</label>
-                <input value={newNameAr} onChange={e => setNewNameAr(e.target.value)} dir="rtl"
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-neutral-600">Phone *</label>
-                <input required value={newPhone} onChange={e => setNewPhone(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-mono" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-neutral-600">Date of Birth</label>
-                <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-neutral-600">Gender</label>
-                <select value={newGender} onChange={e => setNewGender(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                  <option value="">\u2014</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-neutral-600">Blood Type</label>
-                <select value={newBloodType} onChange={e => setNewBloodType(e.target.value)}
-                  className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-                  <option value="">\u2014</option>
-                  {["A+","A-","B+","B-","AB+","AB-","O+","O-"].map(t => <option key={t}>{t}</option>)}
-                </select>
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>First Name <span className="text-red-500">*</span></label>
+              <input value={newFirstName} onChange={e => setNewFirstName(e.target.value)}
+                placeholder="Ahmad" className={inp} />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-neutral-600">Allergies</label>
+              <label className={lbl}>Middle Name</label>
+              <input value={newMiddleName} onChange={e => setNewMiddleName(e.target.value)}
+                placeholder="Mohammad" className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Last Name</label>
+              <input value={newLastName} onChange={e => setNewLastName(e.target.value)}
+                placeholder="Al-Rashid" className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>First Name (Arabic)</label>
+              <input value={newFirstNameAr} onChange={e => setNewFirstNameAr(e.target.value)}
+                dir="rtl" placeholder="أحمد" className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Phone</label>
+              <input value={newPhone} onChange={e => setNewPhone(e.target.value)}
+                placeholder="+962 7x xxx xxxx" className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Date of Birth</label>
+              <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)} className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Gender</label>
+              <select value={newGender} onChange={e => setNewGender(e.target.value)} className={inp}>
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Blood Type</label>
+              <select value={newBloodType} onChange={e => setNewBloodType(e.target.value)} className={inp}>
+                <option value="">Select</option>
+                <option value="A+">A+</option>
+                <option value="A-">A-</option>
+                <option value="B+">B+</option>
+                <option value="B-">B-</option>
+                <option value="AB+">AB+</option>
+                <option value="AB-">AB-</option>
+                <option value="O+">O+</option>
+                <option value="O-">O-</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className={lbl}>Allergies</label>
               <input value={newAllergies} onChange={e => setNewAllergies(e.target.value)}
-                placeholder="e.g. Penicillin, Aspirin"
-                className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+                placeholder="Penicillin, aspirin..." className={inp} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Admission details */}
-      <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
-        <h2 className="text-sm font-medium text-neutral-900">Admission Details</h2>
+      {/* ── ADMISSION ───────────────────────────────── */}
+      <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-neutral-900">Admission Details</h2>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-xs text-neutral-600">Hospital *</label>
-            <select value={hospitalId} onChange={e => setHospitalId(e.target.value)} required
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
-              {hospitals.length === 0 && <option value="">No hospitals \u2014 add in Admin</option>}
+            <label className={lbl}>Hospital</label>
+            <select value={hospitalId} onChange={e => setHospitalId(e.target.value)} className={inp}>
+              <option value="">No hospital</option>
               {hospitals.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-600">Hospital Patient ID / MRN</label>
+            <label className={lbl}>Hospital Patient ID / MRN</label>
             <input value={hospitalPatientId} onChange={e => setHospitalPatientId(e.target.value)}
-              placeholder="e.g. KH-2026-0042"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm font-mono" />
+              placeholder="Optional" className={inp} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-600">Admission Date *</label>
-            <input type="date" value={admissionDate} onChange={e => setAdmissionDate(e.target.value)} required
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            <label className={lbl}>Admission Date <span className="text-red-500">*</span></label>
+            <input required type="date" value={admissionDate}
+              onChange={e => setAdmissionDate(e.target.value)} className={inp} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-600">Location / Room (optional)</label>
+            <label className={lbl}>Location / Room <span className="text-neutral-400">(optional)</span></label>
             <input value={location} onChange={e => setLocation(e.target.value)}
-              placeholder="e.g. Room 304, 3rd Floor \u00b7 ICU \u00b7 Emergency"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+              placeholder="Room 204, ICU, Ward B..." className={inp} />
           </div>
           <div className="col-span-2">
-            <label className="mb-1 block text-xs text-neutral-600">Admitting Diagnosis</label>
-            <input value={diagnosisSummary} onChange={e => setDiagnosisSummary(e.target.value)}
-              placeholder="e.g. Acute ischemic stroke, right MCA territory"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            <label className={lbl}>Admitting Diagnosis</label>
+            <textarea value={diagnosisSummary} onChange={e => setDiagnosisSummary(e.target.value)}
+              rows={2} placeholder="Initial diagnosis or reason for admission..."
+              className={`${inp} resize-none`} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-600">Fee per Visit (for claim)</label>
-            <input type="number" min="0" step="0.01" value={feePerVisit} onChange={e => setFeePerVisit(e.target.value)}
-              placeholder="e.g. 25.00"
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
+            <label className={lbl}>Fee per Visit (for claim)</label>
+            <input type="number" value={feePerVisit} onChange={e => setFeePerVisit(e.target.value)}
+              placeholder="0.00" min="0" step="0.01" className={inp} />
           </div>
         </div>
       </div>
 
-      <button type="submit" disabled={saving || hospitals.length === 0}
-        className="w-full rounded-md bg-red-500 py-2.5 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50">
+      <button type="submit" disabled={saving}
+        className="rounded-lg bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 transition">
         {saving ? "Admitting..." : "Admit Patient"}
       </button>
     </form>
