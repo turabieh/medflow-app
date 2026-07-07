@@ -126,7 +126,7 @@ export function AdmitPatientForm({ hospitals }: { hospitals: Hospital[] }) {
                   className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-600">\u0627\u0644\u0627\u0633\u0645 \u0628\u0627\u0644\u0639\u0631\u0628\u064a\u0629</label>
+                <label className="mb-1 block text-xs text-neutral-600">Full Name (Arabic)</label>
                 <input value={newNameAr} onChange={e => setNewNameAr(e.target.value)} dir="rtl"
                   className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" />
               </div>
