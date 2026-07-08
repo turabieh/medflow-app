@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { computeEndTime, type VisitType } from "@/lib/scheduling/slots";
 import { DEFAULT_SCHEDULE_SETTINGS } from "@/lib/scheduling/slots";
@@ -400,7 +401,8 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
   if (appt) {
     // 3. Create visit record if one doesn't exist yet
     // This is what allows the doctor to open the patient's clinical note
-    const { data: existingVisit } = await supabase
+    const adminClient = createAdminClient();
+    const { data: existingVisit } = await adminClient
       .from("visits")
       .select("id")
       .eq("appointment_id", appointmentId)
@@ -414,7 +416,8 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
         .eq("id", appointmentId)
         .single();
 
-      await supabase.from("visits").insert({
+      // Use admin client to bypass RLS for visit creation
+      const { error: visitError } = await adminClient.from("visits").insert({
         appointment_id:    appointmentId,
         patient_id:        appt.patient_id,
         doctor_id:         appt.doctor_id,
@@ -423,7 +426,6 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
         visit_type:        appt.visit_type,
         visit_context:     "outpatient",
         status:            "in_progress",
-        // Copy vitals from appointment (saved by secretary before sending to doctor)
         heart_rate:        apptFull?.vital_heart_rate        ?? null,
         blood_pressure:    apptFull?.vital_bp                ?? null,
         temperature:       apptFull?.vital_temperature       ?? null,
@@ -433,6 +435,7 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
         height_cm:         apptFull?.vital_height_cm         ?? null,
         vitals_recorded_at:apptFull?.vitals_recorded_at      ?? null,
       });
+      if (visitError) console.error("[markWithDoctor] visit insert failed:", visitError);
     } else {
       // Visit already exists — still copy vitals in case they were saved after visit was created
       const { data: apptFull } = await supabase
@@ -442,7 +445,7 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
         .single();
 
       if (apptFull?.vitals_recorded_at) {
-        await supabase.from("visits").update({
+        await adminClient.from("visits").update({
           heart_rate:        apptFull.vital_heart_rate        ?? null,
           blood_pressure:    apptFull.vital_bp                ?? null,
           temperature:       apptFull.vital_temperature       ?? null,
