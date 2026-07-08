@@ -383,7 +383,16 @@ export async function markArrived(appointmentId: string): Promise<ConfirmBooking
 export async function markWithDoctor(appointmentId: string): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
 
-  // 1. Update appointment status
+  const { data: appt, error: apptError } = await supabase
+    .from("appointments")
+    .select("id, clinic_id, patient_id, doctor_id, visit_type, appt_date")
+    .eq("id", appointmentId)
+    .single();
+
+  if (apptError || !appt) {
+    return { success: false, error: "Could not find appointment." };
+  }
+
   const { error } = await supabase
     .from("appointments")
     .update({ status: "with_doctor" })
@@ -391,85 +400,27 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
 
   if (error) return { success: false, error: error.message };
 
-  // 2. Get appointment details
-  const { data: appt } = await supabase
-    .from("appointments")
-    .select("id, patient_id, doctor_id, clinic_id, appt_date, visit_type")
-    .eq("id", appointmentId)
-    .single();
-
-  if (appt) {
-    // 3. Create visit record if one doesn't exist yet
-    // This is what allows the doctor to open the patient's clinical note
-    const adminClient = createAdminClient();
-    const { data: existingVisit } = await adminClient
-      .from("visits")
-      .select("id")
-      .eq("appointment_id", appointmentId)
-      .maybeSingle();
-
-    if (!existingVisit) {
-      // Fetch appointment vitals saved by secretary so they appear in doctor's note
-      const { data: apptFull } = await supabase
-        .from("appointments")
-        .select("vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at")
-        .eq("id", appointmentId)
-        .single();
-
-      // Use admin client to bypass RLS for visit creation
-      const { error: visitError } = await adminClient.from("visits").insert({
-        appointment_id:    appointmentId,
-        patient_id:        appt.patient_id,
-        doctor_id:         appt.doctor_id,
-        clinic_id:         appt.clinic_id,
-        visit_date:        appt.appt_date,
-        visit_type:        appt.visit_type,
-        visit_context:     "outpatient",
-        status:            "in_progress",
-        heart_rate:        apptFull?.vital_heart_rate        ?? null,
-        blood_pressure:    apptFull?.vital_bp                ?? null,
-        temperature:       apptFull?.vital_temperature       ?? null,
-        oxygen_saturation: apptFull?.vital_o2_saturation     ?? null,
-        resp_rate:         apptFull?.vital_resp_rate         ?? null,
-        weight_kg:         apptFull?.vital_weight_kg         ?? null,
-        height_cm:         apptFull?.vital_height_cm         ?? null,
-        vitals_recorded_at:apptFull?.vitals_recorded_at      ?? null,
-      });
-      if (visitError) console.error("[markWithDoctor] visit insert failed:", visitError);
-    } else {
-      // Visit already exists — still copy vitals in case they were saved after visit was created
-      const { data: apptFull } = await supabase
-        .from("appointments")
-        .select("vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at")
-        .eq("id", appointmentId)
-        .single();
-
-      if (apptFull?.vitals_recorded_at) {
-        await adminClient.from("visits").update({
-          heart_rate:        apptFull.vital_heart_rate        ?? null,
-          blood_pressure:    apptFull.vital_bp                ?? null,
-          temperature:       apptFull.vital_temperature       ?? null,
-          oxygen_saturation: apptFull.vital_o2_saturation     ?? null,
-          resp_rate:         apptFull.vital_resp_rate         ?? null,
-          weight_kg:         apptFull.vital_weight_kg         ?? null,
-          height_cm:         apptFull.vital_height_cm         ?? null,
-          vitals_recorded_at:apptFull.vitals_recorded_at      ?? null,
-        }).eq("appointment_id", appointmentId);
-      }
-    }
-  }
+  // Auto-create the visit record so clinical documentation has somewhere
+  // to attach immediately. Uses upsert on appointment_id (unique index)
+  // to avoid duplicates if called twice.
+  await supabase.from("visits").upsert(
+    {
+      clinic_id:      appt.clinic_id,
+      patient_id:     appt.patient_id,
+      doctor_id:      appt.doctor_id,
+      appointment_id: appt.id,
+      visit_date:     appt.appt_date,
+      visit_type:     appt.visit_type,
+      status:         "in_progress",
+    },
+    { onConflict: "appointment_id" }
+  );
 
   revalidatePath("/dashboard");
-  revalidatePath("/doctor/dashboard");
+  revalidatePath("/secretary/dashboard");
   return { success: true };
 }
 
-/**
- * Doctor finishes the clinical visit. This does NOT mean the patient
- * has left the clinic -- they may still be at the front desk for
- * payment, printing, or booking a follow-up. 'finalized' is the actual
- * terminal state once those post-visit tasks are complete.
- */
 export async function markDone(appointmentId: string): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
 
