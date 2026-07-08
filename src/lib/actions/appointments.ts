@@ -382,16 +382,46 @@ export async function markArrived(appointmentId: string): Promise<ConfirmBooking
 export async function markWithDoctor(appointmentId: string): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
 
+  // 1. Update appointment status
   const { error } = await supabase
     .from("appointments")
     .update({ status: "with_doctor" })
     .eq("id", appointmentId);
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (error) return { success: false, error: error.message };
+
+  // 2. Get appointment details
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("id, patient_id, doctor_id, clinic_id, appt_date, visit_type")
+    .eq("id", appointmentId)
+    .single();
+
+  if (appt) {
+    // 3. Create visit record if one doesn't exist yet
+    // This is what allows the doctor to open the patient's clinical note
+    const { data: existingVisit } = await supabase
+      .from("visits")
+      .select("id")
+      .eq("appointment_id", appointmentId)
+      .maybeSingle();
+
+    if (!existingVisit) {
+      await supabase.from("visits").insert({
+        appointment_id: appointmentId,
+        patient_id:     appt.patient_id,
+        doctor_id:      appt.doctor_id,
+        clinic_id:      appt.clinic_id,
+        visit_date:     appt.appt_date,
+        visit_type:     appt.visit_type,
+        visit_context:  "outpatient",
+        status:         "in_progress",
+      });
+    }
   }
 
   revalidatePath("/dashboard");
+  revalidatePath("/doctor/dashboard");
   return { success: true };
 }
 
