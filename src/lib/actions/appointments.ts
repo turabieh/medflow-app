@@ -412,7 +412,6 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
       resp_rate:          apptVitals?.vital_resp_rate         ?? null,
       weight_kg:          apptVitals?.vital_weight_kg         ?? null,
       height_cm:          apptVitals?.vital_height_cm         ?? null,
-      vitals_recorded_at: apptVitals?.vitals_recorded_at      ?? null,
     },
     { onConflict: "appointment_id" }
   );
