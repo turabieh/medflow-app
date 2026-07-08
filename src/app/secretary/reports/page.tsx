@@ -30,18 +30,9 @@ export default async function SecretaryReportsPage({
     selectedPatient = patients[0];
     const { data: visitRows } = await supabase
       .from("visits")
-      .select("id, visit_date, visit_type, status, appointment_id")
+      .select("id, visit_date, visit_type, status")
       .eq("patient_id", selectedPatient.id)
       .order("visit_date", { ascending: false });
-
-    // Fetch payment data for each visit's appointment (server-side, authenticated)
-    const apptIds = (visitRows ?? []).map(v => v.appointment_id).filter(Boolean);
-    const { data: apptRows } = apptIds.length
-      ? await supabase.from("appointments")
-          .select("id, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed")
-          .in("id", apptIds)
-      : { data: [] };
-    const apptMap = Object.fromEntries((apptRows ?? []).map(a => [a.id, a]));
 
     const visitIds = (visitRows ?? []).map(v => v.id);
     const { data: diagnoses } = visitIds.length
@@ -144,20 +135,7 @@ export default async function SecretaryReportsPage({
                   <div className="flex flex-wrap gap-2 px-4 py-3">
                     {PRINT_TYPES.map(pt => (
                       <a key={pt.type}
-                        href={(() => {
-                          const appt = visit.appointment_id ? apptMap[visit.appointment_id] : null;
-                          const base = `/secretary/reports/print?type=${pt.type}&visitId=${visit.id}&patientId=${selectedPatient!.id}`;
-                          if (!appt) return base;
-                          return base +
-                            `&apptId=${visit.appointment_id}` +
-                            `&pm=${appt.payment_method ?? ""}` +
-                            `&pamt=${appt.payment_amount ?? 0}` +
-                            `&vfee=${appt.visit_fee ?? appt.payment_amount ?? 0}` +
-                            `&cash=${appt.patient_cash_amount ?? 0}` +
-                            `&ins=${appt.insurance_claim_amount ?? 0}` +
-                            `&ppm=${appt.patient_payment_method ?? ""}` +
-                            `&paid=${appt.payment_confirmed ? 1 : 0}`;
-                        })()}
+                        href={`/print/report?type=${pt.type}&visitId=${visit.id}&patientId=${selectedPatient!.id}`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center gap-1.5 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400"
