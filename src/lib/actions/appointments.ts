@@ -590,6 +590,27 @@ export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBooking
     .eq("id", input.appointmentId);
 
   if (error) return { success: false, error: error.message };
+
+  // Also write vitals to the visits table so doctor can see them
+  const admin = createAdminClient();
+  const { data: visit } = await admin
+    .from("visits")
+    .select("id")
+    .eq("appointment_id", input.appointmentId)
+    .maybeSingle();
+
+  if (visit?.id) {
+    await admin.from("visits").update({
+      heart_rate:        input.heartRate    ?? null,
+      blood_pressure:    input.bp?.trim()   || null,
+      temperature:       input.temperature  ?? null,
+      oxygen_saturation: input.o2Saturation ?? null,
+      resp_rate:         input.respRate     ?? null,
+      weight_kg:         input.weightKg     ?? null,
+      height_cm:         input.heightCm     ?? null,
+    }).eq("id", visit.id);
+  }
+
   revalidatePath("/secretary/dashboard");
   return { success: true };
 }
