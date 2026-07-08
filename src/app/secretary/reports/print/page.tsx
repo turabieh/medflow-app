@@ -20,10 +20,10 @@ function InvoiceSection({ appointment, doctor, patient, insurance, visit, printD
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   appointment: any; doctor: any; patient: any; insurance: any; visit: any; printDate: string; s: any;
 }) {
+  const isPaid      = !!appointment.payment_confirmed;
   const isInsurance = appointment.payment_method === "insurance";
   // visit_fee is new field; fall back to payment_amount for old records
   const visitFee  = Number(appointment.visit_fee || appointment.payment_amount || 0);
-  // patient_cash_amount may be 0.00 on old records that used simple payment_amount
   const cashPaid  = isInsurance
     ? Number(appointment.patient_cash_amount || 0)
     : Number(appointment.payment_amount || 0);
@@ -68,7 +68,12 @@ function InvoiceSection({ appointment, doctor, patient, insurance, visit, printD
           </span>
         </div>
         <div style={{ padding:"12px 14px" }}>
-          {isInsurance ? (
+          {!isPaid ? (
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontSize:"12px", color:"#666" }}>Payment status</span>
+              <span style={{ fontWeight:"700", color:"#d97706", fontSize:"13px" }}>⏳ Payment Pending</span>
+            </div>
+          ) : isInsurance ? (
             <>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
                 <div>
