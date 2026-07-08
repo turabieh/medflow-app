@@ -184,7 +184,7 @@ export default function SecretaryPrintPage() {
         if (v?.appointment_id) {
           const { data: appt } = await supabase
             .from("appointments")
-            .select("appt_date, appt_time, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method")
+            .select("id, appt_date, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed")
             .eq("id", v.appointment_id as string).single();
           appointment = appt ?? null;
         }
@@ -192,7 +192,7 @@ export default function SecretaryPrintPage() {
         // Latest appointment if no visit
         const { data: appt } = await supabase
           .from("appointments")
-          .select("appt_date, appt_time, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, doctor_id")
+          .select("id, appt_date, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed, doctor_id")
           .eq("patient_id", patientId)
           .order("appt_date", { ascending: false })
           .limit(1).single();
@@ -210,6 +210,19 @@ export default function SecretaryPrintPage() {
   }, [visitId, patientId, type]);
 
   const printDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+
+  // DEBUG - remove after fix
+  if (!loading && data) {
+    console.log("[INVOICE DEBUG]", {
+      type,
+      visitId,
+      patientId,
+      hasVisit: !!data.visit,
+      visitAppointmentId: (data.visit as any)?.appointment_id,
+      hasAppointment: !!data.appointment,
+      appointmentData: data.appointment,
+    });
+  }
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", fontFamily:"Arial,sans-serif", color:"#666" }}>
