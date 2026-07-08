@@ -397,7 +397,7 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
   // Fetch vitals saved by secretary
   const { data: apptVitals } = await supabase
     .from("appointments")
-    .select("vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at")
+    .select("vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm")
     .eq("id", appointmentId)
     .single();
 
@@ -419,7 +419,6 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
       resp_rate:          apptVitals?.vital_resp_rate         ?? null,
       weight_kg:          apptVitals?.vital_weight_kg         ?? null,
       height_cm:          apptVitals?.vital_height_cm         ?? null,
-      vitals_recorded_at: apptVitals?.vitals_recorded_at      ?? null,
     },
     { onConflict: "appointment_id" }
   );
