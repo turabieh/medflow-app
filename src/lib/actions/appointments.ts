@@ -604,7 +604,13 @@ export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBooking
 
 export async function confirmPayment(
   appointmentId: string,
-  method: "cash" | "insurance" | "card" | "other"
+  data: {
+    paymentMethod:        "cash" | "card" | "insurance" | "other";
+    visitFee:             number;
+    patientCashAmount:    number;
+    insuranceClaimAmount: number;
+    patientPaymentMethod?: "cash" | "card" | "other";
+  }
 ): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -613,9 +619,14 @@ export async function confirmPayment(
   const { error } = await supabase
     .from("appointments")
     .update({
-      payment_method:       method,
-      payment_confirmed:    true,
-      payment_confirmed_at: new Date().toISOString(),
+      payment_method:         data.paymentMethod,
+      visit_fee:              data.visitFee        || null,
+      payment_amount:         data.patientCashAmount,
+      patient_cash_amount:    data.patientCashAmount,
+      insurance_claim_amount: data.insuranceClaimAmount,
+      patient_payment_method: data.patientPaymentMethod ?? null,
+      payment_confirmed:      true,
+      payment_confirmed_at:   new Date().toISOString(),
     })
     .eq("id", appointmentId);
 
@@ -623,3 +634,4 @@ export async function confirmPayment(
   revalidatePath("/secretary/dashboard");
   return { success: true };
 }
+
