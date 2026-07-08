@@ -27,7 +27,7 @@ export async function DoctorDashboard({ doctorId }: { doctorId: string }) {
     visit_type: appt.visit_type,
     patientName: patientsById.get(appt.patient_id)?.full_name ?? "Unknown patient",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    visitId: Array.isArray((appt as any).visits) ? (appt as any).visits[0]?.id ?? null : (appt as any).visits?.id ?? null,
+    visitId: (() => { const v = (appt as any).visits; return Array.isArray(v) ? v[0]?.id ?? null : v?.id ?? null; })(),
   }));
 
   const withDoctorCount = items.filter((i) => i.status === "with_doctor").length;

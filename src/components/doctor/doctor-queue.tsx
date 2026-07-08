@@ -11,7 +11,7 @@ interface DoctorQueueItem {
   status: string;
   visit_type: string;
   patientName: string;
-  visitId?: string | null;
+  visitId: string | null;
 }
 
 export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
@@ -24,10 +24,7 @@ export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
     setError(null);
     const result = await markWithDoctor(id);
     setLoadingId(null);
-    if (!result.success) {
-      setError(result.error ?? "Could not update.");
-      return;
-    }
+    if (!result.success) { setError(result.error ?? "Could not update."); return; }
     router.refresh();
   }
 
@@ -36,14 +33,11 @@ export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
     setError(null);
     const result = await markDone(id);
     setLoadingId(null);
-    if (!result.success) {
-      setError(result.error ?? "Could not update.");
-      return;
-    }
+    if (!result.success) { setError(result.error ?? "Could not update."); return; }
     router.refresh();
   }
 
-  const arrived = items.filter((i) => i.status === "arrived");
+  const arrived    = items.filter((i) => i.status === "arrived");
   const withDoctor = items.filter((i) => i.status === "with_doctor");
 
   if (items.length === 0) {
@@ -56,11 +50,10 @@ export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
         <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
+      {/* ── Patients currently with the doctor ── */}
       {withDoctor.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center justify-between rounded-md border-l-4 border-l-indigo-400 bg-white px-4 py-3 shadow-sm"
-        >
+        <div key={item.id}
+          className="flex items-center justify-between rounded-md border-l-4 border-l-indigo-400 bg-white px-4 py-3 shadow-sm">
           <div>
             <p className="text-sm font-medium text-neutral-900">{item.patientName}</p>
             <p className="text-xs text-neutral-500">
@@ -68,31 +61,28 @@ export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {item.visitId && (
+            {item.visitId ? (
               <Link href={`/doctor/visit/${item.visitId}`}
                 className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
                 Open Note
               </Link>
-            )}
-            {!item.visitId && (
-              <span className="text-xs text-neutral-400">Note loading...</span>
+            ) : (
+              <span className="text-xs text-neutral-400 italic">Loading note…</span>
             )}
             <button
               disabled={loadingId === item.id}
               onClick={() => handleDone(item.id)}
-              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
-            >
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:opacity-50">
               {loadingId === item.id ? "Saving..." : "Mark done"}
             </button>
           </div>
         </div>
       ))}
 
+      {/* ── Patients waiting ── */}
       {arrived.map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center justify-between rounded-md border-l-4 border-l-emerald-400 bg-white px-4 py-3 shadow-sm"
-        >
+        <div key={item.id}
+          className="flex items-center justify-between rounded-md border-l-4 border-l-emerald-400 bg-white px-4 py-3 shadow-sm">
           <div>
             <p className="text-sm font-medium text-neutral-900">{item.patientName}</p>
             <p className="text-xs text-neutral-500">
@@ -102,9 +92,8 @@ export function DoctorQueue({ items }: { items: DoctorQueueItem[] }) {
           <button
             disabled={loadingId === item.id}
             onClick={() => handleCallIn(item.id)}
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
-          >
-            {loadingId === item.id ? "Saving..." : "Call in"}
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-50 disabled:opacity-50">
+            {loadingId === item.id ? "Calling..." : "Call in →"}
           </button>
         </div>
       ))}
