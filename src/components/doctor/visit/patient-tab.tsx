@@ -172,13 +172,13 @@ export function PatientTab({
             </button>
           </form>
         ) : (
-          {/* MRN — prominent at top */}
-          {patient.mrn && (
-            <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5">
-              <span className="text-xs font-semibold text-indigo-500 uppercase tracking-wide">MRN</span>
-              <span className="font-mono font-bold text-indigo-800 text-sm">{patient.mrn}</span>
-            </div>
-          )}
+          <div>
+            {patient.mrn && (
+              <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5">
+                <span className="text-xs font-semibold text-indigo-500 uppercase tracking-wide">MRN</span>
+                <span className="font-mono font-bold text-indigo-800 text-sm">{patient.mrn}</span>
+              </div>
+            )}
           <div className="grid grid-cols-4 gap-4 text-sm">
             <div><p className="text-xs text-neutral-500">Date of birth</p><p className="font-medium">{patient.dob ?? "—"}</p></div>
             <div><p className="text-xs text-neutral-500">Age</p><p className="font-medium">{age != null ? `${age} yrs` : "—"}</p></div>
