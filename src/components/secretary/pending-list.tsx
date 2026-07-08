@@ -68,14 +68,15 @@ export function PendingList({
 }) {
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [archiveConfirmId, setArchiveConfirmId] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
 
-  async function handleArchive(appointmentId: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!confirm("Archive this request? It will be hidden from the pending list.")) return;
+  async function handleArchive(appointmentId: string) {
+    setArchiving(true);
     const result = await archivePendingAppointment(appointmentId);
-    if (result.success) {
-      router.refresh();
-    }
+    setArchiving(false);
+    setArchiveConfirmId(null);
+    if (result.success) router.refresh();
   }
 
   const warm = items.filter((i) => !i.appointment.pending_is_cold);
@@ -109,7 +110,7 @@ export function PendingList({
               <div className="flex items-center gap-2">
                 {appointment.pending_is_cold && (
                   <span
-                    onClick={(e) => handleArchive(appointment.id, e)}
+                    onClick={(e) => { e.stopPropagation(); setArchiveConfirmId(appointment.id); }}
                     className="text-xs text-neutral-400 underline hover:text-neutral-600"
                   >
                     Archive
