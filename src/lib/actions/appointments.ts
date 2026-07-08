@@ -368,46 +368,16 @@ export async function markArrived(appointmentId: string): Promise<ConfirmBooking
 export async function markWithDoctor(appointmentId: string): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
 
-  // 1. Update appointment status
   const { error } = await supabase
     .from("appointments")
     .update({ status: "with_doctor" })
     .eq("id", appointmentId);
 
-  if (error) return { success: false, error: error.message };
-
-  // 2. Get appointment details to create/find the visit
-  const { data: appt } = await supabase
-    .from("appointments")
-    .select("id, patient_id, doctor_id, clinic_id, appt_date, visit_type")
-    .eq("id", appointmentId)
-    .single();
-
-  if (appt) {
-    // Check if a visit already exists for this appointment
-    const { data: existingVisit } = await supabase
-      .from("visits")
-      .select("id")
-      .eq("appointment_id", appointmentId)
-      .maybeSingle();
-
-    // Only create if none exists
-    if (!existingVisit) {
-      await supabase.from("visits").insert({
-        appointment_id: appointmentId,
-        patient_id:     appt.patient_id,
-        doctor_id:      appt.doctor_id,
-        clinic_id:      appt.clinic_id,
-        visit_date:     appt.appt_date,
-        visit_type:     appt.visit_type,
-        visit_context:  "outpatient",
-        status:         "in_progress",
-      });
-    }
+  if (error) {
+    return { success: false, error: error.message };
   }
 
   revalidatePath("/dashboard");
-  revalidatePath("/doctor/dashboard");
   return { success: true };
 }
 
@@ -559,6 +529,9 @@ export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBooking
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
+  const now = new Date().toISOString();
+
+  // 1. Save to appointments table (for secretary queue display)
   const { error } = await supabase
     .from("appointments")
     .update({
@@ -569,24 +542,40 @@ export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBooking
       vital_resp_rate:     input.respRate     ?? null,
       vital_weight_kg:     input.weightKg     ?? null,
       vital_height_cm:     input.heightCm     ?? null,
-      vitals_recorded_at:  new Date().toISOString(),
+      vitals_recorded_at:  now,
     })
     .eq("id", input.appointmentId);
 
   if (error) return { success: false, error: error.message };
+
+  // 2. Also save to visits table so doctor can see them in the visit note
+  const { data: visit } = await supabase
+    .from("visits")
+    .select("id")
+    .eq("appointment_id", input.appointmentId)
+    .maybeSingle();
+
+  if (visit?.id) {
+    await supabase.from("visits").update({
+      heart_rate:        input.heartRate    ?? null,
+      blood_pressure:    input.bp?.trim()   || null,
+      temperature:       input.temperature  ?? null,
+      oxygen_saturation: input.o2Saturation ?? null,
+      resp_rate:         input.respRate     ?? null,
+      weight_kg:         input.weightKg     ?? null,
+      height_cm:         input.heightCm     ?? null,
+      vitals_recorded_at: now,
+    }).eq("id", visit.id);
+  }
+
   revalidatePath("/secretary/dashboard");
+  revalidatePath("/doctor/dashboard");
   return { success: true };
 }
 
 export async function confirmPayment(
   appointmentId: string,
-  data: {
-    paymentMethod:        "cash" | "card" | "insurance" | "other";
-    visitFee:             number;
-    patientCashAmount:    number;
-    insuranceClaimAmount: number;
-    patientPaymentMethod?: "cash" | "card" | "other";
-  }
+  method: "cash" | "insurance" | "card" | "other"
 ): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -595,14 +584,9 @@ export async function confirmPayment(
   const { error } = await supabase
     .from("appointments")
     .update({
-      payment_method:        data.paymentMethod,
-      visit_fee:             data.visitFee,
-      payment_amount:        data.patientCashAmount,
-      patient_cash_amount:   data.patientCashAmount,
-      insurance_claim_amount:data.insuranceClaimAmount,
-      patient_payment_method:data.patientPaymentMethod ?? null,
-      payment_confirmed:     true,
-      payment_confirmed_at:  new Date().toISOString(),
+      payment_method:       method,
+      payment_confirmed:    true,
+      payment_confirmed_at: new Date().toISOString(),
     })
     .eq("id", appointmentId);
 
