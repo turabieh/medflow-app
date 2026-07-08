@@ -35,7 +35,7 @@ export default async function VisitPage({
   // Patient
   const { data: patient } = await supabase
     .from("patients")
-    .select("id, full_name, full_name_ar, dob, gender, blood_type, allergies, phone, insurance_company_id, insurance_policy_number, insurance_expiry_date, insurance_companies(name)")
+    .select("id, full_name, full_name_ar, dob, gender, blood_type, allergies, phone, mrn, insurance_company_id, insurance_policy_number, insurance_expiry_date, insurance_companies(name)")
     .eq("id", visit.patient_id)
     .single();
 

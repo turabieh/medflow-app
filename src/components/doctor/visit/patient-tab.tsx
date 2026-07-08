@@ -50,6 +50,7 @@ export function PatientTab({
   const [editingPatient, setEditingPatient] = useState(false);
   const [fullName, setFullName] = useState(patient.full_name); // displays computed full_name
   const [fullNameAr, setFullNameAr] = useState(patient.full_name_ar ?? "");
+  const [mrn, setMrn] = useState(patient.mrn ?? "");
   const [dob, setDob] = useState(patient.dob ?? "");
   const [gender, setGender] = useState(patient.gender ?? "");
   const [bloodType, setBloodType] = useState(patient.blood_type ?? "");
@@ -75,6 +76,7 @@ export function PatientTab({
       last_name: fullName.split(" ").slice(1).join(" ") || undefined,
       first_name_ar: fullNameAr.split(" ")[0] || undefined,
       last_name_ar: fullNameAr.split(" ").slice(1).join(" ") || undefined,
+      mrn: mrn.trim() || undefined,
       dob: dob || undefined,
       gender: (gender as "male" | "female") || undefined,
       blood_type: bloodType || undefined,
@@ -153,6 +155,12 @@ export function PatientTab({
               <BilingualInput label="Arabic name" value={fullNameAr} onChange={e=>setFullNameAr(e.target.value)} />
             </div>
             <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="mb-1 block text-xs text-neutral-600 font-semibold">MRN</label>
+                <input type="text" value={mrn} onChange={e => setMrn(e.target.value)}
+                  placeholder="MRN-001234"
+                  className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-mono" />
+              </div>
               <div><label className="mb-1 block text-xs text-neutral-600">Date of birth</label>
                 <JordanDateInput value={dob} onChange={setDob} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" /></div>
               <div><label className="mb-1 block text-xs text-neutral-600">Gender</label>
