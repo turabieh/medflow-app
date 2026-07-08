@@ -20,10 +20,10 @@ function InvoiceSection({ appointment, doctor, patient, insurance, visit, printD
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   appointment: any; doctor: any; patient: any; insurance: any; visit: any; printDate: string; s: any;
 }) {
-  const isPaid      = !!appointment.payment_confirmed;
   const isInsurance = appointment.payment_method === "insurance";
   // visit_fee is new field; fall back to payment_amount for old records
   const visitFee  = Number(appointment.visit_fee || appointment.payment_amount || 0);
+  // patient_cash_amount may be 0.00 on old records that used simple payment_amount
   const cashPaid  = isInsurance
     ? Number(appointment.patient_cash_amount || 0)
     : Number(appointment.payment_amount || 0);
@@ -68,12 +68,7 @@ function InvoiceSection({ appointment, doctor, patient, insurance, visit, printD
           </span>
         </div>
         <div style={{ padding:"12px 14px" }}>
-          {!isPaid ? (
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontSize:"12px", color:"#666" }}>Payment status</span>
-              <span style={{ fontWeight:"700", color:"#d97706", fontSize:"13px" }}>⏳ Payment Pending</span>
-            </div>
-          ) : isInsurance ? (
+          {isInsurance ? (
             <>
               <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
                 <div>
@@ -130,6 +125,15 @@ export default function SecretaryPrintPage() {
   const type      = searchParams.get("type") ?? "note";
   const visitId   = searchParams.get("visitId") ?? "";
   const patientId = searchParams.get("patientId") ?? "";
+  const apptId    = searchParams.get("apptId") ?? "";
+  // Payment data passed from reports page (avoids RLS issue in new tab)
+  const urlPm     = searchParams.get("pm")   ?? "";
+  const urlPamt   = searchParams.get("pamt") ?? "0";
+  const urlVfee   = searchParams.get("vfee") ?? "0";
+  const urlCash   = searchParams.get("cash") ?? "0";
+  const urlIns    = searchParams.get("ins")  ?? "0";
+  const urlPpm    = searchParams.get("ppm")  ?? "";
+  const urlPaid   = searchParams.get("paid") ?? "0";
 
   const [data, setData] = useState<{
     visit: AnyRecord | null;
@@ -184,7 +188,7 @@ export default function SecretaryPrintPage() {
         if (v?.appointment_id) {
           const { data: appt } = await supabase
             .from("appointments")
-            .select("id, appt_date, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed")
+            .select("appt_date, appt_time, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method")
             .eq("id", v.appointment_id as string).single();
           appointment = appt ?? null;
         }
@@ -192,7 +196,7 @@ export default function SecretaryPrintPage() {
         // Latest appointment if no visit
         const { data: appt } = await supabase
           .from("appointments")
-          .select("id, appt_date, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed, doctor_id")
+          .select("appt_date, appt_time, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, doctor_id")
           .eq("patient_id", patientId)
           .order("appt_date", { ascending: false })
           .limit(1).single();
@@ -210,19 +214,6 @@ export default function SecretaryPrintPage() {
   }, [visitId, patientId, type]);
 
   const printDate = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
-
-  // DEBUG - remove after fix
-  if (!loading && data) {
-    console.log("[INVOICE DEBUG]", {
-      type,
-      visitId,
-      patientId,
-      hasVisit: !!data.visit,
-      visitAppointmentId: (data.visit as any)?.appointment_id,
-      hasAppointment: !!data.appointment,
-      appointmentData: data.appointment,
-    });
-  }
 
   if (loading) return (
     <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh", fontFamily:"Arial,sans-serif", color:"#666" }}>
