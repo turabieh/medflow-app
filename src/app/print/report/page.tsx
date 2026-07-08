@@ -40,7 +40,7 @@ function InvoiceSection({ appointment, doctor, patient, insurance, visit, printD
         </tr></thead>
         <tbody>
           <tr>
-            <td style={s.td}>Medical consultation — {doctor?.full_name ?? "Physician"}</td>
+            <td style={s.td}>Medical consultation</td>
             <td style={s.td}>{appointment.appt_date ?? visit?.visit_date ?? printDate}</td>
             <td style={{ ...s.td, textAlign:"right" as const, fontWeight:"700", fontSize:"14px" }}>
               {visitFee > 0 ? visitFee.toFixed(2) : "—"}
