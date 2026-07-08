@@ -11,12 +11,6 @@ interface PatientEditFormProps {
     id: string;
     full_name: string;
     full_name_ar: string | null;
-    first_name: string;
-    middle_name: string | null;
-    last_name: string | null;
-    first_name_ar: string | null;
-    middle_name_ar: string | null;
-    last_name_ar: string | null;
     phone: string;
     phone2: string | null;
     phone2_relation: string | null;
@@ -25,7 +19,6 @@ interface PatientEditFormProps {
     address: string | null;
     email: string | null;
     blood_type: string | null;
-    mrn: string | null;
     allergies: string | null;
     insurance_company_id: string | null;
     insurance_policy_number: string | null;
@@ -37,12 +30,8 @@ interface PatientEditFormProps {
 }
 
 export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: PatientEditFormProps) {
-  const [firstName,    setFirstName]    = useState(patient.first_name ?? patient.full_name);
-  const [middleName,   setMiddleName]   = useState(patient.middle_name ?? "");
-  const [lastName,     setLastName]     = useState(patient.last_name ?? "");
-  const [firstNameAr,  setFirstNameAr]  = useState(patient.first_name_ar ?? "");
-  const [middleNameAr, setMiddleNameAr] = useState(patient.middle_name_ar ?? "");
-  const [lastNameAr,   setLastNameAr]   = useState(patient.last_name_ar ?? "");
+  const [fullName, setFullName] = useState(patient.full_name);
+  const [fullNameAr, setFullNameAr] = useState(patient.full_name_ar ?? "");
   const [phone, setPhone] = useState(patient.phone);
   const [phone2, setPhone2] = useState(patient.phone2 ?? "");
   const [phone2Relation, setPhone2Relation] = useState(patient.phone2_relation ?? "");
@@ -51,7 +40,6 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
   const [address, setAddress] = useState(patient.address ?? "");
   const [email, setEmail] = useState(patient.email ?? "");
   const [bloodType, setBloodType] = useState(patient.blood_type ?? "");
-  const [mrn, setMrn] = useState(patient.mrn ?? "");
   const [allergies, setAllergies] = useState(patient.allergies ?? "");
   const [insuranceCompanyId, setInsuranceCompanyId] = useState(patient.insurance_company_id ?? "");
   const [preferredDoctorId, setPreferredDoctorId] = useState(patient.preferred_doctor_id ?? "");
@@ -69,12 +57,8 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
     setSaved(false);
 
     const result = await updatePatient(patient.id, {
-      first_name:     firstName.trim(),
-      middle_name:    middleName.trim() || null,
-      last_name:      lastName.trim() || null,
-      first_name_ar:  firstNameAr.trim() || null,
-      middle_name_ar: middleNameAr.trim() || null,
-      last_name_ar:   lastNameAr.trim() || null,
+      full_name: fullName,
+      full_name_ar: fullNameAr || undefined,
       phone,
       phone2: phone2 || undefined,
       phone2_relation: phone2Relation || undefined,
@@ -83,7 +67,6 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
       address: address || undefined,
       email: email || undefined,
       blood_type: bloodType || undefined,
-      mrn: mrn.trim() || undefined,
       allergies: allergies || undefined,
       insurance_company_id: insuranceCompanyId || undefined,
       insurance_policy_number: policyNumber || undefined,
@@ -108,64 +91,10 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
       {error && <div className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       {saved && <div className="mb-3 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">Saved successfully.</div>}
 
-      {/* English name — 3 parts */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold text-neutral-700">Name (English)</p>
-          {[firstName,middleName,lastName].filter(Boolean).join(" ") && (
-            <span className="text-xs text-neutral-400">
-              {[firstName,middleName,lastName].filter(Boolean).join(" ")}
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <label className="mb-1 block text-[10px] text-neutral-500">First Name *</label>
-            <input required value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Ahmad"
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm outline-none focus:border-neutral-500" />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] text-neutral-500">Middle Name</label>
-            <input value={middleName} onChange={e => setMiddleName(e.target.value)} placeholder="Mahmoud"
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm outline-none focus:border-neutral-500" />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] text-neutral-500">Last Name</label>
-            <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Hassan"
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm outline-none focus:border-neutral-500" />
-          </div>
-        </div>
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <BilingualInput label="Full name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <BilingualInput label="Full name (Arabic)" value={fullNameAr} onChange={(e) => setFullNameAr(e.target.value)} placeholder="الاسم بالعربية" />
       </div>
-
-      {/* Arabic name — 3 parts */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-semibold text-neutral-700">الاسم (عربي)</p>
-          {[firstNameAr,middleNameAr,lastNameAr].filter(Boolean).join(" ") && (
-            <span className="text-xs text-neutral-400" dir="rtl">
-              {[firstNameAr,middleNameAr,lastNameAr].filter(Boolean).join(" ")}
-            </span>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-2" dir="rtl">
-          <div>
-            <label className="mb-1 block text-[10px] text-neutral-500 text-right">الاسم الأول *</label>
-            <input value={firstNameAr} onChange={e => setFirstNameAr(e.target.value)} placeholder="أحمد"
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm text-right outline-none focus:border-neutral-500" />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] text-neutral-500 text-right">الاسم الأوسط</label>
-            <input value={middleNameAr} onChange={e => setMiddleNameAr(e.target.value)} placeholder="محمود"
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm text-right outline-none focus:border-neutral-500" />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] text-neutral-500 text-right">اسم العائلة</label>
-            <input value={lastNameAr} onChange={e => setLastNameAr(e.target.value)} placeholder="حسن"
-              className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm text-right outline-none focus:border-neutral-500" />
-          </div>
-        </div>
-      </div>
-
 
       <div className="mb-3 grid grid-cols-3 gap-3">
         <div>
@@ -222,19 +151,11 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
         </div>
       </div>
 
-      <div className="mb-3 grid grid-cols-2 gap-3">
-        <div>
-          <label className="mb-1 block text-xs text-neutral-600 font-semibold">MRN <span className="font-normal text-neutral-400">(Medical Record #)</span></label>
-          <input type="text" value={mrn} onChange={(e) => setMrn(e.target.value)}
-            placeholder="MRN-001234"
-            className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-mono" />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-neutral-600">Allergies</label>
+      <div className="mb-3">
+        <label className="mb-1 block text-xs text-neutral-600">Allergies</label>
         <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)}
           placeholder="e.g. Penicillin, Aspirin"
           className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
-        </div>
       </div>
 
       <div className="mb-4 rounded-md bg-neutral-50 p-3">

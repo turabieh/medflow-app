@@ -174,7 +174,7 @@ export function PatientTab({
           </form>
         ) : (
           <div className="grid grid-cols-4 gap-4 text-sm">
-            {patient.mrn && <div className="col-span-4 mb-1"><span className="rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-semibold text-indigo-500 uppercase tracking-wide">MRN</span><span className="ml-2 font-mono font-bold text-indigo-800">{patient.mrn}</span></div>}
+            <div className="col-span-4 mb-1 flex items-center gap-2"><span className="text-xs text-neutral-500 w-10">MRN</span><span className="font-mono font-semibold text-indigo-700">{patient.mrn ?? "—"}</span></div>
             <div><p className="text-xs text-neutral-500">Date of birth</p><p className="font-medium">{patient.dob ?? "—"}</p></div>
             <div><p className="text-xs text-neutral-500">Age</p><p className="font-medium">{age != null ? `${age} yrs` : "—"}</p></div>
             <div><p className="text-xs text-neutral-500">Gender</p><p className="font-medium capitalize">{patient.gender ?? "—"}</p></div>
