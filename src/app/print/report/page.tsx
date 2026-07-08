@@ -15,6 +15,100 @@ const TITLES: Record<string, string> = {
   appointment:  "Appointment Confirmation",
 };
 
+
+function InvoiceSection({ appointment, doctor, patient, insurance, visit, printDate, s }: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  appointment: any; doctor: any; patient: any; insurance: any; visit: any; printDate: string; s: any;
+}) {
+  const isPaid      = !!appointment.payment_confirmed;
+  const isInsurance = appointment.payment_method === "insurance";
+  const visitFee    = Number(appointment.visit_fee || appointment.payment_amount || 0);
+  const cashPaid    = isInsurance
+    ? Number(appointment.patient_cash_amount || 0)
+    : Number(appointment.payment_amount || 0);
+  const insClaim    = Number(appointment.insurance_claim_amount || 0);
+  const patMethod   = appointment.patient_payment_method || (!isInsurance ? appointment.payment_method : null);
+
+  return (
+    <div style={s.sec}>
+      <div style={s.secTitle}>Invoice</div>
+      <table style={s.table}>
+        <thead><tr>
+          <th style={s.th}>Description</th>
+          <th style={s.th}>Date</th>
+          <th style={{ ...s.th, textAlign:"right" as const }}>Amount</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style={s.td}>Medical consultation — {doctor?.full_name ?? "Physician"}</td>
+            <td style={s.td}>{appointment.appt_date ?? visit?.visit_date ?? printDate}</td>
+            <td style={{ ...s.td, textAlign:"right" as const, fontWeight:"700", fontSize:"14px" }}>
+              {visitFee > 0 ? visitFee.toFixed(2) : "—"}
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr style={{ background:"#f8f8f8" }}>
+            <td colSpan={2} style={{ ...s.td, fontWeight:"700", textAlign:"right" as const }}>Total</td>
+            <td style={{ ...s.td, fontWeight:"800", fontSize:"15px", textAlign:"right" as const }}>
+              {visitFee > 0 ? visitFee.toFixed(2) : "—"}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div style={{ marginTop:"14px", border:"1px solid #e0e0e0", borderRadius:"6px", overflow:"hidden" }}>
+        <div style={{ background:"#f8f8f8", padding:"8px 14px", borderBottom:"1px solid #e0e0e0" }}>
+          <span style={{ fontSize:"10px", fontWeight:"700" as const, textTransform:"uppercase" as const, letterSpacing:"1px", color:"#555" }}>
+            Payment Details
+          </span>
+        </div>
+        <div style={{ padding:"12px 14px" }}>
+          {!isPaid ? (
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <span style={{ fontSize:"12px", color:"#666" }}>Payment status</span>
+              <span style={{ fontWeight:"700" as const, color:"#d97706" }}>⏳ Payment Pending</span>
+            </div>
+          ) : isInsurance ? (
+            <>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"8px" }}>
+                <div>
+                  <span style={{ fontSize:"12px", fontWeight:"600" as const }}>Patient paid {patMethod ? `(${patMethod})` : ""}</span>
+                  <span style={{ fontSize:"10px", color:"#666", marginLeft:"6px" }}>collected today</span>
+                </div>
+                <span style={{ fontWeight:"700" as const, color:"#166534" }}>{cashPaid.toFixed(2)} ✓</span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:"8px", borderTop:"1px solid #f0f0f0", marginBottom:"8px" }}>
+                <div>
+                  <span style={{ fontSize:"12px", fontWeight:"600" as const }}>Insurance claim {insurance ? `— ${insurance.name}` : ""}</span>
+                  <span style={{ fontSize:"10px", color:"#666", marginLeft:"6px" }}>to be claimed</span>
+                </div>
+                <span style={{ fontWeight:"700" as const, color:"#1d4ed8" }}>{insClaim.toFixed(2)}</span>
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", paddingTop:"8px", borderTop:"2px solid #e0e0e0" }}>
+                <span style={{ fontSize:"11px", fontWeight:"700" as const }}>Total Covered</span>
+                <span style={{ fontSize:"12px", fontWeight:"800" as const }}>{(cashPaid + insClaim).toFixed(2)} / {visitFee.toFixed(2)}</span>
+              </div>
+              {patient?.insurance_policy_number && (
+                <div style={{ fontSize:"10px", color:"#888", marginTop:"8px" }}>Policy #: {patient.insurance_policy_number}</div>
+              )}
+            </>
+          ) : (
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <span style={{ fontSize:"12px", fontWeight:"600" as const, textTransform:"capitalize" as const }}>
+                Paid by {appointment.payment_method ?? "—"}
+              </span>
+              <span style={{ fontWeight:"800" as const, color:"#166534", fontSize:"14px" }}>
+                {cashPaid > 0 ? `${cashPaid.toFixed(2)} ✓` : "—"}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SecretaryPrintPage() {
   const searchParams = useSearchParams();
   const type      = searchParams.get("type") ?? "note";
@@ -74,7 +168,7 @@ export default function SecretaryPrintPage() {
         if (v?.appointment_id) {
           const { data: appt } = await supabase
             .from("appointments")
-            .select("appt_date, appt_time, status, payment_amount, payment_method")
+            .select("appt_date, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed")
             .eq("id", v.appointment_id as string).single();
           appointment = appt ?? null;
         }
@@ -82,7 +176,7 @@ export default function SecretaryPrintPage() {
         // Latest appointment if no visit
         const { data: appt } = await supabase
           .from("appointments")
-          .select("appt_date, appt_time, status, payment_amount, payment_method, doctor_id")
+          .select("appt_date, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, payment_confirmed, doctor_id")
           .eq("patient_id", patientId)
           .order("appt_date", { ascending: false })
           .limit(1).single();
@@ -362,47 +456,15 @@ export default function SecretaryPrintPage() {
 
         {/* ── INVOICE ── */}
         {type === "invoice" && appointment && (
-          <div style={s.sec}>
-            <div style={s.secTitle}>Invoice</div>
-            <table style={s.table}>
-              <thead><tr>
-                <th style={s.th}>Description</th>
-                <th style={s.th}>Date</th>
-                <th style={{ ...s.th, textAlign:"right" }}>Amount</th>
-              </tr></thead>
-              <tbody>
-                <tr>
-                  <td style={s.td}>Medical consultation — {doctor?.full_name ?? "Physician"}</td>
-                  <td style={s.td}>{appointment.appt_date ?? visit?.visit_date ?? printDate}</td>
-                  <td style={{ ...s.td, textAlign:"right", fontWeight:"700", fontSize:"14px" }}>
-                    {appointment.payment_amount
-                      ? `${Number(appointment.payment_amount).toFixed(2)}`
-                      : "—"}
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr style={{ background:"#f8f8f8" }}>
-                  <td colSpan={2} style={{ ...s.td, fontWeight:"700", textAlign:"right" }}>Total</td>
-                  <td style={{ ...s.td, fontWeight:"800", fontSize:"15px", textAlign:"right", color:"#111" }}>
-                    {appointment.payment_amount
-                      ? `${Number(appointment.payment_amount).toFixed(2)}`
-                      : "—"}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-            {appointment.payment_method && (
-              <p style={{ marginTop:"10px", fontSize:"11px", color:"#666" }}>
-                Payment method: <strong style={{ textTransform:"capitalize" }}>{appointment.payment_method}</strong>
-              </p>
-            )}
-            {insurance && (
-              <p style={{ marginTop:"4px", fontSize:"11px", color:"#666" }}>
-                Insurance: <strong>{insurance.name}</strong>
-              </p>
-            )}
-          </div>
+          <InvoiceSection
+            appointment={appointment}
+            doctor={doctor}
+            patient={patient}
+            insurance={insurance}
+            visit={visit}
+            printDate={printDate}
+            s={s}
+          />
         )}
 
         {/* ── FOOTER ── */}
