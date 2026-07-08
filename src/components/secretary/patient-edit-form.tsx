@@ -11,6 +11,12 @@ interface PatientEditFormProps {
     id: string;
     full_name: string;
     full_name_ar: string | null;
+    first_name: string;
+    middle_name: string | null;
+    last_name: string | null;
+    first_name_ar: string | null;
+    middle_name_ar: string | null;
+    last_name_ar: string | null;
     phone: string;
     phone2: string | null;
     phone2_relation: string | null;
@@ -59,8 +65,12 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
     setSaved(false);
 
     const result = await updatePatient(patient.id, {
-      full_name: fullName,
-      full_name_ar: fullNameAr || undefined,
+      first_name:     firstName.trim(),
+      middle_name:    middleName.trim() || null,
+      last_name:      lastName.trim() || null,
+      first_name_ar:  firstNameAr.trim() || null,
+      middle_name_ar: middleNameAr.trim() || null,
+      last_name_ar:   lastNameAr.trim() || null,
       phone,
       phone2: phone2 || undefined,
       phone2_relation: phone2Relation || undefined,
