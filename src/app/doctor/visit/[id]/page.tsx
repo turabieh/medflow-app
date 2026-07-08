@@ -214,6 +214,7 @@ export default async function VisitPage({
             blood_type: patient?.blood_type ?? null,
             allergies: patient?.allergies ?? null,
             phone: patient?.phone ?? "",
+            mrn: patient?.mrn ?? null,
             insurance_company_name: insuranceCompany?.name ?? null,
             insurance_policy_number: patient?.insurance_policy_number ?? null,
           }}
