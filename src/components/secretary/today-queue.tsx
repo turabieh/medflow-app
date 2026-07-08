@@ -235,6 +235,52 @@ function VitalsForm({ item, onClose, basicSymptoms = [] }: {
 }
 
 // ── Done/Payment Panel ───────────────────────────────────────────────────────
+
+// ── Print Buttons ─────────────────────────────────────────────────────────────
+function PrintButtons({ appointmentId, patientId, item, currency }: {
+  appointmentId: string; patientId: string; item: QueueItem; currency: string;
+}) {
+  const [visitId, setVisitId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchVisitId() {
+      setLoading(true);
+      const { createClient } = await import("@/lib/supabase/client");
+      const sb = createClient();
+      const { data } = await sb.from("visits").select("id")
+        .eq("appointment_id", appointmentId).maybeSingle();
+      setVisitId(data?.id ?? null);
+      setLoading(false);
+    }
+    fetchVisitId();
+  }, [appointmentId]);
+
+  const payParams = `&pm=${item.payment_method ?? ""}&pamt=${item.patient_cash_amount ?? item.visit_fee ?? 0}&vfee=${item.visit_fee ?? 0}&cash=${item.patient_cash_amount ?? 0}&ins=${item.insurance_claim_amount ?? 0}&paid=1&apptId=${appointmentId}`;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {loading && <span className="text-xs text-neutral-400">Loading...</span>}
+      {!loading && [
+        { type: "invoice",      label: "🧾 Invoice" },
+        { type: "prescription", label: "💊 Prescription" },
+        { type: "note",         label: "📋 Clinical Note" },
+        { type: "summary",      label: "📄 Summary" },
+      ].map(({ type, label }) => {
+        const url = visitId
+          ? `/print/report?type=${type}&visitId=${visitId}&patientId=${patientId}${payParams}`
+          : `/print/report?type=${type}&patientId=${patientId}${payParams}`;
+        return (
+          <a key={type} href={url} target="_blank" rel="noreferrer"
+            className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
+            {label}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: string; currency: string }) {
   const router = useRouter();
   const [showPanel, setShowPanel] = useState(false);
@@ -461,26 +507,15 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
 
       {/* Quick print buttons — available after payment */}
       {paymentDone && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {[
-            { type: "invoice",      label: "🧾 Invoice" },
-            { type: "prescription", label: "💊 Prescription" },
-            { type: "note",         label: "📋 Clinical Note" },
-          ].map(({ type, label }) => (
-            <a key={type}
-              href={`/print/report?type=${type}&patientId=${patientId}&apptId=${item.id}&pm=${item.payment_method ?? ""}&pamt=${item.patient_cash_amount ?? item.visit_fee ?? 0}&vfee=${item.visit_fee ?? 0}&cash=${item.patient_cash_amount ?? 0}&ins=${item.insurance_claim_amount ?? 0}&paid=1`}
-              target="_blank" rel="noreferrer"
-              className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
-              {label}
-            </a>
-          ))}
-        </div>
+        <PrintButtons appointmentId={item.id} patientId={patientId} item={item} currency={currency} />
       )}
 
-      <button onClick={handleFinalize} disabled={loading}
-        className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50 disabled:opacity-50">
-        Finalize Visit
-      </button>
+      <div className="flex justify-end mt-2">
+        <button onClick={handleFinalize} disabled={loading}
+          className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm">
+          {loading ? "Saving..." : "✓ Finalize Visit"}
+        </button>
+      </div>
     </div>
   );
 }
