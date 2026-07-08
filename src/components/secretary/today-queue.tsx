@@ -459,6 +459,24 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
         </div>
       )}
 
+      {/* Quick print buttons — available after payment */}
+      {paymentDone && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {[
+            { type: "invoice",      label: "🧾 Invoice" },
+            { type: "prescription", label: "💊 Prescription" },
+            { type: "note",         label: "📋 Clinical Note" },
+          ].map(({ type, label }) => (
+            <a key={type}
+              href={`/print/report?type=${type}&patientId=${patientId}&apptId=${item.id}&pm=${item.payment_method ?? ""}&pamt=${item.patient_cash_amount ?? item.visit_fee ?? 0}&vfee=${item.visit_fee ?? 0}&cash=${item.patient_cash_amount ?? 0}&ins=${item.insurance_claim_amount ?? 0}&paid=1`}
+              target="_blank" rel="noreferrer"
+              className="rounded-md border border-neutral-300 bg-white px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
+              {label}
+            </a>
+          ))}
+        </div>
+      )}
+
       <button onClick={handleFinalize} disabled={loading}
         className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50 disabled:opacity-50">
         Finalize Visit
