@@ -74,7 +74,6 @@ export async function createPatient(
     .from("patients")
     .insert({
       clinic_id: profile.clinic_id,
-      full_name:      [input.first_name, input.middle_name, input.last_name].filter(Boolean).join(" ").trim(),
       first_name:     input.first_name.trim(),
       middle_name:    input.middle_name?.trim() || null,
       last_name:      input.last_name?.trim() || null,
@@ -142,7 +141,6 @@ export async function updatePatient(
   const { error } = await supabase
     .from("patients")
     .update({
-      full_name:      input.first_name ? [input.first_name, input.middle_name, input.last_name].filter(Boolean).join(" ").trim() : undefined,
       first_name:     input.first_name?.trim(),
       middle_name:    input.middle_name?.trim() || null,
       last_name:      input.last_name?.trim() || null,
