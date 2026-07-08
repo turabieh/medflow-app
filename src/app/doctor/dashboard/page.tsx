@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SecretaryDashboard } from "@/components/dashboard/secretary-dashboard";
+import { DoctorDashboard } from "@/components/dashboard/doctor-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -204,6 +205,9 @@ export default async function DoctorDashboardPage({
       {/* ── OVERVIEW TAB ── */}
       {tab === "overview" && (
         <div className="space-y-5">
+          {/* Today's queue */}
+          <DoctorDashboard doctorId={doctorId} />
+
           {/* Period stats grid */}
           <div className="grid grid-cols-4 gap-3">
             <StatCard label="Outpatient visits"  value={totalOutpatients}  sub={PERIOD_LABELS[period]} color="text-neutral-800" />
