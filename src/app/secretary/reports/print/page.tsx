@@ -21,10 +21,14 @@ function InvoiceSection({ appointment, doctor, patient, insurance, visit, printD
   appointment: any; doctor: any; patient: any; insurance: any; visit: any; printDate: string; s: any;
 }) {
   const isInsurance = appointment.payment_method === "insurance";
-  const visitFee    = Number(appointment.visit_fee ?? appointment.payment_amount ?? 0);
-  const cashPaid    = Number(appointment.patient_cash_amount ?? (isInsurance ? 0 : visitFee));
-  const insClaim    = Number(appointment.insurance_claim_amount ?? 0);
-  const patMethod   = appointment.patient_payment_method ?? (!isInsurance ? appointment.payment_method : null);
+  // visit_fee is new field; fall back to payment_amount for old records
+  const visitFee  = Number(appointment.visit_fee || appointment.payment_amount || 0);
+  // patient_cash_amount may be 0.00 on old records that used simple payment_amount
+  const cashPaid  = isInsurance
+    ? Number(appointment.patient_cash_amount || 0)
+    : Number(appointment.payment_amount || 0);
+  const insClaim  = Number(appointment.insurance_claim_amount || 0);
+  const patMethod = appointment.patient_payment_method || (!isInsurance ? appointment.payment_method : null);
 
   return (
     <div style={s.sec}>
