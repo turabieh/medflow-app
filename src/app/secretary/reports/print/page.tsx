@@ -73,7 +73,7 @@ export default function SecretaryPrintPage() {
         if (v?.appointment_id) {
           const { data: appt } = await supabase
             .from("appointments")
-            .select("appt_date, appt_time, status, payment_amount, payment_method")
+            .select("appt_date, appt_time, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method")
             .eq("id", v.appointment_id as string).single();
           appointment = appt ?? null;
         }
@@ -81,7 +81,7 @@ export default function SecretaryPrintPage() {
         // Latest appointment if no visit
         const { data: appt } = await supabase
           .from("appointments")
-          .select("appt_date, appt_time, status, payment_amount, payment_method, doctor_id")
+          .select("appt_date, appt_time, status, visit_fee, payment_amount, payment_method, patient_cash_amount, insurance_claim_amount, patient_payment_method, doctor_id")
           .eq("patient_id", patientId)
           .order("appt_date", { ascending: false })
           .limit(1).single();
@@ -359,49 +359,109 @@ export default function SecretaryPrintPage() {
         )}
 
         {/* ── INVOICE ── */}
-        {type === "invoice" && appointment && (
-          <div style={s.sec}>
-            <div style={s.secTitle}>Invoice</div>
-            <table style={s.table}>
-              <thead><tr>
-                <th style={s.th}>Description</th>
-                <th style={s.th}>Date</th>
-                <th style={{ ...s.th, textAlign:"right" }}>Amount</th>
-              </tr></thead>
-              <tbody>
-                <tr>
-                  <td style={s.td}>Medical consultation — {doctor?.full_name ?? "Physician"}</td>
-                  <td style={s.td}>{appointment.appt_date ?? visit?.visit_date ?? printDate}</td>
-                  <td style={{ ...s.td, textAlign:"right", fontWeight:"700", fontSize:"14px" }}>
-                    {appointment.payment_amount
-                      ? `${Number(appointment.payment_amount).toFixed(2)}`
-                      : "—"}
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr style={{ background:"#f8f8f8" }}>
-                  <td colSpan={2} style={{ ...s.td, fontWeight:"700", textAlign:"right" }}>Total</td>
-                  <td style={{ ...s.td, fontWeight:"800", fontSize:"15px", textAlign:"right", color:"#111" }}>
-                    {appointment.payment_amount
-                      ? `${Number(appointment.payment_amount).toFixed(2)}`
-                      : "—"}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-            {appointment.payment_method && (
-              <p style={{ marginTop:"10px", fontSize:"11px", color:"#666" }}>
-                Payment method: <strong style={{ textTransform:"capitalize" }}>{appointment.payment_method}</strong>
-              </p>
-            )}
-            {insurance && (
-              <p style={{ marginTop:"4px", fontSize:"11px", color:"#666" }}>
-                Insurance: <strong>{insurance.name}</strong>
-              </p>
-            )}
-          </div>
-        )}
+        {type === "invoice" && appointment && (() => {
+          const isInsurance = appointment.payment_method === "insurance";
+          const visitFee    = Number(appointment.visit_fee ?? appointment.payment_amount ?? 0);
+          const cashPaid    = Number(appointment.patient_cash_amount ?? (isInsurance ? 0 : visitFee));
+          const insClaim    = Number(appointment.insurance_claim_amount ?? (isInsurance ? visitFee - cashPaid : 0));
+          const patMethod   = appointment.patient_payment_method ?? (isInsurance ? null : appointment.payment_method);
+          return (
+            <div style={s.sec}>
+              <div style={s.secTitle}>Invoice</div>
+              <table style={s.table}>
+                <thead><tr>
+                  <th style={s.th}>Description</th>
+                  <th style={s.th}>Date</th>
+                  <th style={{ ...s.th, textAlign:"right" }}>Amount</th>
+                </tr></thead>
+                <tbody>
+                  <tr>
+                    <td style={s.td}>Medical consultation — {doctor?.full_name ?? "Physician"}</td>
+                    <td style={s.td}>{appointment.appt_date ?? visit?.visit_date ?? printDate}</td>
+                    <td style={{ ...s.td, textAlign:"right", fontWeight:"700", fontSize:"14px" }}>
+                      {visitFee > 0 ? visitFee.toFixed(2) : "—"}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style={{ background:"#f8f8f8" }}>
+                    <td colSpan={2} style={{ ...s.td, fontWeight:"700", textAlign:"right" }}>Total Visit Fee</td>
+                    <td style={{ ...s.td, fontWeight:"800", fontSize:"15px", textAlign:"right", color:"#111" }}>
+                      {visitFee > 0 ? visitFee.toFixed(2) : "—"}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              {/* Payment breakdown */}
+              <div style={{ marginTop:"14px", border:"1px solid #e0e0e0", borderRadius:"6px", overflow:"hidden" }}>
+                <div style={{ background:"#f8f8f8", padding:"8px 14px", borderBottom:"1px solid #e0e0e0" }}>
+                  <span style={{ fontSize:"10px", fontWeight:"700", textTransform:"uppercase" as const, letterSpacing:"1px", color:"#555" }}>
+                    Payment Details
+                  </span>
+                </div>
+                <div style={{ padding:"12px 14px", display:"flex", flexDirection:"column" as const, gap:"8px" }}>
+                  {isInsurance ? (
+                    <>
+                      {/* Cash portion paid by patient */}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                        <div>
+                          <span style={{ fontSize:"12px", fontWeight:"600" }}>
+                            Paid by Patient {patMethod ? `(${patMethod})` : ""}
+                          </span>
+                          <span style={{ fontSize:"10px", color:"#666", marginLeft:"6px" }}>
+                            — collected today
+                          </span>
+                        </div>
+                        <span style={{ fontWeight:"700", color:"#166534", fontSize:"13px" }}>
+                          {cashPaid > 0 ? `${cashPaid.toFixed(2)} ✓` : "0.00"}
+                        </span>
+                      </div>
+                      {/* Insurance portion */}
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:"6px", borderTop:"1px solid #f0f0f0" }}>
+                        <div>
+                          <span style={{ fontSize:"12px", fontWeight:"600" }}>
+                            Insurance Claim {insurance ? `— ${insurance.name}` : ""}
+                          </span>
+                          <span style={{ fontSize:"10px", color:"#666", marginLeft:"6px" }}>
+                            — to be claimed
+                          </span>
+                        </div>
+                        <span style={{ fontWeight:"700", color:"#1d4ed8", fontSize:"13px" }}>
+                          {insClaim > 0 ? insClaim.toFixed(2) : "0.00"}
+                        </span>
+                      </div>
+                      {/* Balance check */}
+                      {visitFee > 0 && (
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", paddingTop:"6px", borderTop:"2px solid #e0e0e0", marginTop:"2px" }}>
+                          <span style={{ fontSize:"11px", fontWeight:"700", color:"#333" }}>Total Covered</span>
+                          <span style={{ fontSize:"12px", fontWeight:"800", color:"#111" }}>
+                            {(cashPaid + insClaim).toFixed(2)} / {visitFee.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {patient.insurance_policy_number && (
+                        <div style={{ fontSize:"10px", color:"#888", marginTop:"4px" }}>
+                          Policy #: {patient.insurance_policy_number}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Simple cash/card payment */
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <span style={{ fontSize:"12px", fontWeight:"600", textTransform:"capitalize" as const }}>
+                        Paid by {appointment.payment_method ?? "—"}
+                      </span>
+                      <span style={{ fontWeight:"800", color:"#166534", fontSize:"14px" }}>
+                        {cashPaid > 0 ? `${cashPaid.toFixed(2)} ✓` : "—"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── FOOTER ── */}
         <div style={{ marginTop:"50px", paddingTop:"16px", borderTop:"1px solid #ddd", display:"flex", justifyContent:"space-between", alignItems:"flex-end" }}>
