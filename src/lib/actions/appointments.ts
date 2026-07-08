@@ -407,16 +407,52 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
       .maybeSingle();
 
     if (!existingVisit) {
+      // Fetch appointment vitals saved by secretary so they appear in doctor's note
+      const { data: apptFull } = await supabase
+        .from("appointments")
+        .select("vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at")
+        .eq("id", appointmentId)
+        .single();
+
       await supabase.from("visits").insert({
-        appointment_id: appointmentId,
-        patient_id:     appt.patient_id,
-        doctor_id:      appt.doctor_id,
-        clinic_id:      appt.clinic_id,
-        visit_date:     appt.appt_date,
-        visit_type:     appt.visit_type,
-        visit_context:  "outpatient",
-        status:         "in_progress",
+        appointment_id:    appointmentId,
+        patient_id:        appt.patient_id,
+        doctor_id:         appt.doctor_id,
+        clinic_id:         appt.clinic_id,
+        visit_date:        appt.appt_date,
+        visit_type:        appt.visit_type,
+        visit_context:     "outpatient",
+        status:            "in_progress",
+        // Copy vitals from appointment (saved by secretary before sending to doctor)
+        heart_rate:        apptFull?.vital_heart_rate        ?? null,
+        blood_pressure:    apptFull?.vital_bp                ?? null,
+        temperature:       apptFull?.vital_temperature       ?? null,
+        oxygen_saturation: apptFull?.vital_o2_saturation     ?? null,
+        resp_rate:         apptFull?.vital_resp_rate         ?? null,
+        weight_kg:         apptFull?.vital_weight_kg         ?? null,
+        height_cm:         apptFull?.vital_height_cm         ?? null,
+        vitals_recorded_at:apptFull?.vitals_recorded_at      ?? null,
       });
+    } else {
+      // Visit already exists — still copy vitals in case they were saved after visit was created
+      const { data: apptFull } = await supabase
+        .from("appointments")
+        .select("vital_heart_rate, vital_bp, vital_temperature, vital_o2_saturation, vital_resp_rate, vital_weight_kg, vital_height_cm, vitals_recorded_at")
+        .eq("id", appointmentId)
+        .single();
+
+      if (apptFull?.vitals_recorded_at) {
+        await supabase.from("visits").update({
+          heart_rate:        apptFull.vital_heart_rate        ?? null,
+          blood_pressure:    apptFull.vital_bp                ?? null,
+          temperature:       apptFull.vital_temperature       ?? null,
+          oxygen_saturation: apptFull.vital_o2_saturation     ?? null,
+          resp_rate:         apptFull.vital_resp_rate         ?? null,
+          weight_kg:         apptFull.vital_weight_kg         ?? null,
+          height_cm:         apptFull.vital_height_cm         ?? null,
+          vitals_recorded_at:apptFull.vitals_recorded_at      ?? null,
+        }).eq("appointment_id", appointmentId);
+      }
     }
   }
 
