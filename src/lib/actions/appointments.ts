@@ -71,8 +71,15 @@ export async function confirmBooking(
   const { error: patientError } = await supabase
     .from("patients")
     .update({
-      full_name: input.fullName.trim(),
-      full_name_ar: input.fullNameAr?.trim() || null,
+      full_name: (input.firstName?.trim() ? [input.firstName, input.middleName, input.lastName].filter(Boolean).join(" ") : input.fullName).trim(),
+      full_name_ar: (input.firstNameAr?.trim() ? [input.firstNameAr, input.middleNameAr, input.lastNameAr].filter(Boolean).join(" ") : input.fullNameAr?.trim()) || null,
+      first_name: input.firstName?.trim() || input.fullName.trim(),
+      middle_name: input.middleName?.trim() || null,
+      last_name: input.lastName?.trim() || null,
+      first_name_ar: input.firstNameAr?.trim() || null,
+      middle_name_ar: input.middleNameAr?.trim() || null,
+      last_name_ar: input.lastNameAr?.trim() || null,
+      mrn: input.mrn?.trim() || undefined,
       gender: input.gender || null,
       dob: input.dob || null,
       address: input.address?.trim() || null,
@@ -412,6 +419,7 @@ export async function markWithDoctor(appointmentId: string): Promise<ConfirmBook
       resp_rate:          apptVitals?.vital_resp_rate         ?? null,
       weight_kg:          apptVitals?.vital_weight_kg         ?? null,
       height_cm:          apptVitals?.vital_height_cm         ?? null,
+      vitals_recorded_at: apptVitals?.vitals_recorded_at      ?? null,
     },
     { onConflict: "appointment_id" }
   );
@@ -590,40 +598,13 @@ export async function saveVitals(input: SaveVitalsInput): Promise<ConfirmBooking
     .eq("id", input.appointmentId);
 
   if (error) return { success: false, error: error.message };
-
-  // Also write vitals to the visits table so doctor can see them
-  const admin = createAdminClient();
-  const { data: visit } = await admin
-    .from("visits")
-    .select("id")
-    .eq("appointment_id", input.appointmentId)
-    .maybeSingle();
-
-  if (visit?.id) {
-    await admin.from("visits").update({
-      heart_rate:        input.heartRate    ?? null,
-      blood_pressure:    input.bp?.trim()   || null,
-      temperature:       input.temperature  ?? null,
-      oxygen_saturation: input.o2Saturation ?? null,
-      resp_rate:         input.respRate     ?? null,
-      weight_kg:         input.weightKg     ?? null,
-      height_cm:         input.heightCm     ?? null,
-    }).eq("id", visit.id);
-  }
-
   revalidatePath("/secretary/dashboard");
   return { success: true };
 }
 
 export async function confirmPayment(
   appointmentId: string,
-  data: {
-    paymentMethod:        "cash" | "card" | "insurance" | "other";
-    visitFee:             number;
-    patientCashAmount:    number;
-    insuranceClaimAmount: number;
-    patientPaymentMethod?: "cash" | "card" | "other";
-  }
+  method: "cash" | "insurance" | "card" | "other"
 ): Promise<ConfirmBookingResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -632,14 +613,9 @@ export async function confirmPayment(
   const { error } = await supabase
     .from("appointments")
     .update({
-      payment_method:         data.paymentMethod,
-      visit_fee:              data.visitFee        || null,
-      payment_amount:         data.patientCashAmount,
-      patient_cash_amount:    data.patientCashAmount,
-      insurance_claim_amount: data.insuranceClaimAmount,
-      patient_payment_method: data.patientPaymentMethod ?? null,
-      payment_confirmed:      true,
-      payment_confirmed_at:   new Date().toISOString(),
+      payment_method:       method,
+      payment_confirmed:    true,
+      payment_confirmed_at: new Date().toISOString(),
     })
     .eq("id", appointmentId);
 

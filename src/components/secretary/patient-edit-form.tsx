@@ -1,5 +1,4 @@
 "use client";
-import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { BilingualInput } from "@/components/ui/bilingual-input";
@@ -26,9 +25,9 @@ interface PatientEditFormProps {
     address: string | null;
     email: string | null;
     blood_type: string | null;
+    mrn: string | null;
     allergies: string | null;
     insurance_company_id: string | null;
-  insurance_coverage_pct?: number | null;
     insurance_policy_number: string | null;
     insurance_expiry_date: string | null;
     preferred_doctor_id: string | null;
@@ -52,8 +51,8 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
   const [address, setAddress] = useState(patient.address ?? "");
   const [email, setEmail] = useState(patient.email ?? "");
   const [bloodType, setBloodType] = useState(patient.blood_type ?? "");
+  const [mrn, setMrn] = useState(patient.mrn ?? "");
   const [allergies, setAllergies] = useState(patient.allergies ?? "");
-  const [coveragePct, setCoveragePct] = useState<number>(patient.insurance_coverage_pct ?? 100);
   const [insuranceCompanyId, setInsuranceCompanyId] = useState(patient.insurance_company_id ?? "");
   const [preferredDoctorId, setPreferredDoctorId] = useState(patient.preferred_doctor_id ?? "");
   const [policyNumber, setPolicyNumber] = useState(patient.insurance_policy_number ?? "");
@@ -84,6 +83,7 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
       address: address || undefined,
       email: email || undefined,
       blood_type: bloodType || undefined,
+      mrn: mrn.trim() || undefined,
       allergies: allergies || undefined,
       insurance_company_id: insuranceCompanyId || undefined,
       insurance_policy_number: policyNumber || undefined,
@@ -184,7 +184,7 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
         </div>
         <div>
           <label className="mb-1 block text-xs text-neutral-600">Date of birth</label>
-          <JordanDateInput value={dob} onChange={setDob}
+          <input type="date" value={dob} onChange={(e) => setDob(e.target.value)}
             className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
         </div>
       </div>
@@ -222,11 +222,19 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
         </div>
       </div>
 
-      <div className="mb-3">
-        <label className="mb-1 block text-xs text-neutral-600">Allergies</label>
+      <div className="mb-3 grid grid-cols-2 gap-3">
+        <div>
+          <label className="mb-1 block text-xs text-neutral-600 font-semibold">MRN <span className="font-normal text-neutral-400">(Medical Record #)</span></label>
+          <input type="text" value={mrn} onChange={(e) => setMrn(e.target.value)}
+            placeholder="MRN-001234"
+            className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-mono" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-neutral-600">Allergies</label>
         <input type="text" value={allergies} onChange={(e) => setAllergies(e.target.value)}
           placeholder="e.g. Penicillin, Aspirin"
           className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
+        </div>
       </div>
 
       <div className="mb-4 rounded-md bg-neutral-50 p-3">
@@ -242,38 +250,6 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
               ))}
             </select>
           </div>
-
-      {/* Insurance Coverage % */}
-      {!!insuranceCompanyId && (
-        <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Insurance Coverage %
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              type="number" min={0} max={100} step={5}
-              value={coveragePct}
-              onChange={e => setCoveragePct(Math.min(100, Math.max(0, Number(e.target.value))))}
-              className="w-24 rounded-md border border-neutral-300 px-3 py-2 text-sm font-semibold outline-none focus:border-neutral-500"
-            />
-            <span className="text-sm text-neutral-500">%</span>
-            <div className="flex gap-1.5 flex-wrap">
-              {[70, 75, 80, 85, 90, 100].map(p => (
-                <button key={p} type="button" onClick={() => setCoveragePct(p)}
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold transition ${coveragePct === p ? "bg-neutral-900 text-white" : "border border-neutral-300 text-neutral-500 hover:border-neutral-500"}`}>
-                  {p}%
-                </button>
-              ))}
-            </div>
-          </div>
-          <p className="mt-1.5 text-[11px] text-neutral-400">
-            {coveragePct === 100
-              ? "Insurance covers 100% — patient pays nothing in cash."
-              : `Insurance covers ${coveragePct}%, patient pays ${100 - coveragePct}% in cash.`}
-          </p>
-        </div>
-      )}
-
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Policy number</label>
             <input type="text" value={policyNumber} onChange={(e) => setPolicyNumber(e.target.value)}
@@ -282,7 +258,7 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Expiry date</label>
-            <JordanDateInput value={expiryDate} onChange={setExpiryDate}
+            <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
               className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
           </div>
         </div>

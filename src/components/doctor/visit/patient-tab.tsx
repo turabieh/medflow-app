@@ -1,5 +1,4 @@
 "use client";
-import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -36,6 +35,7 @@ export function PatientTab({
     gender: string | null;
     blood_type: string | null;
     allergies: string | null;
+    mrn: string | null;
     phone: string;
     insurance_company_name: string | null;
     insurance_policy_number: string | null;
@@ -153,7 +153,7 @@ export function PatientTab({
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div><label className="mb-1 block text-xs text-neutral-600">Date of birth</label>
-                <JordanDateInput value={dob} onChange={setDob} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" /></div>
+                <input type="date" value={dob} onChange={e=>setDob(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
               <div><label className="mb-1 block text-xs text-neutral-600">Gender</label>
                 <select value={gender} onChange={e=>setGender(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
                   <option value="">—</option><option value="male">Male</option><option value="female">Female</option>
@@ -177,7 +177,8 @@ export function PatientTab({
             <div><p className="text-xs text-neutral-500">Age</p><p className="font-medium">{age != null ? `${age} yrs` : "—"}</p></div>
             <div><p className="text-xs text-neutral-500">Gender</p><p className="font-medium capitalize">{patient.gender ?? "—"}</p></div>
             <div><p className="text-xs text-neutral-500">Blood type</p><p className="font-medium text-red-600">{patient.blood_type ?? "—"}</p></div>
-            <div><p className="text-xs text-neutral-500">Phone</p><p className="font-mono font-medium">{patient.phone}</p></div>
+            {patient.mrn && <div><p className="text-xs text-neutral-500">MRN</p><p className="font-mono font-semibold text-indigo-700">{patient.mrn}</p></div>}
+        <div><p className="text-xs text-neutral-500">Phone</p><p className="font-mono font-medium">{patient.phone}</p></div>
             <div className="col-span-3">
               <p className="text-xs text-neutral-500">Allergies</p>
               {patient.allergies ? (

@@ -20,7 +20,6 @@ interface Symptom {
   id: string;
   name: string;
   name_ar: string | null;
-  category?: string;
 }
 
 interface Doctor {
@@ -82,6 +81,7 @@ export function PendingAppointmentForm({
   const [gender, setGender] = useState<"male" | "female" | "">(patient.gender ?? "");
   const [dob, setDob] = useState(patient.dob ?? "");
   const [address, setAddress] = useState(patient.address ?? "");
+  const [mrn, setMrn] = useState((patient as {mrn?: string|null}).mrn ?? "");
   const [phone, setPhone] = useState(patient.phone);
   const [phone2, setPhone2] = useState(patient.phone2 ?? "");
   const [phone2Relation, setPhone2Relation] = useState(patient.phone2_relation ?? "");
@@ -309,6 +309,12 @@ export function PendingAppointmentForm({
             className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" />
         </div>
         <div>
+          <label className="mb-1 block text-xs text-neutral-600 font-semibold">MRN <span className="font-normal text-neutral-400">(Medical Record #)</span></label>
+          <input type="text" value={mrn} onChange={e => setMrn(e.target.value)}
+            placeholder="MRN-001234"
+            className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm font-mono" />
+        </div>
+        <div>
           <label className="mb-1 block text-xs text-neutral-600">Phone</label>
           <input
             type="tel"
@@ -430,22 +436,14 @@ export function PendingAppointmentForm({
         )}
       </div>
 
-      {symptomsCatalog.filter(s => !s.category || s.category === "basic").length > 0 && (
+      {symptomsCatalog.length > 0 && (
         <div className="mb-3">
-          <label className="mb-1 block text-xs font-medium text-neutral-700">
-            Main Symptoms
-            <span className="ml-1 font-normal text-neutral-400">(basic only)</span>
-          </label>
-          <div className="flex flex-wrap gap-1.5 rounded-md border border-neutral-200 bg-white p-2">
-            {symptomsCatalog.filter(s => !s.category || s.category === "basic").map((symptom) => (
-              <label key={symptom.id} className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                symptomIds.has(symptom.id)
-                  ? "border-indigo-400 bg-indigo-50 font-medium text-indigo-700"
-                  : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
-              }`}>
+          <label className="mb-1 block text-xs text-neutral-600">Symptoms</label>
+          <div className="grid grid-cols-3 gap-1.5 rounded-md border border-neutral-200 bg-white p-2">
+            {symptomsCatalog.map((symptom) => (
+              <label key={symptom.id} className="flex items-center gap-1.5 text-xs text-neutral-700">
                 <input
                   type="checkbox"
-                  className="hidden"
                   checked={symptomIds.has(symptom.id)}
                   onChange={() => toggleSymptom(symptom.id)}
                 />

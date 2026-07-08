@@ -19,6 +19,7 @@ export interface CreatePatientInput {
   address?: string;
   email?: string;
   national_id?: string;
+  mrn?: string;
   blood_type?: string;
   allergies?: string;
 }
@@ -86,6 +87,8 @@ export async function createPatient(
       address: input.address?.trim() || null,
       email: input.email?.trim() || null,
       national_id: input.national_id?.trim() || null,
+      mrn: input.mrn?.trim() || null,
+      mrn: input.mrn?.trim() || null,
       blood_type: input.blood_type || null,
       allergies: input.allergies?.trim() || null,
     })
