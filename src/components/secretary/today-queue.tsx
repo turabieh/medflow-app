@@ -288,7 +288,6 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
-  const [drawer, setDrawer] = useState<"patient"|"book"|null>(null);
 
   // Payment fields
   const [method, setMethod] = useState<"cash"|"card"|"insurance"|"other">("cash");
@@ -514,35 +513,15 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
 
       {/* Quick action buttons */}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <button onClick={() => setDrawer(drawer === "patient" ? null : "patient")}
-          className={`rounded-md border px-2.5 py-1 text-xs font-medium shadow-sm transition ${drawer === "patient" ? "border-indigo-400 bg-indigo-50 text-indigo-700" : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"}`}>
+        <a href={`/secretary/patients/${patientId}`}
+          className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
           👤 Patient Info
-        </button>
-        <button onClick={() => setDrawer(drawer === "book" ? null : "book")}
-          className={`rounded-md border px-2.5 py-1 text-xs font-medium shadow-sm transition ${drawer === "book" ? "border-indigo-400 bg-indigo-50 text-indigo-700" : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"}`}>
+        </a>
+        <a href={`/secretary/appointments/new?patientId=${patientId}`}
+          className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
           📅 Book Appointment
-        </button>
+        </a>
       </div>
-
-      {/* Inline drawer */}
-      {drawer && (
-        <div className="mt-2 rounded-lg border border-neutral-200 bg-white shadow-md overflow-hidden">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-2 bg-neutral-50">
-            <span className="text-xs font-semibold text-neutral-700">
-              {drawer === "patient" ? "👤 Patient Information" : "📅 Book Appointment"}
-            </span>
-            <button onClick={() => setDrawer(null)} className="text-neutral-400 hover:text-neutral-600 text-xs">✕ Close</button>
-          </div>
-          <iframe
-            src={drawer === "patient"
-              ? `/secretary/patients/${patientId}?embed=1`
-              : `/secretary/appointments/new?patientId=${patientId}&embed=1`}
-            className="w-full border-0"
-            style={{ height: "500px" }}
-            title={drawer === "patient" ? "Patient Info" : "Book Appointment"}
-          />
-        </div>
-      )}
 
       {/* Finalize with confirmation */}
       <div className="mt-3 flex justify-end">
