@@ -513,11 +513,11 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
 
       {/* Quick action buttons */}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        <a href={`/secretary/patients/${patientId}`} target="_blank" rel="noreferrer"
+        <a href={`/secretary/patients/${patientId}`}
           className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
           👤 Patient Info
         </a>
-        <a href={`/secretary/appointments/new?patientId=${patientId}`} target="_blank" rel="noreferrer"
+        <a href={`/secretary/appointments/new?patientId=${patientId}`}
           className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
           📅 Book Appointment
         </a>
