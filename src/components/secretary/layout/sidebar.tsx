@@ -12,6 +12,7 @@ const BASE_NAV = [
   { href: "/secretary/schedule",         label: "Schedule",        icon: "🗓" },
   { href: "/secretary/technician-schedule", label: "Tech Schedule",    icon: "🔬" },
   { href: "/secretary/reports",          label: "Reports & Print", icon: "🖨" },
+  { href: "/secretary/unfinalized",       label: "Unfinalized",     icon: "⚠️" },
   { href: "/secretary/insurance-claims", label: "Insurance Claims",icon: "🏦" },
   { href: "/secretary/settings/schedules", label: "Settings",      icon: "⚙" },
 ];
