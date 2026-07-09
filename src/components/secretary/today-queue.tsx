@@ -287,6 +287,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   const [paymentDone, setPaymentDone] = useState(item.payment_confirmed ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmFinalize, setConfirmFinalize] = useState(false);
 
   // Payment fields
   const [method, setMethod] = useState<"cash"|"card"|"insurance"|"other">("cash");
@@ -510,11 +511,38 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
         <PrintButtons appointmentId={item.id} patientId={patientId} item={item} currency={currency} />
       )}
 
-      <div className="flex justify-end mt-2">
-        <button onClick={handleFinalize} disabled={loading}
-          className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm">
-          {loading ? "Saving..." : "✓ Finalize Visit"}
-        </button>
+      {/* Quick action buttons */}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <a href={`/secretary/patients/${patientId}`} target="_blank" rel="noreferrer"
+          className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
+          👤 Patient Info
+        </a>
+        <a href={`/secretary/appointments/new?patientId=${patientId}`} target="_blank" rel="noreferrer"
+          className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
+          📅 Book Appointment
+        </a>
+      </div>
+
+      {/* Finalize with confirmation */}
+      <div className="mt-3 flex justify-end">
+        {!confirmFinalize ? (
+          <button onClick={() => setConfirmFinalize(true)} disabled={loading}
+            className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm">
+            ✓ Finalize Visit
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2">
+            <span className="text-xs font-medium text-emerald-800">Finalize this visit?</span>
+            <button onClick={async () => { setConfirmFinalize(false); await handleFinalize(); }} disabled={loading}
+              className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+              {loading ? "..." : "Yes, finalize"}
+            </button>
+            <button onClick={() => setConfirmFinalize(false)}
+              className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
