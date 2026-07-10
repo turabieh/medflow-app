@@ -19,7 +19,7 @@ export default async function InpatientDetailPage({
     .select(`
       id, admission_date, location, status, discharge_date, discharge_notes,
       hospital_patient_id, diagnosis_summary, fee_per_visit,
-      patients(id, full_name, full_name_ar, dob, gender, blood_type, allergies, phone),
+      patients(id, full_name, full_name_ar, dob, gender, blood_type, allergies, phone, mrn),
       hospitals(id, name, primary_phone, portal_link)
     `)
     .eq("id", id)
@@ -127,6 +127,14 @@ export default async function InpatientDetailPage({
           <div>
             <p className="text-xs text-neutral-500">MRN / Hospital ID</p>
             <p className="font-mono font-medium text-neutral-900">{admission.hospital_patient_id || "—"}</p>
+          </div>
+          {(admission.patients as any)?.mrn && (
+            <div>
+              <p className="text-xs text-neutral-500">Clinic MRN</p>
+              <p className="font-mono font-semibold text-indigo-700">{(admission.patients as any).mrn}</p>
+            </div>
+          )}
+          <div style={{display:"none"}}>
           </div>
           <div>
             <p className="text-xs text-neutral-500">Location</p>
