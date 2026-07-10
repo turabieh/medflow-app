@@ -210,11 +210,15 @@ export default async function DoctorDashboardPage({
           <p className="mt-2 text-sm font-bold text-teal-800">🏨 Inpatient Done</p>
           <p className="text-xs text-teal-600 mt-0.5">visited today</p>
         </div>
-        {/* Today total — light neutral bg, dark text */}
+        {/* Today total — outpatient + inpatient */}
         <div className="rounded-2xl bg-neutral-100 border-2 border-neutral-300 p-5 shadow-sm">
-          <p className="text-5xl font-black text-neutral-800">{Object.values(todayCounts).reduce((s,v) => s+v, 0)}</p>
+          <p className="text-5xl font-black text-neutral-800">{Object.values(todayCounts).reduce((s,v) => s+v, 0) + inpatientDoneToday}</p>
           <p className="mt-2 text-sm font-bold text-neutral-700">📋 Today total</p>
-          <p className="text-xs text-neutral-500 mt-0.5">all statuses</p>
+          <div className="mt-1 flex gap-2">
+            <span className="text-[11px] text-orange-600 font-semibold">Out: {Object.values(todayCounts).reduce((s,v) => s+v, 0)}</span>
+            <span className="text-[11px] text-neutral-400">·</span>
+            <span className="text-[11px] text-teal-600 font-semibold">In: {inpatientDoneToday}</span>
+          </div>
         </div>
         {/* Inpatients — light blue bg, dark blue text */}
         <div className="rounded-2xl bg-blue-50 border-2 border-blue-200 p-5 shadow-sm">
