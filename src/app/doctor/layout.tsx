@@ -28,34 +28,40 @@ export default async function DoctorLayout({ children }: { children: React.React
     .in("status", ["booked", "confirmed", "arrived", "with_doctor", "done", "finalized"])
     .order("start_time", { ascending: true });
 
-  // Inpatients — appointments without a specific date (or marked as inpatient)
-  // For now: booked appointments where appt_date is past (still active)
-  const { data: inpatientAppts } = await supabase
-    .from("appointments")
-    .select("id, start_time, status, visit_type, patient_id, appt_date")
+  // Active inpatients from inpatients table (created via inpatient portal)
+  const { data: activeInpatients } = await supabase
+    .from("inpatients")
+    .select("id, admission_date, hospital_patient_id, patient_id, patients(id, full_name)")
     .eq("doctor_id", profile.id)
-    .eq("visit_type", "inpatient")
-    .in("status", ["arrived", "with_doctor", "done"])
-    .order("appt_date", { ascending: false })
-    .limit(10);
+    .eq("clinic_id", profile.clinic_id)
+    .eq("status", "active")
+    .order("admission_date", { ascending: false })
+    .limit(20);
 
-  const allPatientIds = [
-    ...(todayAppts ?? []).map((a) => a.patient_id),
-    ...(inpatientAppts ?? []).map((a) => a.patient_id),
-  ];
-  const { data: patients } = allPatientIds.length
-    ? await supabase.from("patients").select("id, full_name").in("id", [...new Set(allPatientIds)])
+  // Today's visits for inpatients
+  const inpatientIds = (activeInpatients ?? []).map(i => i.id);
+  const { data: todayInpatientVisits } = inpatientIds.length
+    ? await supabase.from("visits")
+        .select("id, inpatient_id")
+        .in("inpatient_id", inpatientIds)
+        .eq("visit_date", todayStr)
+        .eq("visit_context", "inpatient")
     : { data: [] };
-  const patientsById = new Map((patients ?? []).map((p) => [p.id, p.full_name]));
+  const todayVisitByInpatient = new Map((todayInpatientVisits ?? []).map(v => [v.inpatient_id, v.id]));
 
-  const allApptIds = [
-    ...(todayAppts ?? []).map((a) => a.id),
-    ...(inpatientAppts ?? []).map((a) => a.id),
-  ];
-  const { data: visits } = allApptIds.length
-    ? await supabase.from("visits").select("id, appointment_id").in("appointment_id", allApptIds)
+  // Outpatient visit IDs (for sidebar links)
+  const { data: outpatientVisits } = (todayAppts ?? []).length
+    ? await supabase.from("visits").select("id, appointment_id")
+        .in("appointment_id", (todayAppts ?? []).map(a => a.id))
     : { data: [] };
-  const visitByAppt = new Map((visits ?? []).map((v) => [v.appointment_id, v.id]));
+  const visitByAppt = new Map((outpatientVisits ?? []).map(v => [v.appointment_id, v.id]));
+
+  // Patient names for outpatients
+  const outPatientIds = (todayAppts ?? []).map(a => a.patient_id);
+  const { data: outPatients } = outPatientIds.length
+    ? await supabase.from("patients").select("id, full_name").in("id", outPatientIds)
+    : { data: [] };
+  const patientsById = new Map((outPatients ?? []).map(p => [p.id, p.full_name]));
 
   const sidebarPatients = (todayAppts ?? []).map((a) => ({
     appointmentId: a.id,
@@ -66,14 +72,20 @@ export default async function DoctorLayout({ children }: { children: React.React
     visitType: a.visit_type,
   }));
 
-  const sidebarInpatients = (inpatientAppts ?? []).map((a) => ({
-    appointmentId: a.id,
-    visitId: visitByAppt.get(a.id) ?? null,
-    patientName: patientsById.get(a.patient_id) ?? "Unknown",
-    startTime: a.start_time,
-    status: a.status,
-    visitType: a.visit_type,
-  }));
+  const sidebarInpatients = (activeInpatients ?? []).map(ip => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pt = Array.isArray(ip.patients) ? ip.patients[0] : ip.patients as any;
+    return {
+      inpatientId: ip.id,
+      appointmentId: ip.id,
+      visitId: todayVisitByInpatient.get(ip.id) ?? null,
+      patientName: pt?.full_name ?? "Unknown",
+      startTime: ip.admission_date,
+      status: "active",
+      visitType: "inpatient",
+      hospitalMrn: ip.hospital_patient_id,
+    };
+  });
 
   return (
     <div className="flex min-h-screen bg-neutral-50">

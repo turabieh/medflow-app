@@ -17,9 +17,13 @@ interface OutpatientEntry {
 
 interface InpatientEntry {
   inpatientId: string;
+  appointmentId?: string;
   patientName: string;
-  location: string;
-  hospitalName: string;
+  location?: string;
+  hospitalName?: string;
+  hospitalMrn?: string;
+  visitId?: string | null;
+  status?: string;
 }
 
 const STATUS_DOT: Record<string, string> = {
@@ -185,7 +189,7 @@ export function DoctorSidebarNav({
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-medium">{ip.patientName}</p>
           <p className={`text-[10px] truncate ${isActive ? "text-blue-200" : "text-neutral-400"}`}>
-            {ip.location}
+            {ip.hospitalMrn ? `MRN: ${ip.hospitalMrn}` : ip.location ?? "Inpatient"}
           </p>
         </div>
       </Link>
