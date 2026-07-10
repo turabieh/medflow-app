@@ -56,7 +56,7 @@ export async function admitInpatient(input: {
         last_name_ar:   input.patientLastNameAr?.trim() || null,
         dob:            input.patientDob || null,
         gender:       input.patientGender || null,
-        phone:        input.patientPhone.trim(),
+        phone:        input.patientPhone?.trim() || "00962",
         blood_type:   input.patientBloodType || null,
         allergies:    input.patientAllergies?.trim() || null,
       }).select("id").single();
