@@ -15,6 +15,7 @@ interface MedCatalog { id: string; name: string; default_dose: string | null; de
 interface Diagnosis { id: string; icd_code: string | null; description: string; is_primary: boolean; }
 
 interface VisitTabsProps {
+  clinicType?: string;
   visitId: string;
   appointmentId: string;
   clinicId: string;
@@ -79,6 +80,7 @@ const TABS = [
 ];
 
 export function VisitTabs(props: VisitTabsProps) {
+  const clinicType = props.clinicType ?? "general";
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("patient");
   const [markingDone, setMarkingDone] = useState(false);
@@ -132,6 +134,14 @@ export function VisitTabs(props: VisitTabsProps) {
           </div>
         )}
       </div>
+
+      {/* Dental clinic banner */}
+      {clinicType === "dental" && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-sky-50 border border-sky-200 px-3 py-2">
+          <span className="text-sm">🦷</span>
+          <span className="text-xs font-semibold text-sky-700">Dental Clinic — current template</span>
+        </div>
+      )}
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto">

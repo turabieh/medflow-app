@@ -67,6 +67,11 @@ export default async function VisitPage({
   const { data: profile } = await supabase
     .from("users").select("id, clinic_id").eq("id", user.id).single();
   const clinicTier = await getClinicTier(profile?.clinic_id ?? "");
+
+  // Fetch clinic type (general, dental, etc.)
+  const { data: clinicData } = await supabase
+    .from("clinics").select("clinic_type").eq("id", profile?.clinic_id ?? "").single();
+  const clinicType = clinicData?.clinic_type ?? "general";
   const hasAI = hasFeature(clinicTier, "ai_diagnosis");
 
   const { data: symptomsCatalog } = await supabase
@@ -204,6 +209,7 @@ export default async function VisitPage({
           visitId={visit.id}
           appointmentId={visit.appointment_id}
           clinicId={profile?.clinic_id ?? ""}
+          clinicType={clinicType}
           doctorId={profile?.id ?? ""}
           patient={{
             id: patient?.id ?? "",
