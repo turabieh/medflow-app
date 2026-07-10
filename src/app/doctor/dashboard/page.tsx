@@ -81,6 +81,16 @@ export default async function DoctorDashboardPage({
     .in("status", ["finalized", "done"])
     .order("appt_date", { ascending: false });
 
+  // Inpatient visits done today
+  const { data: inpatientVisitsToday } = await supabase
+    .from("visits")
+    .select("id, status")
+    .eq("doctor_id", doctorId)
+    .eq("visit_context", "inpatient")
+    .eq("visit_date", todayStr)
+    .in("status", ["done", "finalized"]);
+  const inpatientDoneToday = (inpatientVisitsToday ?? []).length;
+
   // ── Compute stats
   const totalOutpatients = (periodAppts ?? []).length;
   const totalInpatients  = (allInpatients ?? []).length;
@@ -173,7 +183,7 @@ export default async function DoctorDashboardPage({
       </div>
 
       {/* Today's quick stats */}
-      <div className="mb-6 grid grid-cols-5 gap-4">
+      <div className="mb-6 grid grid-cols-6 gap-4">
         {/* Waiting — light green bg, dark green text */}
         <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-200 p-5 shadow-sm">
           <p className="text-5xl font-black text-emerald-700">{todayCounts.arrived ?? 0}</p>
@@ -186,11 +196,17 @@ export default async function DoctorDashboardPage({
           <p className="mt-2 text-sm font-bold text-indigo-800">🩺 With you</p>
           <p className="text-xs text-indigo-600 mt-0.5">in consultation</p>
         </div>
-        {/* Done — light orange bg, dark orange text */}
+        {/* Outpatient Done */}
         <div className="rounded-2xl bg-orange-50 border-2 border-orange-200 p-5 shadow-sm">
           <p className="text-5xl font-black text-orange-600">{todayCounts.done ?? 0}</p>
-          <p className="mt-2 text-sm font-bold text-orange-800">✓ Done</p>
-          <p className="text-xs text-orange-600 mt-0.5">completed today</p>
+          <p className="mt-2 text-sm font-bold text-orange-800">✓ Out-done</p>
+          <p className="text-xs text-orange-600 mt-0.5">outpatient today</p>
+        </div>
+        {/* Inpatient Done */}
+        <div className="rounded-2xl bg-teal-50 border-2 border-teal-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-teal-700">{inpatientDoneToday}</p>
+          <p className="mt-2 text-sm font-bold text-teal-800">🏨 In-done</p>
+          <p className="text-xs text-teal-600 mt-0.5">inpatient today</p>
         </div>
         {/* Today total — light neutral bg, dark text */}
         <div className="rounded-2xl bg-neutral-100 border-2 border-neutral-300 p-5 shadow-sm">
