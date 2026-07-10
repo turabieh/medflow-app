@@ -173,19 +173,32 @@ export default async function DoctorDashboardPage({
       </div>
 
       {/* Today's quick stats */}
-      <div className="mb-5 grid grid-cols-5 gap-3">
-        {[
-          { label: "Waiting",  value: todayCounts.arrived ?? 0,     color: "text-emerald-700" },
-          { label: "With you", value: todayCounts.with_doctor ?? 0, color: "text-indigo-700" },
-          { label: "Done",     value: todayCounts.done ?? 0,        color: "text-orange-700" },
-          { label: "Today total", value: Object.values(todayCounts).reduce((s,v) => s+v, 0), color: "text-neutral-800" },
-          { label: "Active inpatients", value: activeCount, color: "text-blue-700" },
-        ].map(s => (
-          <div key={s.label} className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm text-center">
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] text-neutral-500">{s.label}</p>
-          </div>
-        ))}
+      <div className="mb-6 grid grid-cols-5 gap-4">
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-5 shadow-lg text-white">
+          <p className="text-4xl font-extrabold">{todayCounts.arrived ?? 0}</p>
+          <p className="mt-1 text-sm font-semibold opacity-90">⏳ Waiting</p>
+          <p className="text-xs opacity-70 mt-0.5">in reception</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-indigo-400 to-indigo-600 p-5 shadow-lg text-white">
+          <p className="text-4xl font-extrabold">{todayCounts.with_doctor ?? 0}</p>
+          <p className="mt-1 text-sm font-semibold opacity-90">🩺 With you</p>
+          <p className="text-xs opacity-70 mt-0.5">in consultation</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 p-5 shadow-lg text-white">
+          <p className="text-4xl font-extrabold">{todayCounts.done ?? 0}</p>
+          <p className="mt-1 text-sm font-semibold opacity-90">✓ Done</p>
+          <p className="text-xs opacity-70 mt-0.5">completed today</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-neutral-700 to-neutral-900 p-5 shadow-lg text-white">
+          <p className="text-4xl font-extrabold">{Object.values(todayCounts).reduce((s,v) => s+v, 0)}</p>
+          <p className="mt-1 text-sm font-semibold opacity-90">📋 Today total</p>
+          <p className="text-xs opacity-70 mt-0.5">all statuses</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 p-5 shadow-lg text-white">
+          <p className="text-4xl font-extrabold">{activeCount}</p>
+          <p className="mt-1 text-sm font-semibold opacity-90">🏨 Inpatients</p>
+          <p className="text-xs opacity-70 mt-0.5">currently active</p>
+        </div>
       </div>
 
       {/* Tabs */}
