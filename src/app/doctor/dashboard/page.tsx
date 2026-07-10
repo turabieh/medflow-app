@@ -101,6 +101,16 @@ export default async function DoctorDashboardPage({
     .in("status", ["done", "finalized"]);
   const inpatientDoneToday = (inpatientVisitsToday ?? []).length;
 
+  // Inpatient visits done today
+  const { data: inpatientVisitsToday } = await supabase
+    .from("visits")
+    .select("id, status")
+    .eq("doctor_id", doctorId)
+    .eq("visit_context", "inpatient")
+    .eq("visit_date", todayStr)
+    .in("status", ["done", "finalized"]);
+  const inpatientDoneToday = (inpatientVisitsToday ?? []).length;
+
   // ── Compute stats
   const totalOutpatients = (periodAppts ?? []).length;
   const totalInpatients  = (allInpatients ?? []).length;
