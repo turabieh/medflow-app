@@ -42,17 +42,22 @@ export default async function AdminDashboardPage() {
     <div>
       <h1 className="mb-6 text-lg font-medium text-neutral-900">Admin Dashboard</h1>
 
-      <div className="mb-6 grid grid-cols-3 gap-3">
-        {[
-          { label: "Total patients", value: patientCount ?? 0, color: "text-blue-700" },
-          { label: "Pending requests", value: pendingCount ?? 0, color: "text-amber-700" },
-          { label: "Today's appointments", value: todayCount ?? 0, color: "text-emerald-700" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-            <p className={`text-2xl font-semibold ${stat.color}`}>{stat.value}</p>
-            <p className="text-xs text-neutral-500">{stat.label}</p>
-          </div>
-        ))}
+      <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="rounded-2xl bg-blue-50 border-2 border-blue-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-blue-700">{patientCount ?? 0}</p>
+          <p className="mt-2 text-sm font-bold text-blue-800">👤 Total patients</p>
+          <p className="text-xs text-blue-500 mt-0.5">registered in clinic</p>
+        </div>
+        <div className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-amber-700">{pendingCount ?? 0}</p>
+          <p className="mt-2 text-sm font-bold text-amber-800">⏳ Pending requests</p>
+          <p className="text-xs text-amber-500 mt-0.5">awaiting confirmation</p>
+        </div>
+        <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-emerald-700">{todayCount ?? 0}</p>
+          <p className="mt-2 text-sm font-bold text-emerald-800">📅 Today&apos;s appointments</p>
+          <p className="text-xs text-emerald-500 mt-0.5">scheduled for today</p>
+        </div>
       </div>
 
       <div className="mb-6">
