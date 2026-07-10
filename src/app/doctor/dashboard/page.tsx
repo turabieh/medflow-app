@@ -139,12 +139,12 @@ export default async function DoctorDashboardPage({
     return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000));
   }
 
-  function StatCard({ label, value, sub, color = "text-neutral-800" }: { label: string; value: string | number; sub?: string; color?: string }) {
+  function StatCard({ label, value, sub, color = "text-neutral-800", bg = "bg-neutral-50", border = "border-neutral-200" }: { label: string; value: string | number; sub?: string; color?: string; bg?: string; border?: string }) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-        <p className={`text-2xl font-bold ${color}`}>{value}</p>
-        <p className="text-xs font-medium text-neutral-700 mt-0.5">{label}</p>
-        {sub && <p className="text-[10px] text-neutral-400 mt-0.5">{sub}</p>}
+      <div className={`rounded-2xl border-2 ${border} ${bg} p-5 shadow-sm`}>
+        <p className={`text-4xl font-black ${color}`}>{value}</p>
+        <p className="text-sm font-bold text-neutral-700 mt-2">{label}</p>
+        {sub && <p className="text-xs text-neutral-400 mt-0.5">{sub}</p>}
       </div>
     );
   }
@@ -228,10 +228,10 @@ export default async function DoctorDashboardPage({
 
           {/* Period stats grid */}
           <div className="grid grid-cols-4 gap-3">
-            <StatCard label="Outpatient visits"  value={totalOutpatients}  sub={PERIOD_LABELS[period]} color="text-neutral-800" />
-            <StatCard label="Unique outpatients" value={uniqueOutPatients.size} sub={PERIOD_LABELS[period]} />
-            <StatCard label="Inpatient admissions" value={totalInpatients} sub={PERIOD_LABELS[period]} color="text-blue-700" />
-            <StatCard label="Discharged" value={dischargedCount} sub={PERIOD_LABELS[period]} color="text-neutral-500" />
+            <StatCard label="Outpatient visits"  value={totalOutpatients}  sub={PERIOD_LABELS[period]} color="text-indigo-700" bg="bg-indigo-50" border="border-indigo-200" />
+            <StatCard label="Unique outpatients" value={uniqueOutPatients.size} sub={PERIOD_LABELS[period]} color="text-violet-700" bg="bg-violet-50" border="border-violet-200" />
+            <StatCard label="Inpatient admissions" value={totalInpatients} sub={PERIOD_LABELS[period]} color="text-blue-700" bg="bg-blue-50" border="border-blue-200" />
+            <StatCard label="Discharged" value={dischargedCount} sub={PERIOD_LABELS[period]} color="text-emerald-700" bg="bg-emerald-50" border="border-emerald-200" />
           </div>
 
           {/* Gender breakdown */}
@@ -461,9 +461,9 @@ export default async function DoctorDashboardPage({
 
           {/* Period inpatient stats */}
           <div className="grid grid-cols-3 gap-3">
-            <StatCard label="Total admissions" value={totalInpatients} sub={PERIOD_LABELS[period]} color="text-blue-700" />
-            <StatCard label="Currently active" value={activeCount} color="text-green-700" />
-            <StatCard label="Discharged" value={dischargedCount} sub={PERIOD_LABELS[period]} color="text-neutral-600" />
+            <StatCard label="Total admissions" value={totalInpatients} sub={PERIOD_LABELS[period]} color="text-blue-700" bg="bg-blue-50" border="border-blue-200" />
+            <StatCard label="Currently active" value={activeCount} color="text-emerald-700" bg="bg-emerald-50" border="border-emerald-200" />
+            <StatCard label="Discharged" value={dischargedCount} sub={PERIOD_LABELS[period]} color="text-neutral-600" bg="bg-neutral-100" border="border-neutral-300" />
           </div>
 
           {/* Gender */}
