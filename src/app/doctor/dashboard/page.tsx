@@ -209,14 +209,14 @@ export default async function DoctorDashboardPage({
         {/* Outpatient Done */}
         <div className="rounded-2xl bg-orange-50 border-2 border-orange-200 p-5 shadow-sm">
           <p className="text-5xl font-black text-orange-600">{todayCounts.done ?? 0}</p>
-          <p className="mt-2 text-sm font-bold text-orange-800">✓ Out-done</p>
-          <p className="text-xs text-orange-600 mt-0.5">outpatient today</p>
+          <p className="mt-2 text-sm font-bold text-orange-800">✓ Outpatient Done</p>
+          <p className="text-xs text-orange-600 mt-0.5">completed today</p>
         </div>
         {/* Inpatient Done */}
         <div className="rounded-2xl bg-teal-50 border-2 border-teal-200 p-5 shadow-sm">
           <p className="text-5xl font-black text-teal-700">{inpatientDoneToday}</p>
-          <p className="mt-2 text-sm font-bold text-teal-800">🏨 In-done</p>
-          <p className="text-xs text-teal-600 mt-0.5">inpatient today</p>
+          <p className="mt-2 text-sm font-bold text-teal-800">🏨 Inpatient Done</p>
+          <p className="text-xs text-teal-600 mt-0.5">visited today</p>
         </div>
         {/* Today total — light neutral bg, dark text */}
         <div className="rounded-2xl bg-neutral-100 border-2 border-neutral-300 p-5 shadow-sm">
