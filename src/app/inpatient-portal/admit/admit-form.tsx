@@ -25,6 +25,7 @@ export function PortalAdmitForm({
   const [firstName,   setFirstName]   = useState("");
   const [middleName,  setMiddleName]  = useState("");
   const [lastName,    setLastName]    = useState("");
+  const [phone,       setPhone]       = useState("");
 
   // Admission fields
   const [hospitalId, setHospitalId] = useState(hospitals[0]?.id ?? "");
@@ -45,6 +46,7 @@ export function PortalAdmitForm({
 
   async function handleAdmit() {
     if (isNewPatient && !firstName.trim()) { setError("Please enter the patient's first name."); return; }
+    if (isNewPatient && !phone.trim())       { setError("Please enter the patient's phone number."); return; }
     if (!isNewPatient && !selectedPatient)  { setError("Please search and select a patient."); return; }
     if (!hospitalId)                        { setError("Please select a hospital."); return; }
     if (!mrn.trim())                        { setError("Please enter the hospital MRN."); return; }
@@ -66,6 +68,7 @@ export function PortalAdmitForm({
             first_name:  firstName.trim(),
             middle_name: middleName.trim() || null,
             last_name:   lastName.trim()   || null,
+            phone:       phone.trim(),
           })
           .select("id")
           .single();
@@ -212,6 +215,12 @@ export function PortalAdmitForm({
               Full name: {[firstName, middleName, lastName].filter(Boolean).join(" ")}
             </p>
           )}
+          <div style={{ marginTop:"10px" }}>
+            <label style={{ ...labelStyle, fontSize:"10px" }}>Phone Number *</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)}
+              placeholder="+962 7x xxx xxxx" type="tel"
+              style={{ ...inputStyle, padding:"10px 12px", fontSize:"14px" }} />
+          </div>
         </div>
       )}
 
@@ -261,7 +270,7 @@ export function PortalAdmitForm({
       <button
         type="button"
         onClick={handleAdmit}
-        disabled={saving || (!selectedPatient && !firstName.trim()) || !mrn.trim()}
+        disabled={saving || (!selectedPatient && (!firstName.trim() || !phone.trim())) || !mrn.trim()}
         style={{
           background: "#3b82f6",
           color: "#fff",
@@ -273,7 +282,7 @@ export function PortalAdmitForm({
           cursor: "pointer",
           fontFamily: "inherit",
           marginTop: "4px",
-          opacity: (saving || (!selectedPatient && !firstName.trim()) || !mrn.trim()) ? 0.5 : 1,
+          opacity: (saving || (!selectedPatient && (!firstName.trim() || !phone.trim())) || !mrn.trim()) ? 0.5 : 1,
         }}>
         {saving ? "Admitting..." : "✓ Admit Patient"}
       </button>
