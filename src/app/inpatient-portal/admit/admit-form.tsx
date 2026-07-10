@@ -25,7 +25,7 @@ export function PortalAdmitForm({
   const [firstName,   setFirstName]   = useState("");
   const [middleName,  setMiddleName]  = useState("");
   const [lastName,    setLastName]    = useState("");
-  const [phone,       setPhone]       = useState("");
+  const [phone,       setPhone]       = useState("00962");
 
   // Admission fields
   const [hospitalId, setHospitalId] = useState(hospitals[0]?.id ?? "");
