@@ -198,30 +198,32 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
           <span className="text-xs font-semibold text-amber-800">Generate Claims →</span>
         </a>
       )}
-      <div className="mb-6 grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-neutral-700">Today</span>
-            <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
-              {todayQueueItems.length}
-            </span>
-          </div>
+      <div className="mb-6 grid grid-cols-4 gap-4">
+        {/* Today total */}
+        <div className="rounded-2xl bg-neutral-100 border-2 border-neutral-300 p-5 shadow-sm">
+          <p className="text-5xl font-black text-neutral-800">{todayQueueItems.length}</p>
+          <p className="mt-2 text-sm font-bold text-neutral-700">📋 Today</p>
+          <p className="text-xs text-neutral-500 mt-0.5">total appointments</p>
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-neutral-700">Pending</span>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-              {pendingItems.length}
-            </span>
-          </div>
+        {/* Finalized */}
+        <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-emerald-700">
+            {todayQueueItems.filter(i => i.status === "finalized").length}
+          </p>
+          <p className="mt-2 text-sm font-bold text-emerald-800">✓ Finalized</p>
+          <p className="text-xs text-emerald-600 mt-0.5">completed &amp; done</p>
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-neutral-700">Call today</span>
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-              {callTodayAppointments.length}
-            </span>
-          </div>
+        {/* Pending */}
+        <div className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-amber-700">{pendingItems.length}</p>
+          <p className="mt-2 text-sm font-bold text-amber-800">⏳ Pending</p>
+          <p className="text-xs text-amber-600 mt-0.5">awaiting confirmation</p>
+        </div>
+        {/* Call today */}
+        <div className="rounded-2xl bg-blue-50 border-2 border-blue-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-blue-700">{callTodayAppointments.length}</p>
+          <p className="mt-2 text-sm font-bold text-blue-800">📞 Call today</p>
+          <p className="text-xs text-blue-600 mt-0.5">confirm tomorrow</p>
         </div>
       </div>
 
