@@ -174,30 +174,35 @@ export default async function DoctorDashboardPage({
 
       {/* Today's quick stats */}
       <div className="mb-6 grid grid-cols-5 gap-4">
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 p-5 shadow-lg text-white">
-          <p className="text-4xl font-extrabold">{todayCounts.arrived ?? 0}</p>
-          <p className="mt-1 text-sm font-semibold opacity-90">⏳ Waiting</p>
-          <p className="text-xs opacity-70 mt-0.5">in reception</p>
+        {/* Waiting — light green bg, dark green text */}
+        <div className="rounded-2xl bg-emerald-50 border-2 border-emerald-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-emerald-700">{todayCounts.arrived ?? 0}</p>
+          <p className="mt-2 text-sm font-bold text-emerald-800">⏳ Waiting</p>
+          <p className="text-xs text-emerald-600 mt-0.5">in reception</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-400 to-indigo-600 p-5 shadow-lg text-white">
-          <p className="text-4xl font-extrabold">{todayCounts.with_doctor ?? 0}</p>
-          <p className="mt-1 text-sm font-semibold opacity-90">🩺 With you</p>
-          <p className="text-xs opacity-70 mt-0.5">in consultation</p>
+        {/* With you — light indigo bg, dark indigo text */}
+        <div className="rounded-2xl bg-indigo-50 border-2 border-indigo-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-indigo-700">{todayCounts.with_doctor ?? 0}</p>
+          <p className="mt-2 text-sm font-bold text-indigo-800">🩺 With you</p>
+          <p className="text-xs text-indigo-600 mt-0.5">in consultation</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 p-5 shadow-lg text-white">
-          <p className="text-4xl font-extrabold">{todayCounts.done ?? 0}</p>
-          <p className="mt-1 text-sm font-semibold opacity-90">✓ Done</p>
-          <p className="text-xs opacity-70 mt-0.5">completed today</p>
+        {/* Done — light orange bg, dark orange text */}
+        <div className="rounded-2xl bg-orange-50 border-2 border-orange-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-orange-600">{todayCounts.done ?? 0}</p>
+          <p className="mt-2 text-sm font-bold text-orange-800">✓ Done</p>
+          <p className="text-xs text-orange-600 mt-0.5">completed today</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-neutral-700 to-neutral-900 p-5 shadow-lg text-white">
-          <p className="text-4xl font-extrabold">{Object.values(todayCounts).reduce((s,v) => s+v, 0)}</p>
-          <p className="mt-1 text-sm font-semibold opacity-90">📋 Today total</p>
-          <p className="text-xs opacity-70 mt-0.5">all statuses</p>
+        {/* Today total — light neutral bg, dark text */}
+        <div className="rounded-2xl bg-neutral-100 border-2 border-neutral-300 p-5 shadow-sm">
+          <p className="text-5xl font-black text-neutral-800">{Object.values(todayCounts).reduce((s,v) => s+v, 0)}</p>
+          <p className="mt-2 text-sm font-bold text-neutral-700">📋 Today total</p>
+          <p className="text-xs text-neutral-500 mt-0.5">all statuses</p>
         </div>
-        <div className="rounded-2xl bg-gradient-to-br from-blue-400 to-blue-600 p-5 shadow-lg text-white">
-          <p className="text-4xl font-extrabold">{activeCount}</p>
-          <p className="mt-1 text-sm font-semibold opacity-90">🏨 Inpatients</p>
-          <p className="text-xs opacity-70 mt-0.5">currently active</p>
+        {/* Inpatients — light blue bg, dark blue text */}
+        <div className="rounded-2xl bg-blue-50 border-2 border-blue-200 p-5 shadow-sm">
+          <p className="text-5xl font-black text-blue-700">{activeCount}</p>
+          <p className="mt-2 text-sm font-bold text-blue-800">🏨 Inpatients</p>
+          <p className="text-xs text-blue-600 mt-0.5">currently active</p>
         </div>
       </div>
 
