@@ -17,67 +17,66 @@ const CONDITIONS: Record<string, {label:string;color:string;bg:string;border:str
 
 // ── Precise tooth positions as % of image (1536×1024) ────────────────────────
 // Measured from dark separator columns found via pixel analysis
-// Adult positions — pixel-measured from actual image (1536×1024)
-// Upper teeth: y=95-298px, Lower teeth: y=404-575px
+// Positions in VISIBLE BAND coordinates (0-100%)
+// Adult band: image y=88 to y=638 (550px)
 const ADULT_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}> = {
-  18:{x:1.56, y:9.28, w:5.66, h:19.82, row:"upper"},
-  17:{x:8.53, y:9.28, w:5.47, h:19.82, row:"upper"},
-  16:{x:15.36,y:9.28, w:5.66, h:19.82, row:"upper"},
-  15:{x:22.40,y:9.28, w:4.10, h:19.82, row:"upper"},
-  14:{x:28.19,y:9.28, w:4.17, h:19.82, row:"upper"},
-  13:{x:33.72,y:9.28, w:4.23, h:19.82, row:"upper"},
-  12:{x:38.93,y:9.28, w:4.04, h:19.82, row:"upper"},
-  11:{x:44.01,y:9.28, w:5.47, h:19.82, row:"upper"},
-  21:{x:50.52,y:9.28, w:5.47, h:19.82, row:"upper"},
-  22:{x:57.03,y:9.28, w:3.97, h:19.82, row:"upper"},
-  23:{x:61.98,y:9.28, w:4.30, h:19.82, row:"upper"},
-  24:{x:67.64,y:9.28, w:4.17, h:19.82, row:"upper"},
-  25:{x:73.44,y:9.28, w:4.04, h:19.82, row:"upper"},
-  26:{x:78.52,y:9.28, w:5.40, h:19.82, row:"upper"},
-  27:{x:85.29,y:9.28, w:5.40, h:19.82, row:"upper"},
-  28:{x:91.93,y:9.28, w:5.34, h:19.82, row:"upper"},
-  48:{x:1.63, y:39.45, w:6.12, h:16.70, row:"lower"},
-  47:{x:8.40, y:39.45, w:6.58, h:16.70, row:"lower"},
-  46:{x:15.49,y:39.45, w:6.58, h:16.70, row:"lower"},
-  45:{x:22.85,y:39.45, w:4.43, h:16.70, row:"lower"},
-  44:{x:28.45,y:39.45, w:4.10, h:16.70, row:"lower"},
-  43:{x:33.85,y:39.45, w:3.97, h:16.70, row:"lower"},
-  42:{x:39.13,y:39.45, w:4.04, h:16.70, row:"lower"},
-  41:{x:45.18,y:39.45, w:3.71, h:16.70, row:"lower"},
-  31:{x:51.37,y:39.45, w:3.71, h:16.70, row:"lower"},
-  32:{x:57.16,y:39.45, w:3.52, h:16.70, row:"lower"},
-  33:{x:62.50,y:39.45, w:3.97, h:16.70, row:"lower"},
-  34:{x:67.71,y:39.45, w:4.10, h:16.70, row:"lower"},
-  35:{x:72.92,y:39.45, w:4.30, h:16.70, row:"lower"},
-  36:{x:78.06,y:39.45, w:6.32, h:16.70, row:"lower"},
-  37:{x:84.90,y:39.45, w:6.45, h:16.70, row:"lower"},
-  38:{x:91.99,y:39.45, w:5.99, h:16.70, row:"lower"},
+  18:{x:1.56, y:4.91, w:5.60, h:30.0, row:"upper"},
+  17:{x:8.53, y:4.91, w:5.40, h:30.0, row:"upper"},
+  16:{x:15.36,y:4.91, w:5.60, h:30.0, row:"upper"},
+  15:{x:22.40,y:4.91, w:4.04, h:30.0, row:"upper"},
+  14:{x:28.19,y:4.91, w:4.10, h:30.0, row:"upper"},
+  13:{x:33.72,y:4.91, w:4.17, h:30.0, row:"upper"},
+  12:{x:38.93,y:4.91, w:3.97, h:30.0, row:"upper"},
+  11:{x:44.01,y:4.91, w:5.40, h:30.0, row:"upper"},
+  21:{x:50.52,y:4.91, w:5.40, h:30.0, row:"upper"},
+  22:{x:57.03,y:4.91, w:3.91, h:30.0, row:"upper"},
+  23:{x:61.98,y:4.91, w:4.23, h:30.0, row:"upper"},
+  24:{x:67.64,y:4.91, w:4.10, h:30.0, row:"upper"},
+  25:{x:73.44,y:4.91, w:3.97, h:30.0, row:"upper"},
+  26:{x:78.52,y:4.91, w:5.34, h:30.0, row:"upper"},
+  27:{x:85.29,y:4.91, w:5.34, h:30.0, row:"upper"},
+  28:{x:91.93,y:4.91, w:5.27, h:30.0, row:"upper"},
+  48:{x:1.63, y:60.0, w:6.05, h:27.27, row:"lower"},
+  47:{x:8.40, y:60.0, w:6.51, h:27.27, row:"lower"},
+  46:{x:15.49,y:60.0, w:6.51, h:27.27, row:"lower"},
+  45:{x:22.85,y:60.0, w:4.36, h:27.27, row:"lower"},
+  44:{x:28.45,y:60.0, w:4.04, h:27.27, row:"lower"},
+  43:{x:33.85,y:60.0, w:3.91, h:27.27, row:"lower"},
+  42:{x:39.13,y:60.0, w:3.97, h:27.27, row:"lower"},
+  41:{x:45.18,y:60.0, w:3.65, h:27.27, row:"lower"},
+  31:{x:51.37,y:60.0, w:3.65, h:27.27, row:"lower"},
+  32:{x:57.16,y:60.0, w:3.45, h:27.27, row:"lower"},
+  33:{x:62.50,y:60.0, w:3.91, h:27.27, row:"lower"},
+  34:{x:67.71,y:60.0, w:4.04, h:27.27, row:"lower"},
+  35:{x:72.92,y:60.0, w:4.23, h:27.27, row:"lower"},
+  36:{x:78.06,y:60.0, w:6.25, h:27.27, row:"lower"},
+  37:{x:84.90,y:60.0, w:6.38, h:27.27, row:"lower"},
+  38:{x:91.99,y:60.0, w:5.92, h:27.27, row:"lower"},
 };
 
 // Pedo: 10 teeth evenly spaced across image width
-// Pedo positions — pixel-measured from actual image (1536×1024)
-// Upper primary: y=101-261px, Lower primary: y=408-557px
+// Pedo band: image y=88 to y=612 (524px)
 const PEDO_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}> = {
-  55:{x:8.79, y:9.86, w:6.25, h:15.62, row:"upper"},
-  54:{x:17.84,y:9.86, w:6.18, h:15.62, row:"upper"},
-  53:{x:26.82,y:9.86, w:5.01, h:15.62, row:"upper"},
-  52:{x:35.03,y:9.86, w:4.75, h:15.62, row:"upper"},
-  51:{x:42.64,y:9.86, w:5.27, h:15.62, row:"upper"},
-  61:{x:50.78,y:9.86, w:5.53, h:15.62, row:"upper"},
-  62:{x:59.05,y:9.86, w:4.75, h:15.62, row:"upper"},
-  63:{x:66.93,y:9.86, w:5.08, h:15.62, row:"upper"},
-  64:{x:74.74,y:9.86, w:6.18, h:15.62, row:"upper"},
-  65:{x:83.72,y:9.86, w:5.92, h:15.62, row:"upper"},
-  85:{x:8.33, y:39.84, w:6.58, h:14.55, row:"lower"},
-  84:{x:17.38,y:39.84, w:6.77, h:14.55, row:"lower"},
-  83:{x:26.95,y:39.84, w:4.62, h:14.55, row:"lower"},
-  82:{x:35.03,y:39.84, w:4.36, h:14.55, row:"lower"},
-  81:{x:42.97,y:39.84, w:4.30, h:14.55, row:"lower"},
-  71:{x:51.43,y:39.84, w:4.23, h:14.55, row:"lower"},
-  72:{x:59.31,y:39.84, w:4.17, h:14.55, row:"lower"},
-  73:{x:67.12,y:39.84, w:4.69, h:14.55, row:"lower"},
-  74:{x:74.67,y:39.84, w:6.71, h:14.55, row:"lower"},
-  75:{x:83.79,y:39.84, w:6.25, h:14.55, row:"lower"},
+  55:{x:8.79, y:4.20, w:6.18, h:28.24, row:"upper"},
+  54:{x:17.84,y:4.20, w:6.12, h:28.24, row:"upper"},
+  53:{x:26.82,y:4.20, w:4.95, h:28.24, row:"upper"},
+  52:{x:35.03,y:4.20, w:4.69, h:28.24, row:"upper"},
+  51:{x:42.64,y:4.20, w:5.21, h:28.24, row:"upper"},
+  61:{x:50.78,y:4.20, w:5.47, h:28.24, row:"upper"},
+  62:{x:59.05,y:4.20, w:4.69, h:28.24, row:"upper"},
+  63:{x:66.93,y:4.20, w:5.01, h:28.24, row:"upper"},
+  64:{x:74.74,y:4.20, w:6.12, h:28.24, row:"upper"},
+  65:{x:83.72,y:4.20, w:5.86, h:28.24, row:"upper"},
+  85:{x:8.33, y:62.4, w:6.51, h:26.72, row:"lower"},
+  84:{x:17.38,y:62.4, w:6.71, h:26.72, row:"lower"},
+  83:{x:26.95,y:62.4, w:4.56, h:26.72, row:"lower"},
+  82:{x:35.03,y:62.4, w:4.30, h:26.72, row:"lower"},
+  81:{x:42.97,y:62.4, w:4.23, h:26.72, row:"lower"},
+  71:{x:51.43,y:62.4, w:4.17, h:26.72, row:"lower"},
+  72:{x:59.31,y:62.4, w:4.10, h:26.72, row:"lower"},
+  73:{x:67.12,y:62.4, w:4.62, h:26.72, row:"lower"},
+  74:{x:74.67,y:62.4, w:6.64, h:26.72, row:"lower"},
+  75:{x:83.79,y:62.4, w:6.18, h:26.72, row:"lower"},
 };
 
 const TOOTH_NAMES: Record<number, string> = {
@@ -369,11 +368,12 @@ export function DentalChartTab() {
             alt={isPedo ? "Pediatric dental chart" : "Adult dental chart"}
             style={imgStyle}
           />
+          </div>
 
-          {/* SVG overlay — transparent, sits exactly on top */}
+          {/* SVG overlay — positioned over container, uses band coords 0-100 */}
           <svg
             style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",overflow:"visible"}}
-            viewBox={isPedo ? "0 8.5938 100 51.1719" : "0 8.5938 100 53.7109"}
+            viewBox="0 0 100 100"
             preserveAspectRatio="none">
 
             {Object.entries(positions).map(([numStr, pos]) => {
@@ -460,7 +460,6 @@ export function DentalChartTab() {
               );
             })}
           </svg>
-          </div>
         </div>
 
         {/* Tooltip bar */}
