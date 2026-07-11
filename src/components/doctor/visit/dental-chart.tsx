@@ -37,22 +37,22 @@ const ADULT_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}
   26:{x:77.99,y:10.25, w:6.51, h:17.29, row:"upper"},
   27:{x:84.64,y:10.25, w:6.58, h:17.29, row:"upper"},
   28:{x:91.34,y:10.25, w:7.16, h:17.29, row:"upper"},
-  48:{x:0.78, y:39.55, w:6.97, h:12.70, row:"lower"},
-  47:{x:7.88, y:39.55, w:6.71, h:12.70, row:"lower"},
-  46:{x:14.71,y:39.55, w:6.90, h:12.70, row:"lower"},
-  45:{x:21.74,y:39.55, w:5.47, h:12.70, row:"lower"},
-  44:{x:27.34,y:39.55, w:5.60, h:12.70, row:"lower"},
-  43:{x:33.07,y:39.55, w:5.27, h:12.70, row:"lower"},
-  42:{x:38.48,y:39.55, w:4.88, h:12.70, row:"lower"},
-  41:{x:43.49,y:39.55, w:6.38, h:12.70, row:"lower"},
-  31:{x:50.00,y:39.55, w:6.38, h:12.70, row:"lower"},
-  32:{x:56.51,y:39.55, w:4.88, h:12.70, row:"lower"},
-  33:{x:61.52,y:39.55, w:5.34, h:12.70, row:"lower"},
-  34:{x:67.00,y:39.55, w:5.53, h:12.70, row:"lower"},
-  35:{x:72.66,y:39.55, w:5.21, h:12.70, row:"lower"},
-  36:{x:77.99,y:39.55, w:6.51, h:12.70, row:"lower"},
-  37:{x:84.64,y:39.55, w:6.58, h:12.70, row:"lower"},
-  38:{x:91.34,y:39.55, w:7.16, h:12.70, row:"lower"},
+  48:{x:0.78, y:39.45, w:6.97, h:16.99, row:"lower"},
+  47:{x:7.88, y:39.45, w:6.71, h:16.99, row:"lower"},
+  46:{x:14.71,y:39.45, w:6.90, h:16.99, row:"lower"},
+  45:{x:21.74,y:39.45, w:5.47, h:16.99, row:"lower"},
+  44:{x:27.34,y:39.45, w:5.60, h:16.99, row:"lower"},
+  43:{x:33.07,y:39.45, w:5.27, h:16.99, row:"lower"},
+  42:{x:38.48,y:39.45, w:4.88, h:16.99, row:"lower"},
+  41:{x:43.49,y:39.45, w:6.38, h:16.99, row:"lower"},
+  31:{x:50.00,y:39.45, w:6.38, h:16.99, row:"lower"},
+  32:{x:56.51,y:39.45, w:4.88, h:16.99, row:"lower"},
+  33:{x:61.52,y:39.45, w:5.34, h:16.99, row:"lower"},
+  34:{x:67.00,y:39.45, w:5.53, h:16.99, row:"lower"},
+  35:{x:72.66,y:39.45, w:5.21, h:16.99, row:"lower"},
+  36:{x:77.99,y:39.45, w:6.51, h:16.99, row:"lower"},
+  37:{x:84.64,y:39.45, w:6.58, h:16.99, row:"lower"},
+  38:{x:91.34,y:39.45, w:7.16, h:16.99, row:"lower"},
 };
 
 // Pedo: 10 teeth evenly spaced across image width
@@ -73,7 +73,7 @@ const PEDO_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}>
   64:{x:72.78,y:10.06, w:8.20,  h:15.53, row:"upper"},
   65:{x:80.98,y:10.06, w:19.02, h:15.53, row:"upper"},
   // Lower primary row
-  85:{x:0.0,  y:39.84, w:17.58, h:14.84, row:"lower"},
+  85:{x:0.0,  y:39.84, w:17.58, h:14.65, row:"lower"},
   84:{x:17.58,y:39.84, w:8.07,  h:14.84, row:"lower"},
   83:{x:25.65,y:39.84, w:7.55,  h:14.84, row:"lower"},
   82:{x:33.20,y:39.84, w:8.07,  h:14.84, row:"lower"},
@@ -82,7 +82,7 @@ const PEDO_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}>
   72:{x:57.49,y:39.84, w:8.14,  h:14.84, row:"lower"},
   73:{x:65.62,y:39.84, w:7.49,  h:14.84, row:"lower"},
   74:{x:73.11,y:39.84, w:7.94,  h:14.84, row:"lower"},
-  75:{x:81.05,y:39.84, w:18.95, h:14.84, row:"lower"},
+  75:{x:81.05,y:39.84, w:18.95, h:14.65, row:"lower"},
 };
 
 const TOOTH_NAMES: Record<number, string> = {
@@ -282,7 +282,7 @@ export function DentalChartTab() {
     // For pedo: top 50%
     objectFit: "cover",
     objectPosition: "top",
-    aspectRatio: isPedo ? "1536/520" : "1536/548",
+    aspectRatio: isPedo ? "1536/524" : "1536/550",
   };
 
   const counts = Object.values(teethData).reduce((a,t) => {
@@ -358,7 +358,7 @@ export function DentalChartTab() {
           {/* SVG overlay — transparent, sits exactly on top */}
           <svg
             style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",overflow:"visible"}}
-            viewBox={isPedo ? "0 8.79 100 50.78" : "0 8.59 100 53.52"}
+            viewBox={isPedo ? "0 8.5938 100 51.1719" : "0 8.5938 100 53.7109"}
             preserveAspectRatio="none">
 
             {Object.entries(positions).map(([numStr, pos]) => {
