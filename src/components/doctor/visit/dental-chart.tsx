@@ -428,25 +428,25 @@ function ToothPanel({ tooth, teethData, onSave, onClose }) {
   const needsLab = proc && (proc.includes("Crown") || proc.includes("Bridge") || proc.includes("Veneer") || proc.includes("Implant Crown"));
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "rgba(2,6,23,0.75)", backdropFilter: "blur(8px)" }}
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, display: "flex", background: "rgba(15,23,42,0.4)", backdropFilter: "blur(4px)" }}
       onClick={onClose}>
-      <div style={{ marginLeft: "auto", width: 420, background: "#0f172a", display: "flex", flexDirection: "column", overflowY: "auto", boxShadow: "-20px 0 80px rgba(0,0,0,0.7)" }}
+      <div style={{ marginLeft: "auto", width: 420, background: "#ffffff", display: "flex", flexDirection: "column", overflowY: "auto", boxShadow: "-4px 0 24px rgba(0,0,0,0.12)" }}
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{ background: `linear-gradient(135deg, ${condObj.color}cc, ${condObj.color}55)`, padding: "24px 24px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+        <div style={{ background: "#f8fafc", padding: "24px 24px 16px", borderBottom: "1px solid #e2e8f0", flexShrink: 0, borderTop: `4px solid ${condObj.color}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "rgba(255,255,255,0.7)" }}>FDI Tooth Number</p>
-              <p style={{ margin: 0, fontSize: 56, fontWeight: 900, lineHeight: 1, color: "#fff", textShadow: "0 2px 12px rgba(0,0,0,0.4)" }}>{tooth.number}</p>
-              <p style={{ margin: "6px 0 0", fontSize: 11, color: "rgba(255,255,255,0.75)" }}>{TOOTH_FULL_NAMES[tooth.number] || `Tooth ${tooth.number}`}</p>
+              <p style={{ margin: "0 0 4px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 2, color: "#94a3b8" }}>FDI Tooth Number</p>
+              <p style={{ margin: 0, fontSize: 48, fontWeight: 700, lineHeight: 1, color: "#0f172a" }}>{tooth.number}</p>
+              <p style={{ margin: "6px 0 0", fontSize: 13, color: "#64748b" }}>{TOOTH_FULL_NAMES[tooth.number] || `Tooth ${tooth.number}`}</p>
             </div>
-            <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, cursor: "pointer", color: "#fff", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
+            <button onClick={onClose} style={{ background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: "50%", width: 32, height: 32, cursor: "pointer", color: "#64748b", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>✕</button>
           </div>
           {/* Current condition */}
-          <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(0,0,0,0.3)", borderRadius: 20, padding: "5px 14px", border: "1px solid rgba(255,255,255,0.12)" }}>
+          <div style={{ marginTop: 12, display: "inline-flex", alignItems: "center", gap: 8, background: condObj.fill, borderRadius: 20, padding: "5px 14px", border: `1.5px solid ${condObj.stroke}` }}>
             <span style={{ fontSize: 14 }}>{condObj.emoji}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#fff" }}>{condObj.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: condObj.color }}>{condObj.label}</span>
           </div>
         </div>
 
@@ -457,21 +457,22 @@ function ToothPanel({ tooth, teethData, onSave, onClose }) {
           </div>
         </div>
 
-        <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 18, flex: 1 }}>
+        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 16, flex: 1 }}>
 
           {/* Condition */}
           <div>
-            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#475569", margin: "0 0 10px" }}>Set Condition</p>
+            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#64748b", margin: "0 0 10px" }}>Set Condition</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5 }}>
               {Object.entries(CONDITIONS).map(([key, val]) => (
                 <button key={key} onClick={() => setCond(key)}
                   style={{
-                    background: cond === key ? `${val.color}20` : "rgba(255,255,255,0.04)",
-                    border: `1.5px solid ${cond === key ? val.color : "rgba(255,255,255,0.08)"}`,
+                    background: cond === key ? val.fill : "#f8fafc",
+                    border: `1.5px solid ${cond === key ? val.color : "#e2e8f0"}`,
+                    borderRadius: 8,
                     borderRadius: 10, padding: "8px 10px", cursor: "pointer",
                     display: "flex", alignItems: "center", gap: 7,
-                    color: cond === key ? val.color : "#64748b",
-                    fontSize: 11, fontWeight: 700,
+                    color: cond === key ? val.color : "#374151",
+                    fontSize: 12, fontWeight: cond === key ? 600 : 400,
                     transform: cond === key ? "scale(1.02)" : "scale(1)",
                     transition: "all 0.12s",
                   }}>
@@ -483,9 +484,9 @@ function ToothPanel({ tooth, teethData, onSave, onClose }) {
 
           {/* Procedure */}
           <div>
-            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#475569", margin: "0 0 8px" }}>Today's Procedure</p>
+            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#64748b", margin: "0 0 8px" }}>Today's Procedure</p>
             <select value={proc} onChange={e => setProc(e.target.value)}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", color: "#f1f5f9", fontSize: 13, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
+              style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#ffffff", color: "#0f172a", fontSize: 13, outline: "none", cursor: "pointer", boxSizing: "border-box" }}>
               <option value="" style={{ background: "#1e293b" }}>— Select procedure —</option>
               {PROCS.map(p => <option key={p} value={p} style={{ background: "#1e293b" }}>{p}</option>)}
             </select>
@@ -495,13 +496,13 @@ function ToothPanel({ tooth, teethData, onSave, onClose }) {
                 <div>
                   <p style={{ fontSize: 9, color: "#64748b", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 1 }}>Fee (JOD)</p>
                   <input type="number" value={fee} onChange={e => setFee(e.target.value)} placeholder="0.00"
-                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", color: "#f1f5f9", fontSize: 13, outline: "none", boxSizing: "border-box" }}/>
+                    style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#ffffff", color: "#0f172a", fontSize: 13, outline: "none", boxSizing: "border-box" }}/>
                 </div>
                 {needsLab && (
                   <div>
                     <p style={{ fontSize: 9, color: "#64748b", fontWeight: 700, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 1 }}>Shade</p>
                     <input type="text" value={shade} onChange={e => setShade(e.target.value)} placeholder="A2, B1..."
-                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", color: "#f1f5f9", fontSize: 13, outline: "none", boxSizing: "border-box" }}/>
+                      style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#ffffff", color: "#0f172a", fontSize: 13, outline: "none", boxSizing: "border-box" }}/>
                   </div>
                 )}
               </div>
@@ -518,21 +519,21 @@ function ToothPanel({ tooth, teethData, onSave, onClose }) {
 
           {/* Notes */}
           <div>
-            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#475569", margin: "0 0 8px" }}>Clinical Notes</p>
+            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#64748b", margin: "0 0 8px" }}>Clinical Notes</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
               placeholder="Depth of caries, sensitivity response, probing depths, observations..."
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.06)", color: "#f1f5f9", fontSize: 13, resize: "none", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}/>
+              style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#ffffff", color: "#0f172a", fontSize: 13, resize: "none", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}/>
           </div>
 
           {/* History */}
           {t.history?.length > 0 && (
             <div>
-              <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#475569", margin: "0 0 8px" }}>Tooth History</p>
+              <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#64748b", margin: "0 0 8px" }}>Tooth History</p>
               {t.history.map((h, i) => (
-                <div key={i} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 12px", marginBottom: 5, borderLeft: `3px solid ${CONDITIONS[h.condition || "healthy"]?.color || "#475569"}` }}>
-                  <p style={{ margin: "0 0 2px", fontSize: 9, color: "#64748b", fontWeight: 700 }}>{h.date}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: "#e2e8f0", fontWeight: 600 }}>{h.proc}</p>
-                  {h.fee && <p style={{ margin: "2px 0 0", fontSize: 10, color: "#fbbf24" }}>{h.fee} JOD</p>}
+                <div key={i} style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 12px", marginBottom: 5, borderLeft: `3px solid ${CONDITIONS[h.condition || "healthy"]?.color || "#e2e8f0"}` }}>
+                  <p style={{ margin: "0 0 2px", fontSize: 11, color: "#94a3b8", fontWeight: 500 }}>{h.date}</p>
+                  <p style={{ margin: 0, fontSize: 13, color: "#0f172a", fontWeight: 500 }}>{h.proc}</p>
+                  {h.fee && <p style={{ margin: "2px 0 0", fontSize: 11, color: "#d97706" }}>{h.fee} JOD</p>}
                   {h.lab && <p style={{ margin: "2px 0 0", fontSize: 10, color: "#f97316" }}>🏭 {h.lab}</p>}
                 </div>
               ))}
@@ -541,9 +542,9 @@ function ToothPanel({ tooth, teethData, onSave, onClose }) {
         </div>
 
         {/* Save button */}
-        <div style={{ padding: 16, borderTop: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
+        <div style={{ padding: "16px 20px", borderTop: "1px solid #e2e8f0", flexShrink: 0 }}>
           <button onClick={() => onSave(tooth.number, cond, notes, proc, fee, lab, shade)}
-            style={{ width: "100%", background: "linear-gradient(135deg,#0ea5e9,#6366f1)", color: "#fff", border: "none", borderRadius: 12, padding: "14px", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 20px rgba(99,102,241,0.35)", letterSpacing: 0.5 }}>
+            style={{ width: "100%", background: "#0f172a", color: "#ffffff", border: "none", borderRadius: 8, padding: "12px", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
             💾 Save Tooth Record
           </button>
         </div>
@@ -605,15 +606,15 @@ export function DentalChartTab() {
   const totalAffected = Object.values(counts).reduce((a, b) => a + b, 0);
 
   return (
-    <div style={{ background: "#020617", minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif", color: "#f1f5f9", display: "flex", flexDirection: "column", userSelect: "none" }}>
+    <div style={{ background: "#f8fafc", minHeight: "100vh", fontFamily: "system-ui,sans-serif", color: "#0f172a", display: "flex", flexDirection: "column", userSelect: "none" }}>
 
       {/* Header */}
-      <div style={{ padding: "14px 24px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "rgba(255,255,255,0.02)" }}>
+      <div style={{ padding: "14px 24px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, background: "#ffffff" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, background: "linear-gradient(135deg,#38bdf8,#818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: "#0f172a" }}>
             🦷 Clinical Dental Chart
           </h1>
-          <p style={{ margin: "2px 0 0", fontSize: 11, color: "#334155" }}>FDI two-digit notation · Click any tooth to record</p>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>FDI two-digit notation · Click any tooth to record</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ display: "flex", gap: 3, background: "rgba(255,255,255,0.05)", borderRadius: 10, padding: 3, border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -628,14 +629,15 @@ export function DentalChartTab() {
       </div>
 
       {/* Legend */}
-      <div style={{ padding: "10px 24px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
-        <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#334155", marginRight: 4 }}>Status:</span>
+      <div style={{ padding: "10px 24px", borderBottom: "1px solid #e2e8f0", display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+        <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#94a3b8", marginRight: 4 }}>Status:</span>
         {Object.entries(CONDITIONS).map(([key, val]) => (
           <div key={key} style={{
             display: "flex", alignItems: "center", gap: 5,
             padding: "3px 10px", borderRadius: 20,
-            background: counts[key] ? `${val.color}18` : "rgba(255,255,255,0.03)",
-            border: `1px solid ${counts[key] ? val.color+"55" : "rgba(255,255,255,0.06)"}`,
+            background: counts[key] ? `${val.color}15` : "#f8fafc",
+            border: `1px solid ${counts[key] ? val.color+"66" : "#e2e8f0"}`,
+            borderRadius: 20, padding: "4px 10px",
           }}>
             <div style={{ width: 8, height: 8, borderRadius: 2, background: val.color, flexShrink: 0 }}/>
             <span style={{ fontSize: 10, fontWeight: counts[key] ? 700 : 400, color: counts[key] ? val.color : "#475569" }}>{val.label}</span>
@@ -652,8 +654,8 @@ export function DentalChartTab() {
       {/* Chart area */}
       <div style={{ flex: 1, overflowX: "auto", padding: "20px 24px" }}>
         <div style={{
-          background: "linear-gradient(180deg, rgba(14,165,233,0.04) 0%, rgba(99,102,241,0.03) 50%, rgba(14,165,233,0.04) 100%)",
-          borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)",
+          background: "#ffffff",
+          borderRadius: 20, border: "1px solid #e2e8f0",
           padding: "20px 12px", minWidth: 900,
           boxShadow: "inset 0 2px 20px rgba(14,165,233,0.05)",
         }}>
@@ -662,11 +664,11 @@ export function DentalChartTab() {
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.2)" }}/>
-              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#334155" }}>Patient's Right</span>
+              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#94a3b8" }}>Patient's Right</span>
             </div>
-            <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 3, color: "#475569" }}>UPPER JAW — MAXILLA</span>
+            <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 3, color: "#64748b" }}>UPPER JAW — MAXILLA</span>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#334155" }}>Patient's Left</span>
+              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#94a3b8" }}>Patient's Left</span>
               <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.2)" }}/>
             </div>
           </div>
@@ -717,11 +719,11 @@ export function DentalChartTab() {
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.2)" }}/>
-              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#334155" }}>Patient's Right</span>
+              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#94a3b8" }}>Patient's Right</span>
             </div>
-            <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 3, color: "#475569" }}>LOWER JAW — MANDIBLE</span>
+            <span style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 3, color: "#64748b" }}>LOWER JAW — MANDIBLE</span>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#334155" }}>Patient's Left</span>
+              <span style={{ fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 3, color: "#94a3b8" }}>Patient's Left</span>
               <div style={{ width: 20, height: 1, background: "rgba(255,255,255,0.2)" }}/>
             </div>
           </div>
@@ -729,20 +731,20 @@ export function DentalChartTab() {
 
         {/* Chart summary */}
         {totalAffected > 0 && (
-          <div style={{ marginTop: 16, background: "rgba(255,255,255,0.02)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.06)", padding: "14px 18px" }}>
-            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#334155", margin: "0 0 10px" }}>
+          <div style={{ marginTop: 16, background: "#ffffff", borderRadius: 14, border: "1px solid #e2e8f0", padding: "14px 18px" }}>
+            <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: 2, color: "#94a3b8", margin: "0 0 10px" }}>
               Chart Summary
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {Object.entries(counts).map(([key, count]) => {
                 const affected = Object.entries(teeth).filter(([, t]) => t.condition === key).map(([n]) => n);
                 return (
-                  <div key={key} style={{ background: `${CONDITIONS[key].color}14`, border: `1px solid ${CONDITIONS[key].color}44`, borderRadius: 10, padding: "6px 12px" }}>
+                  <div key={key} style={{ background: `${CONDITIONS[key].fill}`, border: `1.5px solid ${CONDITIONS[key].stroke}`, borderRadius: 10, padding: "8px 12px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 13 }}>{CONDITIONS[key].emoji}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: CONDITIONS[key].color }}>{count} · {CONDITIONS[key].label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: CONDITIONS[key].color }}>{count} · {CONDITIONS[key].label}</span>
                     </div>
-                    <p style={{ margin: "3px 0 0", fontSize: 10, color: "#475569" }}>
+                    <p style={{ margin: "3px 0 0", fontSize: 10, color: "#64748b" }}>
                       Teeth: {affected.join(", ")}
                     </p>
                   </div>
@@ -752,7 +754,7 @@ export function DentalChartTab() {
           </div>
         )}
 
-        <p style={{ textAlign: "center", fontSize: 10, color: "#1e293b", marginTop: 14 }}>
+        <p style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 14 }}>
           💡 Click any tooth to set condition, record procedure, add lab work and clinical notes
         </p>
       </div>
