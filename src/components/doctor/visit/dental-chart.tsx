@@ -282,7 +282,7 @@ export function DentalChartTab() {
     // For pedo: top 50%
     objectFit: "cover",
     objectPosition: "top",
-    aspectRatio: isPedo ? "1536/510" : "1536/585",
+    aspectRatio: isPedo ? "1536/520" : "1536/548",
   };
 
   const counts = Object.values(teethData).reduce((a,t) => {
@@ -358,7 +358,7 @@ export function DentalChartTab() {
           {/* SVG overlay — transparent, sits exactly on top */}
           <svg
             style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",overflow:"visible"}}
-            viewBox={isPedo ? "0 9.28 100 50.78" : "0 8.59 100 51.56"}
+            viewBox={isPedo ? "0 8.79 100 50.78" : "0 8.59 100 53.52"}
             preserveAspectRatio="none">
 
             {Object.entries(positions).map(([numStr, pos]) => {
