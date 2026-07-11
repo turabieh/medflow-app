@@ -4,15 +4,15 @@ import { useState, useRef } from "react";
 // ── Condition system ───────────────────────────────────────────────────────────
 const CONDITIONS = {
   healthy:  { fill:"#FFFFF0", stroke:"#C8B89A", label:"Healthy",  color:"#16a34a", emoji:"✓" },
-  caries:   { fill:"#8B1A1A", stroke:"#DC2626", label:"Caries",   color:"#dc2626", emoji:"⬤" },
-  filled:   { fill:"#1E3A8A", stroke:"#60A5FA", label:"Filled",   color:"#2563eb", emoji:"■" },
-  crown:    { fill:"#C0C0C0", stroke:"#6B7280", label:"Crown",    color:"#4b5563", emoji:"◆" },
-  rct:      { fill:"#4C1D95", stroke:"#A78BFA", label:"RCT",      color:"#7c3aed", emoji:"✚" },
-  missing:  { fill:"#1C1917", stroke:"#57534E", label:"Missing",  color:"#78716c", emoji:"✕" },
-  implant:  { fill:"#064E3B", stroke:"#34D399", label:"Implant",  color:"#059669", emoji:"⊕" },
-  bridge:   { fill:"#7C2D12", stroke:"#FB923C", label:"Bridge",   color:"#ea580c", emoji:"⊂⊃"},
-  planned:  { fill:"#713F12", stroke:"#FCD34D", label:"Planned",  color:"#d97706", emoji:"◉" },
-  pain:     { fill:"#881337", stroke:"#FB7185", label:"Pain",     color:"#e11d48", emoji:"!" },
+  caries:  { fill:"#fee2e2", stroke:"#f87171", label:"Caries",  color:"#b91c1c", emoji:"⬤" },
+  filled:  { fill:"#dbeafe", stroke:"#60a5fa", label:"Filled",  color:"#1d4ed8", emoji:"■" },
+  crown:   { fill:"#f1f5f9", stroke:"#94a3b8", label:"Crown",   color:"#334155", emoji:"◆" },
+  rct:     { fill:"#ede9fe", stroke:"#a78bfa", label:"RCT",     color:"#6d28d9", emoji:"✚" },
+  missing: { fill:"#f1f5f9", stroke:"#94a3b8", label:"Missing", color:"#475569", emoji:"✕" },
+  implant: { fill:"#d1fae5", stroke:"#34d399", label:"Implant", color:"#065f46", emoji:"⊕" },
+  bridge:  { fill:"#ffedd5", stroke:"#fb923c", label:"Bridge",  color:"#c2410c", emoji:"⊂⊃"},
+  planned: { fill:"#fef9c3", stroke:"#facc15", label:"Planned", color:"#854d0e", emoji:"◉" },
+  pain:    { fill:"#ffe4e6", stroke:"#fb7185", label:"Pain",    color:"#be123c", emoji:"!" },
 };
 
 // ── Precise anatomical SVG paths for each tooth type ─────────────────────────
