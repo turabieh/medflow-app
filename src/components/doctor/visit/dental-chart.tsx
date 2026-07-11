@@ -4,15 +4,15 @@ import { useState, useRef } from "react";
 // ── Conditions ────────────────────────────────────────────────────────────────
 const CONDITIONS: Record<string, {label:string;color:string;bg:string;border:string;overlay:string}> = {
   healthy: { label:"Healthy",  color:"#15803d", bg:"#f0fdf4", border:"#86efac", overlay:"transparent" },
-  caries:  { label:"Caries",   color:"#b91c1c", bg:"#fef2f2", border:"#fca5a5", overlay:"rgba(220,38,38,0.35)" },
-  filled:  { label:"Filled",   color:"#1d4ed8", bg:"#eff6ff", border:"#93c5fd", overlay:"rgba(37,99,235,0.35)" },
-  crown:   { label:"Crown",    color:"#374151", bg:"#f9fafb", border:"#d1d5db", overlay:"rgba(107,114,128,0.4)" },
-  rct:     { label:"RCT",      color:"#6d28d9", bg:"#f5f3ff", border:"#c4b5fd", overlay:"rgba(109,40,217,0.35)" },
-  missing: { label:"Missing",  color:"#374151", bg:"#f1f5f9", border:"#cbd5e1", overlay:"rgba(30,41,59,0.65)" },
-  implant: { label:"Implant",  color:"#065f46", bg:"#ecfdf5", border:"#6ee7b7", overlay:"rgba(16,185,129,0.35)" },
-  bridge:  { label:"Bridge",   color:"#c2410c", bg:"#fff7ed", border:"#fdba74", overlay:"rgba(234,88,12,0.35)" },
-  planned: { label:"Planned",  color:"#92400e", bg:"#fffbeb", border:"#fcd34d", overlay:"rgba(234,179,8,0.38)" },
-  pain:    { label:"Pain",     color:"#9f1239", bg:"#fff1f2", border:"#fda4af", overlay:"rgba(244,63,94,0.38)" },
+  caries:  { label:"Caries",   color:"#b91c1c", bg:"#fef2f2", border:"#fca5a5", overlay:"rgba(220,38,38,0.42)" },
+  filled:  { label:"Filled",   color:"#1d4ed8", bg:"#eff6ff", border:"#93c5fd", overlay:"rgba(37,99,235,0.42)" },
+  crown:   { label:"Crown",    color:"#374151", bg:"#f9fafb", border:"#d1d5db", overlay:"rgba(107,114,128,0.45)" },
+  rct:     { label:"RCT",      color:"#6d28d9", bg:"#f5f3ff", border:"#c4b5fd", overlay:"rgba(109,40,217,0.42)" },
+  missing: { label:"Missing",  color:"#6b7280", bg:"#f1f5f9", border:"#94a3b8", overlay:"rgba(71,85,105,0.55)" },
+  implant: { label:"Implant",  color:"#065f46", bg:"#ecfdf5", border:"#6ee7b7", overlay:"rgba(16,185,129,0.42)" },
+  bridge:  { label:"Bridge",   color:"#c2410c", bg:"#fff7ed", border:"#fdba74", overlay:"rgba(234,88,12,0.42)" },
+  planned: { label:"Planned",  color:"#92400e", bg:"#fffbeb", border:"#fcd34d", overlay:"rgba(234,179,8,0.48)" },
+  pain:    { label:"Pain",     color:"#9f1239", bg:"#fff1f2", border:"#fda4af", overlay:"rgba(244,63,94,0.45)" },
 };
 
 // ── Precise tooth positions as % of image (1536×1024) ────────────────────────
@@ -36,48 +36,52 @@ const ADULT_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}
   27:{x:84.64,y:8.98, w:6.58, h:20.12, row:"upper"},
   28:{x:91.34,y:8.98, w:7.16, h:20.12, row:"upper"},
   // Lower jaw — y: 31% to 57.1% of image height
-  48:{x:0.78, y:30.96, w:6.97, h:26.17, row:"lower"},
-  47:{x:7.88, y:30.96, w:6.71, h:26.17, row:"lower"},
-  46:{x:14.71,y:30.96, w:6.90, h:26.17, row:"lower"},
-  45:{x:21.74,y:30.96, w:5.47, h:26.17, row:"lower"},
-  44:{x:27.34,y:30.96, w:5.60, h:26.17, row:"lower"},
-  43:{x:33.07,y:30.96, w:5.27, h:26.17, row:"lower"},
-  42:{x:38.48,y:30.96, w:4.88, h:26.17, row:"lower"},
-  41:{x:43.49,y:30.96, w:6.38, h:26.17, row:"lower"},
-  31:{x:50.00,y:30.96, w:6.38, h:26.17, row:"lower"},
-  32:{x:56.51,y:30.96, w:4.88, h:26.17, row:"lower"},
-  33:{x:61.52,y:30.96, w:5.34, h:26.17, row:"lower"},
-  34:{x:67.00,y:30.96, w:5.53, h:26.17, row:"lower"},
-  35:{x:72.66,y:30.96, w:5.21, h:26.17, row:"lower"},
-  36:{x:77.99,y:30.96, w:6.51, h:26.17, row:"lower"},
-  37:{x:84.64,y:30.96, w:6.58, h:26.17, row:"lower"},
-  38:{x:91.34,y:30.96, w:7.16, h:26.17, row:"lower"},
+  48:{x:0.78, y:30.96, w:6.97, h:20.0, row:"lower"},
+  47:{x:7.88, y:30.96, w:6.71, h:20.0, row:"lower"},
+  46:{x:14.71,y:30.96, w:6.90, h:20.0, row:"lower"},
+  45:{x:21.74,y:30.96, w:5.47, h:20.0, row:"lower"},
+  44:{x:27.34,y:30.96, w:5.60, h:20.0, row:"lower"},
+  43:{x:33.07,y:30.96, w:5.27, h:20.0, row:"lower"},
+  42:{x:38.48,y:30.96, w:4.88, h:20.0, row:"lower"},
+  41:{x:43.49,y:30.96, w:6.38, h:20.0, row:"lower"},
+  31:{x:50.00,y:30.96, w:6.38, h:20.0, row:"lower"},
+  32:{x:56.51,y:30.96, w:4.88, h:20.0, row:"lower"},
+  33:{x:61.52,y:30.96, w:5.34, h:20.0, row:"lower"},
+  34:{x:67.00,y:30.96, w:5.53, h:20.0, row:"lower"},
+  35:{x:72.66,y:30.96, w:5.21, h:20.0, row:"lower"},
+  36:{x:77.99,y:30.96, w:6.51, h:20.0, row:"lower"},
+  37:{x:84.64,y:30.96, w:6.58, h:20.0, row:"lower"},
+  38:{x:91.34,y:30.96, w:7.16, h:20.0, row:"lower"},
 };
 
 // Pedo: 10 teeth evenly spaced across image width
+// Pedo positions — measured from pixel analysis of actual image
+// Upper teeth: y=98 to 261 (9.57% to 25.49% of 1024px image)
+// Lower teeth: y=366 to 560 (35.74% to 54.69%)
+// yScale for visible area (top 54.69%) = 100/54.69 = 1.8286
 const PEDO_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}> = {
-  // Upper primary — y: 3% to 24%
-  55:{x:4.3,  y:2.9, w:9.3, h:21.2, row:"upper"},
-  54:{x:13.9, y:2.9, w:9.3, h:21.2, row:"upper"},
-  53:{x:23.5, y:2.9, w:7.8, h:21.2, row:"upper"},
-  52:{x:31.7, y:2.9, w:7.0, h:21.2, row:"upper"},
-  51:{x:39.0, y:2.9, w:7.0, h:21.2, row:"upper"},
-  61:{x:46.3, y:2.9, w:7.0, h:21.2, row:"upper"},
-  62:{x:53.6, y:2.9, w:7.0, h:21.2, row:"upper"},
-  63:{x:61.0, y:2.9, w:7.8, h:21.2, row:"upper"},
-  64:{x:69.2, y:2.9, w:9.3, h:21.2, row:"upper"},
-  65:{x:78.8, y:2.9, w:9.3, h:21.2, row:"upper"},
-  // Lower primary — y: 28% to 50%
-  85:{x:4.3,  y:28.1, w:9.3, h:21.5, row:"lower"},
-  84:{x:13.9, y:28.1, w:9.3, h:21.5, row:"lower"},
-  83:{x:23.5, y:28.1, w:7.8, h:21.5, row:"lower"},
-  82:{x:31.7, y:28.1, w:7.0, h:21.5, row:"lower"},
-  81:{x:39.0, y:28.1, w:7.0, h:21.5, row:"lower"},
-  71:{x:46.3, y:28.1, w:7.0, h:21.5, row:"lower"},
-  72:{x:53.6, y:28.1, w:7.0, h:21.5, row:"lower"},
-  73:{x:61.0, y:28.1, w:7.8, h:21.5, row:"lower"},
-  74:{x:69.2, y:28.1, w:9.3, h:21.5, row:"lower"},
-  75:{x:78.8, y:28.1, w:9.3, h:21.5, row:"lower"},
+  // Upper primary row — precise column boundaries from separator analysis
+  55:{x:0.0,  y:9.57, w:17.77, h:15.92, row:"upper"},
+  54:{x:17.77,y:9.57, w:7.75,  h:15.92, row:"upper"},
+  53:{x:25.52,y:9.57, w:7.49,  h:15.92, row:"upper"},
+  52:{x:33.01,y:9.57, w:8.01,  h:15.92, row:"upper"},
+  51:{x:41.02,y:9.57, w:7.94,  h:15.92, row:"upper"},
+  61:{x:48.96,y:9.57, w:8.07,  h:15.92, row:"upper"},
+  62:{x:57.03,y:9.57, w:7.94,  h:15.92, row:"upper"},
+  63:{x:64.97,y:9.57, w:7.81,  h:15.92, row:"upper"},
+  64:{x:72.78,y:9.57, w:8.20,  h:15.92, row:"upper"},
+  65:{x:80.98,y:9.57, w:19.02, h:15.92, row:"upper"},
+  // Lower primary row
+  85:{x:0.0,  y:35.74, w:17.58, h:18.95, row:"lower"},
+  84:{x:17.58,y:35.74, w:8.07,  h:18.95, row:"lower"},
+  83:{x:25.65,y:35.74, w:7.55,  h:18.95, row:"lower"},
+  82:{x:33.20,y:35.74, w:8.07,  h:18.95, row:"lower"},
+  81:{x:41.27,y:35.74, w:8.01,  h:18.95, row:"lower"},
+  71:{x:49.28,y:35.74, w:8.20,  h:18.95, row:"lower"},
+  72:{x:57.49,y:35.74, w:8.14,  h:18.95, row:"lower"},
+  73:{x:65.62,y:35.74, w:7.49,  h:18.95, row:"lower"},
+  74:{x:73.11,y:35.74, w:7.94,  h:18.95, row:"lower"},
+  75:{x:81.05,y:35.74, w:18.95, h:18.95, row:"lower"},
 };
 
 const TOOTH_NAMES: Record<number, string> = {
@@ -367,19 +371,29 @@ export function DentalChartTab() {
               // Scale Y to fit only the visible portion of the image
               // Adult image: we show top 57.1% → scale y from image% to visible%
               // 100% visible = 57.1% of image → multiply y by (100/57.1)
-              const yScale = isPedo ? (100/49.6) : (100/57.14);
+              const yScale = isPedo ? (100/54.69) : (100/57.13);
               const vy = pos.y * yScale;
               const vh = pos.h * yScale;
 
               return (
                 <g key={n}>
                   {/* Condition color overlay on tooth */}
-                  {cond !== "healthy" && (
+                  {cond !== "healthy" && cond !== "missing" && (
                     <rect
                       x={pos.x} y={vy} width={pos.w} height={vh}
                       fill={co.overlay}
                       rx="0.3"
                     />
+                  )}
+                  {/* Missing: use visible diagonal stripe pattern */}
+                  {cond === "missing" && (
+                    <g>
+                      <rect x={pos.x} y={vy} width={pos.w} height={vh}
+                        fill="rgba(100,116,139,0.5)" rx="0.3"/>
+                      <line x1={pos.x} y1={vy} x2={pos.x+pos.w} y2={vy+vh} stroke="#94a3b8" strokeWidth="0.6" opacity="0.8"/>
+                      <line x1={pos.x+pos.w} y1={vy} x2={pos.x} y2={vy+vh} stroke="#94a3b8" strokeWidth="0.6" opacity="0.8"/>
+                      <circle cx={pos.x+pos.w/2} cy={vy+vh/2} r="1.5" fill="none" stroke="#e2e8f0" strokeWidth="0.5"/>
+                    </g>
                   )}
 
                   {/* Hover highlight */}
