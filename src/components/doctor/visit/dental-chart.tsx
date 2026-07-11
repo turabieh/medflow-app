@@ -17,41 +17,42 @@ const CONDITIONS: Record<string, {label:string;color:string;bg:string;border:str
 
 // ── Precise tooth positions as % of image (1536×1024) ────────────────────────
 // Measured from dark separator columns found via pixel analysis
+// Adult positions — all in % of full image (1536×1024)
+// SVG viewBox crops to show y=8.79% to 52.73% (crowns only, no long roots)
+// Upper crown: y=10.25% h=17.29%   Lower crown: y=39.55% h=12.70%
 const ADULT_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}> = {
-  // Upper jaw — y: 9% to 29.1% of image height
-  18:{x:0.78, y:8.98, w:6.97, h:20.12, row:"upper"},
-  17:{x:7.88, y:8.98, w:6.71, h:20.12, row:"upper"},
-  16:{x:14.71,y:8.98, w:6.90, h:20.12, row:"upper"},
-  15:{x:21.74,y:8.98, w:5.47, h:20.12, row:"upper"},
-  14:{x:27.34,y:8.98, w:5.60, h:20.12, row:"upper"},
-  13:{x:33.07,y:8.98, w:5.27, h:20.12, row:"upper"},
-  12:{x:38.48,y:8.98, w:4.88, h:20.12, row:"upper"},
-  11:{x:43.49,y:8.98, w:6.38, h:20.12, row:"upper"},
-  21:{x:50.00,y:8.98, w:6.38, h:20.12, row:"upper"},
-  22:{x:56.51,y:8.98, w:4.88, h:20.12, row:"upper"},
-  23:{x:61.52,y:8.98, w:5.34, h:20.12, row:"upper"},
-  24:{x:67.00,y:8.98, w:5.53, h:20.12, row:"upper"},
-  25:{x:72.66,y:8.98, w:5.21, h:20.12, row:"upper"},
-  26:{x:77.99,y:8.98, w:6.51, h:20.12, row:"upper"},
-  27:{x:84.64,y:8.98, w:6.58, h:20.12, row:"upper"},
-  28:{x:91.34,y:8.98, w:7.16, h:20.12, row:"upper"},
-  // Lower jaw — y: 31% to 57.1% of image height
-  48:{x:0.78, y:30.96, w:6.97, h:20.0, row:"lower"},
-  47:{x:7.88, y:30.96, w:6.71, h:20.0, row:"lower"},
-  46:{x:14.71,y:30.96, w:6.90, h:20.0, row:"lower"},
-  45:{x:21.74,y:30.96, w:5.47, h:20.0, row:"lower"},
-  44:{x:27.34,y:30.96, w:5.60, h:20.0, row:"lower"},
-  43:{x:33.07,y:30.96, w:5.27, h:20.0, row:"lower"},
-  42:{x:38.48,y:30.96, w:4.88, h:20.0, row:"lower"},
-  41:{x:43.49,y:30.96, w:6.38, h:20.0, row:"lower"},
-  31:{x:50.00,y:30.96, w:6.38, h:20.0, row:"lower"},
-  32:{x:56.51,y:30.96, w:4.88, h:20.0, row:"lower"},
-  33:{x:61.52,y:30.96, w:5.34, h:20.0, row:"lower"},
-  34:{x:67.00,y:30.96, w:5.53, h:20.0, row:"lower"},
-  35:{x:72.66,y:30.96, w:5.21, h:20.0, row:"lower"},
-  36:{x:77.99,y:30.96, w:6.51, h:20.0, row:"lower"},
-  37:{x:84.64,y:30.96, w:6.58, h:20.0, row:"lower"},
-  38:{x:91.34,y:30.96, w:7.16, h:20.0, row:"lower"},
+  18:{x:0.78, y:10.25, w:6.97, h:17.29, row:"upper"},
+  17:{x:7.88, y:10.25, w:6.71, h:17.29, row:"upper"},
+  16:{x:14.71,y:10.25, w:6.90, h:17.29, row:"upper"},
+  15:{x:21.74,y:10.25, w:5.47, h:17.29, row:"upper"},
+  14:{x:27.34,y:10.25, w:5.60, h:17.29, row:"upper"},
+  13:{x:33.07,y:10.25, w:5.27, h:17.29, row:"upper"},
+  12:{x:38.48,y:10.25, w:4.88, h:17.29, row:"upper"},
+  11:{x:43.49,y:10.25, w:6.38, h:17.29, row:"upper"},
+  21:{x:50.00,y:10.25, w:6.38, h:17.29, row:"upper"},
+  22:{x:56.51,y:10.25, w:4.88, h:17.29, row:"upper"},
+  23:{x:61.52,y:10.25, w:5.34, h:17.29, row:"upper"},
+  24:{x:67.00,y:10.25, w:5.53, h:17.29, row:"upper"},
+  25:{x:72.66,y:10.25, w:5.21, h:17.29, row:"upper"},
+  26:{x:77.99,y:10.25, w:6.51, h:17.29, row:"upper"},
+  27:{x:84.64,y:10.25, w:6.58, h:17.29, row:"upper"},
+  28:{x:91.34,y:10.25, w:7.16, h:17.29, row:"upper"},
+  48:{x:0.78, y:39.55, w:6.97, h:12.70, row:"lower"},
+  47:{x:7.88, y:39.55, w:6.71, h:12.70, row:"lower"},
+  46:{x:14.71,y:39.55, w:6.90, h:12.70, row:"lower"},
+  45:{x:21.74,y:39.55, w:5.47, h:12.70, row:"lower"},
+  44:{x:27.34,y:39.55, w:5.60, h:12.70, row:"lower"},
+  43:{x:33.07,y:39.55, w:5.27, h:12.70, row:"lower"},
+  42:{x:38.48,y:39.55, w:4.88, h:12.70, row:"lower"},
+  41:{x:43.49,y:39.55, w:6.38, h:12.70, row:"lower"},
+  31:{x:50.00,y:39.55, w:6.38, h:12.70, row:"lower"},
+  32:{x:56.51,y:39.55, w:4.88, h:12.70, row:"lower"},
+  33:{x:61.52,y:39.55, w:5.34, h:12.70, row:"lower"},
+  34:{x:67.00,y:39.55, w:5.53, h:12.70, row:"lower"},
+  35:{x:72.66,y:39.55, w:5.21, h:12.70, row:"lower"},
+  36:{x:77.99,y:39.55, w:6.51, h:12.70, row:"lower"},
+  37:{x:84.64,y:39.55, w:6.58, h:12.70, row:"lower"},
+  38:{x:91.34,y:39.55, w:7.16, h:12.70, row:"lower"},
 };
 
 // Pedo: 10 teeth evenly spaced across image width
@@ -357,7 +358,7 @@ export function DentalChartTab() {
           {/* SVG overlay — transparent, sits exactly on top */}
           <svg
             style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",overflow:"visible"}}
-            viewBox="0 0 100 100"
+            viewBox={isPedo ? "0 9.0 100 46.0" : "0 8.79 100 43.95"}
             preserveAspectRatio="none">
 
             {Object.entries(positions).map(([numStr, pos]) => {
@@ -368,12 +369,9 @@ export function DentalChartTab() {
               const isHov = hovered === n;
               const isSel = selected === n;
 
-              // Scale Y to fit only the visible portion of the image
-              // Adult image: we show top 57.1% → scale y from image% to visible%
-              // 100% visible = 57.1% of image → multiply y by (100/57.1)
-              const yScale = isPedo ? (100/54.69) : (100/57.13);
-              const vy = pos.y * yScale;
-              const vh = pos.h * yScale;
+              // viewBox handles the cropping — use raw image % coordinates
+              const vy = pos.y;
+              const vh = pos.h;
 
               return (
                 <g key={n}>
@@ -421,17 +419,29 @@ export function DentalChartTab() {
                     />
                   )}
 
-                  {/* Condition indicator dot — bottom of upper teeth, top of lower */}
+                  {/* Condition dot — shows above number */}
                   {cond !== "healthy" && (
                     <circle
                       cx={pos.x + pos.w/2}
-                      cy={pos.row === "upper" ? vy + vh - 1.5 : vy + 1.5}
-                      r="1.2"
+                      cy={pos.row === "upper" ? vy + vh - 3.5 : vy + 4.0}
+                      r="1.0"
                       fill={co.color}
                       stroke="#fff"
-                      strokeWidth="0.3"
+                      strokeWidth="0.25"
+                      style={{pointerEvents:"none"}}
                     />
                   )}
+
+                  {/* Tooth number label */}
+                  <text
+                    x={pos.x + pos.w/2}
+                    y={pos.row === "upper" ? vy + vh - 0.8 : vy + 2.2}
+                    textAnchor="middle"
+                    fontSize="1.6"
+                    fontWeight="700"
+                    fill={cond !== "healthy" ? co.color : "#94a3b8"}
+                    style={{pointerEvents:"none", userSelect:"none"}}
+                  >{n}</text>
 
                   {/* Invisible click/hover target */}
                   <rect
