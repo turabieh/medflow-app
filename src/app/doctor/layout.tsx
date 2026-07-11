@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DoctorSidebarNav } from "@/components/doctor/layout/sidebar";
+import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
 export default async function DoctorLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -19,6 +20,15 @@ export default async function DoctorLayout({ children }: { children: React.React
   const cl = clinic as { name?: string; logo_url?: string | null } | null;
 
   const todayStr = new Date().toISOString().split("T")[0];
+
+  // Chat staff and tasks
+  const [chatStaffRes, chatTasksRes] = await Promise.all([
+    supabase.from("users").select("id, full_name, role")
+      .eq("clinic_id", profile.clinic_id).neq("id", user.id)
+      .in("role", ["nurse", "secretary", "admin", "doctor"]),
+    supabase.from("chat_quick_tasks").select("id, label, category")
+      .eq("clinic_id", profile.clinic_id),
+  ]);
 
   // Fetch today's outpatients for this doctor
   const { data: todayAppts } = await supabase
@@ -100,6 +110,12 @@ export default async function DoctorLayout({ children }: { children: React.React
         inpatients={sidebarInpatients}
       />
       <main className="flex-1 overflow-y-auto">{children}</main>
+      <FloatingChatButton
+        userId={user.id}
+        clinicId={profile.clinic_id}
+        staff={(chatStaffRes.data ?? []) as {id:string;full_name:string;role:string}[]}
+        quickTasks={(chatTasksRes.data ?? []) as {id:string;label:string;category:string}[]}
+      />
     </div>
   );
 }
