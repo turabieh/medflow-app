@@ -17,72 +17,67 @@ const CONDITIONS: Record<string, {label:string;color:string;bg:string;border:str
 
 // ── Precise tooth positions as % of image (1536×1024) ────────────────────────
 // Measured from dark separator columns found via pixel analysis
-// Adult positions — all in % of full image (1536×1024)
-// SVG viewBox crops to show y=8.79% to 52.73% (crowns only, no long roots)
-// Upper crown: y=10.25% h=17.29%   Lower crown: y=39.55% h=12.70%
+// Adult positions — pixel-measured from actual image (1536×1024)
+// Upper teeth: y=95-298px, Lower teeth: y=404-575px
 const ADULT_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}> = {
-  18:{x:0.78, y:10.25, w:6.97, h:17.29, row:"upper"},
-  17:{x:7.88, y:10.25, w:6.71, h:17.29, row:"upper"},
-  16:{x:14.71,y:10.25, w:6.90, h:17.29, row:"upper"},
-  15:{x:21.74,y:10.25, w:5.47, h:17.29, row:"upper"},
-  14:{x:27.34,y:10.25, w:5.60, h:17.29, row:"upper"},
-  13:{x:33.07,y:10.25, w:5.27, h:17.29, row:"upper"},
-  12:{x:38.48,y:10.25, w:4.88, h:17.29, row:"upper"},
-  11:{x:43.49,y:10.25, w:6.38, h:17.29, row:"upper"},
-  21:{x:50.00,y:10.25, w:6.38, h:17.29, row:"upper"},
-  22:{x:56.51,y:10.25, w:4.88, h:17.29, row:"upper"},
-  23:{x:61.52,y:10.25, w:5.34, h:17.29, row:"upper"},
-  24:{x:67.00,y:10.25, w:5.53, h:17.29, row:"upper"},
-  25:{x:72.66,y:10.25, w:5.21, h:17.29, row:"upper"},
-  26:{x:77.99,y:10.25, w:6.51, h:17.29, row:"upper"},
-  27:{x:84.64,y:10.25, w:6.58, h:17.29, row:"upper"},
-  28:{x:91.34,y:10.25, w:7.16, h:17.29, row:"upper"},
-  48:{x:0.78, y:39.45, w:6.97, h:16.99, row:"lower"},
-  47:{x:7.88, y:39.45, w:6.71, h:16.99, row:"lower"},
-  46:{x:14.71,y:39.45, w:6.90, h:16.99, row:"lower"},
-  45:{x:21.74,y:39.45, w:5.47, h:16.99, row:"lower"},
-  44:{x:27.34,y:39.45, w:5.60, h:16.99, row:"lower"},
-  43:{x:33.07,y:39.45, w:5.27, h:16.99, row:"lower"},
-  42:{x:38.48,y:39.45, w:4.88, h:16.99, row:"lower"},
-  41:{x:43.49,y:39.45, w:6.38, h:16.99, row:"lower"},
-  31:{x:50.00,y:39.45, w:6.38, h:16.99, row:"lower"},
-  32:{x:56.51,y:39.45, w:4.88, h:16.99, row:"lower"},
-  33:{x:61.52,y:39.45, w:5.34, h:16.99, row:"lower"},
-  34:{x:67.00,y:39.45, w:5.53, h:16.99, row:"lower"},
-  35:{x:72.66,y:39.45, w:5.21, h:16.99, row:"lower"},
-  36:{x:77.99,y:39.45, w:6.51, h:16.99, row:"lower"},
-  37:{x:84.64,y:39.45, w:6.58, h:16.99, row:"lower"},
-  38:{x:91.34,y:39.45, w:7.16, h:16.99, row:"lower"},
+  18:{x:1.56, y:9.28, w:5.66, h:19.82, row:"upper"},
+  17:{x:8.53, y:9.28, w:5.47, h:19.82, row:"upper"},
+  16:{x:15.36,y:9.28, w:5.66, h:19.82, row:"upper"},
+  15:{x:22.40,y:9.28, w:4.10, h:19.82, row:"upper"},
+  14:{x:28.19,y:9.28, w:4.17, h:19.82, row:"upper"},
+  13:{x:33.72,y:9.28, w:4.23, h:19.82, row:"upper"},
+  12:{x:38.93,y:9.28, w:4.04, h:19.82, row:"upper"},
+  11:{x:44.01,y:9.28, w:5.47, h:19.82, row:"upper"},
+  21:{x:50.52,y:9.28, w:5.47, h:19.82, row:"upper"},
+  22:{x:57.03,y:9.28, w:3.97, h:19.82, row:"upper"},
+  23:{x:61.98,y:9.28, w:4.30, h:19.82, row:"upper"},
+  24:{x:67.64,y:9.28, w:4.17, h:19.82, row:"upper"},
+  25:{x:73.44,y:9.28, w:4.04, h:19.82, row:"upper"},
+  26:{x:78.52,y:9.28, w:5.40, h:19.82, row:"upper"},
+  27:{x:85.29,y:9.28, w:5.40, h:19.82, row:"upper"},
+  28:{x:91.93,y:9.28, w:5.34, h:19.82, row:"upper"},
+  48:{x:1.63, y:39.45, w:6.12, h:16.70, row:"lower"},
+  47:{x:8.40, y:39.45, w:6.58, h:16.70, row:"lower"},
+  46:{x:15.49,y:39.45, w:6.58, h:16.70, row:"lower"},
+  45:{x:22.85,y:39.45, w:4.43, h:16.70, row:"lower"},
+  44:{x:28.45,y:39.45, w:4.10, h:16.70, row:"lower"},
+  43:{x:33.85,y:39.45, w:3.97, h:16.70, row:"lower"},
+  42:{x:39.13,y:39.45, w:4.04, h:16.70, row:"lower"},
+  41:{x:45.18,y:39.45, w:3.71, h:16.70, row:"lower"},
+  31:{x:51.37,y:39.45, w:3.71, h:16.70, row:"lower"},
+  32:{x:57.16,y:39.45, w:3.52, h:16.70, row:"lower"},
+  33:{x:62.50,y:39.45, w:3.97, h:16.70, row:"lower"},
+  34:{x:67.71,y:39.45, w:4.10, h:16.70, row:"lower"},
+  35:{x:72.92,y:39.45, w:4.30, h:16.70, row:"lower"},
+  36:{x:78.06,y:39.45, w:6.32, h:16.70, row:"lower"},
+  37:{x:84.90,y:39.45, w:6.45, h:16.70, row:"lower"},
+  38:{x:91.99,y:39.45, w:5.99, h:16.70, row:"lower"},
 };
 
 // Pedo: 10 teeth evenly spaced across image width
-// Pedo positions — measured from pixel analysis of actual image
-// Upper teeth: y=98 to 261 (9.57% to 25.49% of 1024px image)
-// Lower teeth: y=366 to 560 (35.74% to 54.69%)
-// yScale for visible area (top 54.69%) = 100/54.69 = 1.8286
+// Pedo positions — pixel-measured from actual image (1536×1024)
+// Upper primary: y=101-261px, Lower primary: y=408-557px
 const PEDO_POS: Record<number, {x:number;y:number;w:number;h:number;row:string}> = {
-  // Upper primary row — precise column boundaries from separator analysis
-  55:{x:0.0,  y:10.06, w:17.77, h:15.53, row:"upper"},
-  54:{x:17.77,y:10.06, w:7.75,  h:15.53, row:"upper"},
-  53:{x:25.52,y:10.06, w:7.49,  h:15.53, row:"upper"},
-  52:{x:33.01,y:10.06, w:8.01,  h:15.53, row:"upper"},
-  51:{x:41.02,y:10.06, w:7.94,  h:15.53, row:"upper"},
-  61:{x:48.96,y:10.06, w:8.07,  h:15.53, row:"upper"},
-  62:{x:57.03,y:10.06, w:7.94,  h:15.53, row:"upper"},
-  63:{x:64.97,y:10.06, w:7.81,  h:15.53, row:"upper"},
-  64:{x:72.78,y:10.06, w:8.20,  h:15.53, row:"upper"},
-  65:{x:80.98,y:10.06, w:19.02, h:15.53, row:"upper"},
-  // Lower primary row
-  85:{x:0.0,  y:39.84, w:17.58, h:14.65, row:"lower"},
-  84:{x:17.58,y:39.84, w:8.07,  h:14.84, row:"lower"},
-  83:{x:25.65,y:39.84, w:7.55,  h:14.84, row:"lower"},
-  82:{x:33.20,y:39.84, w:8.07,  h:14.84, row:"lower"},
-  81:{x:41.27,y:39.84, w:8.01,  h:14.84, row:"lower"},
-  71:{x:49.28,y:39.84, w:8.20,  h:14.84, row:"lower"},
-  72:{x:57.49,y:39.84, w:8.14,  h:14.84, row:"lower"},
-  73:{x:65.62,y:39.84, w:7.49,  h:14.84, row:"lower"},
-  74:{x:73.11,y:39.84, w:7.94,  h:14.84, row:"lower"},
-  75:{x:81.05,y:39.84, w:18.95, h:14.65, row:"lower"},
+  55:{x:8.79, y:9.86, w:6.25, h:15.62, row:"upper"},
+  54:{x:17.84,y:9.86, w:6.18, h:15.62, row:"upper"},
+  53:{x:26.82,y:9.86, w:5.01, h:15.62, row:"upper"},
+  52:{x:35.03,y:9.86, w:4.75, h:15.62, row:"upper"},
+  51:{x:42.64,y:9.86, w:5.27, h:15.62, row:"upper"},
+  61:{x:50.78,y:9.86, w:5.53, h:15.62, row:"upper"},
+  62:{x:59.05,y:9.86, w:4.75, h:15.62, row:"upper"},
+  63:{x:66.93,y:9.86, w:5.08, h:15.62, row:"upper"},
+  64:{x:74.74,y:9.86, w:6.18, h:15.62, row:"upper"},
+  65:{x:83.72,y:9.86, w:5.92, h:15.62, row:"upper"},
+  85:{x:8.33, y:39.84, w:6.58, h:14.55, row:"lower"},
+  84:{x:17.38,y:39.84, w:6.77, h:14.55, row:"lower"},
+  83:{x:26.95,y:39.84, w:4.62, h:14.55, row:"lower"},
+  82:{x:35.03,y:39.84, w:4.36, h:14.55, row:"lower"},
+  81:{x:42.97,y:39.84, w:4.30, h:14.55, row:"lower"},
+  71:{x:51.43,y:39.84, w:4.23, h:14.55, row:"lower"},
+  72:{x:59.31,y:39.84, w:4.17, h:14.55, row:"lower"},
+  73:{x:67.12,y:39.84, w:4.69, h:14.55, row:"lower"},
+  74:{x:74.67,y:39.84, w:6.71, h:14.55, row:"lower"},
+  75:{x:83.79,y:39.84, w:6.25, h:14.55, row:"lower"},
 };
 
 const TOOTH_NAMES: Record<number, string> = {
