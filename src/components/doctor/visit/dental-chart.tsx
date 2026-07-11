@@ -275,14 +275,33 @@ export function DentalChartTab() {
   const positions = isPedo ? PEDO_POS : ADULT_POS;
 
   // Image shows only top ~57% for adult (upper + lower teeth), crop occlusal views
+  // Precise crop using padding-bottom technique
+  // Adult: show y=88 to y=638 of 1024px image (550px band)
+  // Pedo:  show y=88 to y=612 of 1024px image (524px band)
+  const bandStart = 88;
+  const bandEnd   = isPedo ? 612 : 638;
+  const imgH      = 1024;
+  const imgW      = 1536;
+  // paddingBottom % = visible band height / image width * 100
+  const paddingBottomPct = (bandEnd - bandStart) / imgW * 100;
+  // marginTop % = -(bandStart / imgW * 100) [% of element width]
+  const marginTopPct = -(bandStart / imgW * 100);
+
+  const containerStyle: React.CSSProperties = {
+    position: "relative",
+    overflow: "hidden",
+    paddingBottom: `${paddingBottomPct.toFixed(3)}%`,
+    height: 0,
+  };
+  const imgWrapStyle: React.CSSProperties = {
+    position: "absolute",
+    top: 0, left: 0,
+    width: "100%",
+  };
   const imgStyle: React.CSSProperties = {
     width: "100%",
     display: "block",
-    // Show only top 57% of adult image (upper+lower teeth, not occlusal views)
-    // For pedo: top 50%
-    objectFit: "cover",
-    objectPosition: "top",
-    aspectRatio: isPedo ? "1536/524" : "1536/550",
+    marginTop: `${marginTopPct.toFixed(3)}%`,
   };
 
   const counts = Object.values(teethData).reduce((a,t) => {
@@ -346,7 +365,8 @@ export function DentalChartTab() {
         </div>
 
         {/* Image + SVG overlay — this is the magic */}
-        <div style={{position:"relative",lineHeight:0}}>
+        <div style={containerStyle}>
+          <div style={imgWrapStyle}>
           {/* The real professional tooth image */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -445,6 +465,7 @@ export function DentalChartTab() {
               );
             })}
           </svg>
+          </div>
         </div>
 
         {/* Tooltip bar */}
