@@ -22,6 +22,8 @@ export interface CreatePatientInput {
   mrn?: string;
   blood_type?: string;
   mrn?: string | null;
+  referral_source?: string | null;
+  referral_source_detail?: string | null;
   allergies?: string;
 }
 
@@ -88,9 +90,13 @@ export async function createPatient(
       address: input.address?.trim() || null,
       email: input.email?.trim() || null,
       national_id: input.national_id?.trim() || null,
-      mrn: input.mrn?.trim() || null,
+      mrn:                    input.mrn?.trim() || null,
+      referral_source:        input.referral_source || null,
+      referral_source_detail: input.referral_source_detail?.trim() || null,
       blood_type: input.blood_type || null,
-      mrn: input.mrn?.trim() || null,
+      mrn:                    input.mrn?.trim() || null,
+      referral_source:        input.referral_source || null,
+      referral_source_detail: input.referral_source_detail?.trim() || null,
       allergies: input.allergies?.trim() || null,
     })
     .select("id")
@@ -121,6 +127,8 @@ export interface UpdatePatientInput {
   email?: string;
   blood_type?: string;
   mrn?: string | null;
+  referral_source?: string | null;
+  referral_source_detail?: string | null;
   allergies?: string;
   insurance_company_id?: string;
   insurance_policy_number?: string;
@@ -155,7 +163,9 @@ export async function updatePatient(
       address: input.address?.trim() || null,
       email: input.email?.trim() || null,
       blood_type: input.blood_type || null,
-      mrn: input.mrn?.trim() || null,
+      mrn:                    input.mrn?.trim() || null,
+      referral_source:        input.referral_source || null,
+      referral_source_detail: input.referral_source_detail?.trim() || null,
       allergies: input.allergies?.trim() || null,
       insurance_company_id: input.insurance_company_id || null,
       insurance_policy_number: input.insurance_policy_number?.trim() || null,
