@@ -94,6 +94,8 @@ export function PendingAppointmentForm({
   const [notes, setNotes] = useState(appointment.secretary_notes ?? "");
   const [symptomIds, setSymptomIds] = useState<Set<string>>(new Set(existingSymptomIds));
 
+  const [referralSource,       setReferralSource]       = useState((patient as any).referral_source ?? "");
+  const [referralSourceDetail, setReferralSourceDetail] = useState((patient as any).referral_source_detail ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -195,6 +197,8 @@ export function PendingAppointmentForm({
       startTime: selectedSlot,
       isOverbooked: allowOverbook,
       secretaryNotes: notes,
+      referralSource: referralSource || null,
+      referralSourceDetail: referralSourceDetail.trim() || null,
       symptomIds: Array.from(symptomIds),
     });
 
@@ -436,6 +440,151 @@ export function PendingAppointmentForm({
         )}
       </div>
 
+
+      {/* Referral Source */}
+      <div className="mb-3">
+        <label className="mb-1.5 block text-xs font-semibold text-neutral-700">Referral Source</label>
+        <div className="grid grid-cols-3 gap-1.5 rounded-md border border-neutral-200 bg-white p-2.5">
+            <label key="physician" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="physician"
+                checked={referralSource==="physician"}
+                onChange={()=>{setReferralSource("physician");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Physician</span>
+            </label>
+            <label key="hospital" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="hospital"
+                checked={referralSource==="hospital"}
+                onChange={()=>{setReferralSource("hospital");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Hospital</span>
+            </label>
+            <label key="another_clinic" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="another_clinic"
+                checked={referralSource==="another_clinic"}
+                onChange={()=>{setReferralSource("another_clinic");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Another Clinic</span>
+            </label>
+            <label key="insurance" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="insurance"
+                checked={referralSource==="insurance"}
+                onChange={()=>{setReferralSource("insurance");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Insurance Company</span>
+            </label>
+            <label key="existing_patient" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="existing_patient"
+                checked={referralSource==="existing_patient"}
+                onChange={()=>{setReferralSource("existing_patient");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Existing Patient</span>
+            </label>
+            <label key="friend_family" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="friend_family"
+                checked={referralSource==="friend_family"}
+                onChange={()=>{setReferralSource("friend_family");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Friend / Family</span>
+            </label>
+            <label key="google_search" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="google_search"
+                checked={referralSource==="google_search"}
+                onChange={()=>{setReferralSource("google_search");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Google Search</span>
+            </label>
+            <label key="google_maps" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="google_maps"
+                checked={referralSource==="google_maps"}
+                onChange={()=>{setReferralSource("google_maps");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Google Maps</span>
+            </label>
+            <label key="website" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="website"
+                checked={referralSource==="website"}
+                onChange={()=>{setReferralSource("website");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Clinic Website</span>
+            </label>
+            <label key="facebook" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="facebook"
+                checked={referralSource==="facebook"}
+                onChange={()=>{setReferralSource("facebook");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Facebook</span>
+            </label>
+            <label key="instagram" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="instagram"
+                checked={referralSource==="instagram"}
+                onChange={()=>{setReferralSource("instagram");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Instagram</span>
+            </label>
+            <label key="linkedin" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="linkedin"
+                checked={referralSource==="linkedin"}
+                onChange={()=>{setReferralSource("linkedin");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">LinkedIn</span>
+            </label>
+            <label key="youtube" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="youtube"
+                checked={referralSource==="youtube"}
+                onChange={()=>{setReferralSource("youtube");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">YouTube</span>
+            </label>
+            <label key="tiktok" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="tiktok"
+                checked={referralSource==="tiktok"}
+                onChange={()=>{setReferralSource("tiktok");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">TikTok</span>
+            </label>
+            <label key="newspaper" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="newspaper"
+                checked={referralSource==="newspaper"}
+                onChange={()=>{setReferralSource("newspaper");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Newspaper</span>
+            </label>
+            <label key="radio" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="radio"
+                checked={referralSource==="radio"}
+                onChange={()=>{setReferralSource("radio");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Radio</span>
+            </label>
+            <label key="tv" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="tv"
+                checked={referralSource==="tv"}
+                onChange={()=>{setReferralSource("tv");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">TV</span>
+            </label>
+            <label key="walk_in" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="walk_in"
+                checked={referralSource==="walk_in"}
+                onChange={()=>{setReferralSource("walk_in");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Walk-in</span>
+            </label>
+            <label key="other" className="flex items-center gap-1.5 cursor-pointer">
+              <input type="radio" name="pRefSrc" value="other"
+                checked={referralSource==="other"}
+                onChange={()=>{setReferralSource("other");setReferralSourceDetail("");}}
+                className="accent-neutral-800"/>
+              <span className="text-xs text-neutral-700">Other</span>
+            </label>
+        </div>
+        {["physician","hospital","another_clinic","insurance","existing_patient","other"].includes(referralSource) && (
+          <input value={referralSourceDetail} onChange={e=>setReferralSourceDetail(e.target.value)}
+            placeholder="Enter name..."
+            className="mt-2 w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm outline-none"/>
+        )}
+      </div>
       {symptomsCatalog.length > 0 && (
         <div className="mb-3">
           <label className="mb-1 block text-xs text-neutral-600">Symptoms</label>
