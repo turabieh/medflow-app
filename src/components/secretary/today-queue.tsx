@@ -286,7 +286,6 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   const [showPanel, setShowPanel] = useState(false);
   const [paymentDone, setPaymentDone] = useState(item.payment_confirmed ?? false);
   const [editingPayment, setEditingPayment] = useState(false);
-  const isToday = item.appt_date === new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
@@ -501,12 +500,10 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
       {paymentDone && !editingPayment && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">✓ Payment confirmed</span>
-          {isToday && (
-            <button onClick={() => setEditingPayment(true)}
-              className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs text-neutral-500 hover:bg-neutral-50">
-              ✏ Edit
-            </button>
-          )}
+          <button onClick={() => setEditingPayment(true)}
+            className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs text-neutral-500 hover:bg-neutral-50">
+            ✏ Edit
+          </button>
           {item.payment_method === "insurance" && item.insurance_claim_amount && item.insurance_claim_amount > 0 && (
             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
               🏥 {item.insurance_claim_amount.toFixed(2)} {currency} to claim
