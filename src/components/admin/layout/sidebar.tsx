@@ -141,7 +141,7 @@ export function AdminSidebarNav({ clinicName, userName, logoUrl, features=[] }: 
           className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600">
           <span>🗂</span> Secretary View
         </Link>
-        <LogoutButton className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 hover:text-red-600" />
+        <SidebarLogout />
       </div>
     </aside>
   );
