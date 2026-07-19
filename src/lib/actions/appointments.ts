@@ -57,7 +57,8 @@ export async function confirmBooking(
     return { success: false, error: "Not authenticated." };
   }
 
-  if (!input.fullName?.trim() || !input.phone?.trim()) {
+  const hasName = input.firstName?.trim() || input.fullName?.trim();
+  if (!hasName || !input.phone?.trim()) {
     return { success: false, error: "Name and phone are required." };
   }
   if (!input.doctorId?.trim()) {
