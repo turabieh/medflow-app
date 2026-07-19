@@ -1,4 +1,4 @@
-import { PendingList } from "@/components/secretary/pending-list";
+import { PendingSection } from "@/components/secretary/pending-section";
 import { ConfirmationCallForm } from "@/components/secretary/confirmation-call-form";
 import { TodayQueue } from "@/components/secretary/today-queue";
 import { computeConfirmationCallDate, type ExistingAppointmentForSlots } from "@/lib/scheduling/slots";
@@ -261,10 +261,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
         </>
       )}
 
-      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
-        Pending calls
-      </h2>
-      <PendingList
+      <PendingSection
         items={pendingItems}
         doctors={doctors ?? []}
         symptomsCatalog={symptomsCatalog ?? []}
