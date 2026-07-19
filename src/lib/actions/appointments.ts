@@ -72,9 +72,7 @@ export async function confirmBooking(
   const { error: patientError } = await supabase
     .from("patients")
     .update({
-      full_name: (input.firstName?.trim() ? [input.firstName, input.middleName, input.lastName].filter(Boolean).join(" ") : input.fullName).trim(),
-      full_name_ar: (input.firstNameAr?.trim() ? [input.firstNameAr, input.middleNameAr, input.lastNameAr].filter(Boolean).join(" ") : input.fullNameAr?.trim()) || null,
-      first_name: input.firstName?.trim() || input.fullName.trim(),
+      first_name: input.firstName?.trim() || input.fullName?.trim() || "",
       middle_name: input.middleName?.trim() || null,
       last_name: input.lastName?.trim() || null,
       first_name_ar: input.firstNameAr?.trim() || null,
