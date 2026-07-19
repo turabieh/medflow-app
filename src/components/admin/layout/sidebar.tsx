@@ -136,11 +136,7 @@ export function AdminSidebarNav({ clinicName, userName, logoUrl, features=[] }: 
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-neutral-100 px-3 py-3 space-y-1">
-        <Link href="/secretary/dashboard"
-          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600">
-          <span>🗂</span> Secretary View
-        </Link>
+      <div className="border-t border-neutral-100 px-3 py-3">
         <SidebarLogout />
       </div>
     </aside>
