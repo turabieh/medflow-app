@@ -16,6 +16,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
     )
     .eq("status", "pending")
     .eq("is_archived", false)
+    .gte("created_at", (() => { const d = new Date(); d.setDate(d.getDate()-7); return d.toISOString(); })())
     .order("created_at", { ascending: true });
 
   const patientIds = (pendingAppointments ?? []).map((a) => a.patient_id);
