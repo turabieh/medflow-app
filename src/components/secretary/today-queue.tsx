@@ -291,13 +291,13 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   const [confirmFinalize, setConfirmFinalize] = useState(false);
 
   // Payment fields
-  const [method, setMethod] = useState<"cash"|"card"|"insurance"|"other">("cash");
-  const [visitFee, setVisitFee] = useState("");
+  const [method, setMethod] = useState<"cash"|"card"|"insurance"|"other">((item.payment_method as any) ?? "cash");
+  const [visitFee, setVisitFee] = useState(item.visit_fee ? String(item.visit_fee) : "");
   // Insurance split
   const hasInsurance = !!(item.insuranceCompanyId);
   const [coveragePct, setCoveragePct] = useState(String(item.insuranceCoveragePct ?? 80));
-  const [patientPays, setPatientPays] = useState("");
-  const [insurancePays, setInsurancePays] = useState("");
+  const [patientPays, setPatientPays] = useState(item.patient_cash_amount ? String(item.patient_cash_amount) : "");
+  const [insurancePays, setInsurancePays] = useState(item.insurance_claim_amount ? String(item.insurance_claim_amount) : "");
   const [patientPayMethod, setPatientPayMethod] = useState<"cash"|"card"|"other">("cash");
   // Insurance not covering
   const [insuranceCoversVisit, setInsuranceCoversVisit] = useState(true);
