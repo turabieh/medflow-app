@@ -285,6 +285,8 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   const router = useRouter();
   const [showPanel, setShowPanel] = useState(false);
   const [paymentDone, setPaymentDone] = useState(item.payment_confirmed ?? false);
+  const [editingPayment, setEditingPayment] = useState(false);
+  const isToday = item.appt_date === new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmFinalize, setConfirmFinalize] = useState(false);
@@ -359,6 +361,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
     setLoading(false);
     if (!result.success) { setError(result.error ?? "Error"); return; }
     setPaymentDone(true);
+    setEditingPayment(false);
     router.refresh();
   }
 
@@ -379,7 +382,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
-      {!paymentDone && (
+      {(!paymentDone || editingPayment) && (
         <>
           <button onClick={() => setShowPanel(!showPanel)}
             className="rounded-md border border-orange-300 bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100">
@@ -495,9 +498,15 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
         </>
       )}
 
-      {paymentDone && (
+      {paymentDone && !editingPayment && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">✓ Payment confirmed</span>
+          {isToday && (
+            <button onClick={() => setEditingPayment(true)}
+              className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs text-neutral-500 hover:bg-neutral-50">
+              ✏ Edit
+            </button>
+          )}
           {item.payment_method === "insurance" && item.insurance_claim_amount && item.insurance_claim_amount > 0 && (
             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
               🏥 {item.insurance_claim_amount.toFixed(2)} {currency} to claim
@@ -507,12 +516,12 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
       )}
 
       {/* Quick print buttons — available after payment */}
-      {paymentDone && (
+      {paymentDone && !editingPayment && (
         <PrintButtons appointmentId={item.id} patientId={patientId} item={item} currency={currency} />
       )}
 
       {/* Quick action buttons */}
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      {!editingPayment && <div className="mt-2 flex flex-wrap gap-1.5">
         <a href={`/secretary/patients/${patientId}`}
           className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
           👤 Patient Info
@@ -521,10 +530,9 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
           className="rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 shadow-sm">
           📅 Book Appointment
         </a>
-      </div>
+      </div>}
 
-      {/* Finalize with confirmation */}
-      <div className="mt-3 flex justify-end">
+      {!editingPayment && <div className="mt-3 flex justify-end">
         {!confirmFinalize ? (
           <button onClick={() => setConfirmFinalize(true)} disabled={loading}
             className="rounded-md bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-sm">
@@ -543,7 +551,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
             </button>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }
