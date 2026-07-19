@@ -1,90 +1,128 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoutButton } from "@/components/ui/logout-button";
+import { useState } from "react";
 
-// feature: null = always shown | feature: "key" = only if clinic has that feature
-const NAV_ITEMS = [
-  { href:"/admin/dashboard",                label:"Dashboard",             icon:"⊞", feature:null },
-  { href:"/admin/clinic-page",              label:"Public Clinic Page",    icon:"🌐", feature:null },
-  { href:"/admin/patients",                 label:"Patient Management",    icon:"🗂", feature:"patients" },
-  { href:"/admin/patient-analysis",          label:"Patient Analysis",      icon:"📊", feature:null },
-  { href:"/admin/settings/clinic",          label:"Clinic Settings",       icon:"⚙", feature:null },
-  { href:"/admin/settings/users",           label:"User Management",       icon:"👥", feature:null },
-  { href:"/admin/settings/schedules",       label:"Schedule Settings",     icon:"📅", feature:"appointments" },
-  { href:"/admin/settings/visit-durations", label:"Visit Durations",       icon:"⏱", feature:"appointments" },
-  { href:"/admin/settings/medications",     label:"Medications & Symptoms",icon:"💊", feature:null },
-  { href:"/admin/settings/insurance",       label:"Insurance & Procedures",icon:"🏥", feature:"insurance_claims" },
-  { href:"/admin/hospitals",                label:"Hospitals",             icon:"🏨", feature:"inpatients" },
-  { href:"/admin/nurse-procedures",         label:"Nurse Procedures",      icon:"🩺", feature:"inpatients" },
-  { href:"/admin/technician-procedures",    label:"Tech Procedures",       icon:"🔬", feature:null },
-  { href:"/admin/chat-tasks",               label:"Quick Tasks",           icon:"⚡", feature:null },
-  { href:"/admin/permissions",              label:"Permissions",           icon:"🔐", feature:"permissions" },
-  { href:"/admin/backup",                   label:"Data Backup",           icon:"💾", feature:"data_backup" },
-  { href:"/admin/finance",                  label:"Finance & Reports",     icon:"💰", feature:"finance" },
-] as const;
+const NAV = [
+  { href:"/admin/dashboard",    label:"Dashboard",         icon:"⊞", feature:null },
+  { href:"/admin/clinic-page",  label:"Public Clinic Page",icon:"🌐", feature:null },
+  { group:"Patients", icon:"👤", items:[
+    { href:"/admin/patients",         label:"Patient Management",icon:"🗂", feature:"patients" },
+    { href:"/admin/patient-analysis", label:"Patient Analysis",  icon:"📊", feature:null },
+  ]},
+  { group:"Finance", icon:"💰", items:[
+    { href:"/admin/finance", label:"Finance & Reports", icon:"💰", feature:"finance" },
+  ]},
+  { group:"Clinical", icon:"🩺", items:[
+    { href:"/admin/settings/medications",  label:"Medications & Symptoms", icon:"💊", feature:null },
+    { href:"/admin/settings/insurance",    label:"Insurance & Procedures", icon:"🏥", feature:"insurance_claims" },
+    { href:"/admin/nurse-procedures",      label:"Nurse Procedures",       icon:"🩺", feature:"inpatients" },
+    { href:"/admin/technician-procedures", label:"Tech Procedures",        icon:"🔬", feature:null },
+  ]},
+  { group:"Hospital", icon:"🏨", items:[
+    { href:"/admin/hospitals", label:"Hospitals", icon:"🏨", feature:"inpatients" },
+  ]},
+  { group:"Settings", icon:"⚙", items:[
+    { href:"/admin/settings/clinic",          label:"Clinic Settings", icon:"⚙", feature:null },
+    { href:"/admin/settings/users",           label:"User Management", icon:"👥", feature:null },
+    { href:"/admin/settings/schedules",       label:"Schedules",       icon:"📅", feature:"appointments" },
+    { href:"/admin/settings/visit-durations", label:"Visit Durations", icon:"⏱", feature:"appointments" },
+    { href:"/admin/permissions",              label:"Permissions",     icon:"🔐", feature:"permissions" },
+  ]},
+  { group:"System", icon:"⚡", items:[
+    { href:"/admin/chat-tasks", label:"Quick Tasks", icon:"⚡", feature:null },
+    { href:"/admin/backup",     label:"Data Backup", icon:"💾", feature:"data_backup" },
+  ]},
+];
 
-export function AdminSidebarNav({
-  clinicName, userName, logoUrl, tierKey, features = [],
-}: {
-  clinicName: string;
-  userName: string;
-  logoUrl?: string | null;
-  tierKey?: string;
-  features?: string[];
-}) {
+interface NavItem { href:string; label:string; icon:string; feature:string|null; }
+interface NavGroup { group:string; icon:string; items:NavItem[]; }
+type NavEntry = NavItem | NavGroup;
+function isGroup(e: NavEntry): e is NavGroup { return "group" in e; }
+
+interface Props {
+  clinicName:string; userName:string; logoUrl?:string|null; tierKey?:string; features?:string[];
+}
+
+export function AdminSidebarNav({ clinicName, userName, logoUrl, features=[] }: Props) {
   const pathname = usePathname();
+  const activeGroups = (NAV.filter(isGroup) as NavGroup[]).filter(g =>
+    g.items.some(i => pathname === i.href || pathname.startsWith(i.href+"/"))
+  ).map(g => g.group);
+  const [expanded, setExpanded] = useState<string[]>(activeGroups.length>0 ? activeGroups : ["Settings"]);
 
-  const visibleItems = NAV_ITEMS.filter(item =>
-    item.feature === null || features.includes(item.feature)
-  );
-
-  const tierLabel = tierKey === "ai" ? "AI Plus"
-    : tierKey ? tierKey.charAt(0).toUpperCase() + tierKey.slice(1)
-    : null;
-
-  const tierClass = tierKey === "ai"
-    ? "bg-purple-100 text-purple-700"
-    : tierKey === "professional"
-    ? "bg-indigo-100 text-indigo-700"
-    : "bg-neutral-100 text-neutral-500";
+  function toggle(group:string) {
+    setExpanded(prev => prev.includes(group) ? prev.filter(g=>g!==group) : [...prev,group]);
+  }
+  function allowed(feature:string|null) { return feature===null || features.includes(feature); }
+  function active(href:string) { return pathname===href || pathname.startsWith(href+"/"); }
 
   return (
-    <aside className="flex w-56 flex-col border-r border-neutral-200 bg-white h-screen sticky top-0">
-      {/* Clinic header */}
-      <div className="border-b border-neutral-100 px-4 py-4">
-        {logoUrl && <img src={logoUrl} alt="logo" className="mb-2 h-10 w-auto object-contain" />}
-        <p className="text-sm font-medium text-neutral-900 leading-tight">{clinicName}</p>
-        {tierLabel && (
-          <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${tierClass}`}>
-            {tierLabel}
-          </span>
+    <aside className="flex h-screen w-56 flex-col border-r border-neutral-200 bg-white">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 border-b border-neutral-100 px-4 py-4">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className="h-8 w-8 rounded-md object-cover"/>
+        ) : (
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-neutral-900 text-xs font-bold text-white">
+            {clinicName.charAt(0)}
+          </div>
         )}
-        <p className="mt-1 text-xs text-neutral-400">{userName} · admin</p>
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-neutral-900">{clinicName}</p>
+          <p className="truncate text-[10px] text-neutral-400">{userName}</p>
+        </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3">
-        {visibleItems.map(item => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
+        {NAV.map((entry) => {
+          if (!isGroup(entry)) {
+            if (!allowed(entry.feature)) return null;
+            return (
+              <Link key={entry.href} href={entry.href}
+                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  active(entry.href) ? "bg-neutral-900 font-medium text-white" : "text-neutral-600 hover:bg-neutral-100"
+                }`}>
+                <span>{entry.icon}</span>{entry.label}
+              </Link>
+            );
+          }
+          const items = entry.items.filter(it => allowed(it.feature));
+          if (items.length===0) return null;
+          const isOpen = expanded.includes(entry.group);
+          const hasActive = items.some(it => active(it.href));
           return (
-            <Link key={item.href} href={item.href}
-              className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${
-                active
-                  ? "bg-neutral-100 font-medium text-neutral-900"
-                  : "text-neutral-600 hover:bg-neutral-50 hover:text-neutral-700"
-              }`}>
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </Link>
+            <div key={entry.group}>
+              <button onClick={()=>toggle(entry.group)}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-neutral-50 ${hasActive?"text-neutral-900 font-semibold":"text-neutral-500 hover:text-neutral-700"}`}>
+                <span>{entry.icon}</span>
+                <span className="flex-1 text-left">{entry.group}</span>
+                <span className={`text-[10px] text-neutral-400 transition-transform duration-200 ${isOpen?"rotate-90":""}`}>▶</span>
+              </button>
+              {isOpen && (
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-neutral-100 pl-3">
+                  {items.map(it => (
+                    <Link key={it.href} href={it.href}
+                      className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                        active(it.href) ? "bg-neutral-900 font-medium text-white" : "text-neutral-600 hover:bg-neutral-100"
+                      }`}>
+                      <span>{it.icon}</span>{it.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="border-t border-neutral-100 p-4">
-        <LogoutButton />
+      {/* Footer */}
+      <div className="border-t border-neutral-100 px-4 py-3">
+        <Link href="/secretary/dashboard" className="flex items-center gap-2 text-xs text-neutral-400 hover:text-neutral-600">
+          <span>←</span> Secretary View
+        </Link>
       </div>
     </aside>
   );
