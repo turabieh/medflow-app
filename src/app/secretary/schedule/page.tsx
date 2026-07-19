@@ -38,15 +38,24 @@ export default async function SecretarySchedulePage({
       .select("id, doctor_id, block_date, start_time, end_time, reason").order("block_date"),
     supabase.from("appointments")
       .select("id, appt_date, start_time, end_time, status, visit_type, doctor_id, patient_id")
-      .neq("status", "cancelled").neq("status", "no_show").order("start_time"),
+      .neq("status", "cancelled").neq("status", "no_show")
+      .gte("appt_date", (() => { const d = new Date(targetDate); d.setDate(d.getDate()-60); return d.toISOString().slice(0,10); })())
+      .lte("appt_date", (() => { const d = new Date(targetDate); d.setDate(d.getDate()+60); return d.toISOString().slice(0,10); })())
+      .order("start_time"),
     supabase.from("visits")
       .select("id, visit_date, visit_time, visit_fee_type, doctor_id, inpatients(location, hospitals(name), patients(full_name))")
       .eq("visit_context", "inpatient").neq("status", "finalized")
-      .not("visit_date", "is", null).not("visit_time", "is", null).order("visit_date"),
+      .not("visit_date", "is", null).not("visit_time", "is", null)
+      .gte("visit_date", (() => { const d = new Date(targetDate); d.setDate(d.getDate()-60); return d.toISOString().slice(0,10); })())
+      .lte("visit_date", (() => { const d = new Date(targetDate); d.setDate(d.getDate()+60); return d.toISOString().slice(0,10); })())
+      .order("visit_date"),
     supabase.from("technician_appointments")
       .select("id, appt_date, start_time, end_time, status, technician_id, patients(full_name), technician_procedures(name)")
       .eq("clinic_id", profile?.clinic_id ?? "")
-      .not("status", "in", '("cancelled","no_show")').order("start_time"),
+      .not("status", "in", '("cancelled","no_show")')
+      .gte("appt_date", (() => { const d = new Date(targetDate); d.setDate(d.getDate()-60); return d.toISOString().slice(0,10); })())
+      .lte("appt_date", (() => { const d = new Date(targetDate); d.setDate(d.getDate()+60); return d.toISOString().slice(0,10); })())
+      .order("start_time"),
   ]);
 
   const patientIds = [...new Set((appointments ?? []).map((a) => a.patient_id))];
