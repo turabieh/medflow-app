@@ -12,6 +12,8 @@ interface PatientEditFormProps {
     full_name: string;
     full_name_ar: string | null;
     mrn: string | null;
+    referral_source: string | null;
+    referral_source_detail: string | null;
     first_name: string;
     middle_name: string | null;
     last_name: string | null;
@@ -37,7 +39,9 @@ interface PatientEditFormProps {
 }
 
 export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: PatientEditFormProps) {
-  const [mrn,          setMrn]          = useState((patient as any).mrn ?? "");
+  const [mrn,                setMrn]                = useState((patient as any).mrn ?? "");
+  const [referralSource,       setReferralSource]       = useState(patient.referral_source ?? "");
+  const [referralSourceDetail, setReferralSourceDetail] = useState(patient.referral_source_detail ?? "");
   const [firstName,    setFirstName]    = useState(patient.first_name ?? patient.full_name);
   const [middleName,   setMiddleName]   = useState(patient.middle_name ?? "");
   const [lastName,     setLastName]     = useState(patient.last_name ?? "");
@@ -69,7 +73,9 @@ export function PatientEditForm({ patient, insuranceCompanies, doctors = [] }: P
     setSaved(false);
 
     const result = await updatePatient(patient.id, {
-      mrn:            mrn.trim() || undefined,
+      mrn:                    mrn.trim() || undefined,
+      referral_source:        referralSource || null,
+      referral_source_detail: referralSourceDetail.trim() || null,
       first_name:     firstName.trim(),
       middle_name:    middleName.trim() || null,
       last_name:      lastName.trim() || null,
