@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 const NAV = [
@@ -42,6 +42,23 @@ function isGroup(e: NavEntry): e is NavGroup { return "group" in e; }
 
 interface Props {
   clinicName:string; userName:string; logoUrl?:string|null; tierKey?:string; features?:string[];
+}
+
+function SidebarLogout() {
+  const router = useRouter();
+  async function handleLogout() {
+    const { createClient } = await import("@/lib/supabase/client");
+    const sb = createClient();
+    await sb.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+  return (
+    <button onClick={handleLogout}
+      className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+      <span>🚪</span> Log out
+    </button>
+  );
 }
 
 export function AdminSidebarNav({ clinicName, userName, logoUrl, features=[] }: Props) {
@@ -119,10 +136,12 @@ export function AdminSidebarNav({ clinicName, userName, logoUrl, features=[] }: 
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-neutral-100 px-4 py-3">
-        <Link href="/secretary/dashboard" className="flex items-center gap-2 text-xs text-neutral-400 hover:text-neutral-600">
-          <span>←</span> Secretary View
+      <div className="border-t border-neutral-100 px-3 py-3 space-y-1">
+        <Link href="/secretary/dashboard"
+          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-50 hover:text-neutral-600">
+          <span>🗂</span> Secretary View
         </Link>
+        <LogoutButton className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 hover:text-red-600" />
       </div>
     </aside>
   );
