@@ -298,5 +298,4 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
       />}
     </>
   );
-  const [pendingOpen, setPendingOpen] = useState(false);
 }
