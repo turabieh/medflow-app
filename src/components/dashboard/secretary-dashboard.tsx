@@ -261,20 +261,10 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
         </>
       )}
 
-      <button
-        onClick={() => setPendingOpen(o => !o)}
-        className="mb-3 flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-2.5 hover:bg-neutral-50 transition-colors">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-neutral-700">Pending calls</span>
-          {pendingItems.length > 0 && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
-              {pendingItems.length}
-            </span>
-          )}
-        </div>
-        <span className={`text-xs text-neutral-400 transition-transform duration-200 ${pendingOpen ? "rotate-90" : ""}`}>▶</span>
-      </button>
-      {pendingOpen && <PendingList
+      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
+        Pending calls
+      </h2>
+      <PendingList
         items={pendingItems}
         doctors={doctors ?? []}
         symptomsCatalog={symptomsCatalog ?? []}
@@ -295,7 +285,7 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
           endTime: b.end_time,
           reason: b.reason,
         }))}
-      />}
+      />
     </>
   );
 }
