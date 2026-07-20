@@ -2,11 +2,6 @@
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const REPORT_TYPES = [
-  "NCS","EEG","MRI","CT Scan","Lab Results",
-  "Referral Letter","Previous Report","X-Ray","Ultrasound","Other"
-];
-
 interface Attachment {
   id: string;
   file_name: string;
@@ -33,18 +28,29 @@ function formatDate(dt: string) {
 export function AttachmentsTab({
   visitId, patientId, clinicId
 }: { visitId: string; patientId: string; clinicId: string }) {
+  const [reportTypes, setReportTypes]   = useState<string[]>([]);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading]         = useState(true);
   const [uploading, setUploading]     = useState(false);
   const [error, setError]             = useState<string|null>(null);
   const [success, setSuccess]         = useState<string|null>(null);
   const [filterType, setFilterType]   = useState("all");
-  const [reportType, setReportType]   = useState("Other");
+  const [reportType, setReportType]   = useState("");
   const [notes, setNotes]             = useState("");
   const [showUpload, setShowUpload]   = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
+
+  async function loadReportTypes() {
+    const { data } = await supabase
+      .from("report_types")
+      .select("name")
+      .eq("clinic_id", clinicId)
+      .eq("is_active", true)
+      .order("sort_order");
+    setReportTypes((data ?? []).map((r: any) => r.name));
+  }
 
   async function loadAttachments() {
     setLoading(true);
@@ -58,7 +64,7 @@ export function AttachmentsTab({
     setLoading(false);
   }
 
-  useEffect(() => { loadAttachments(); }, []);
+  useEffect(() => { loadReportTypes(); loadAttachments(); }, []);
 
   async function handleUpload() {
     const file = fileRef.current?.files?.[0];
@@ -152,7 +158,8 @@ export function AttachmentsTab({
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-600">Report type</label>
             <select value={reportType} onChange={e=>setReportType(e.target.value)} className={inp}>
-              {REPORT_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              <option value="">— Select type —</option>
+              {reportTypes.map(t=><option key={t} value={t}>{t}</option>)}
             </select>
           </div>
 
@@ -183,7 +190,7 @@ export function AttachmentsTab({
             className={`rounded-full px-3 py-1 text-xs font-medium ${filterType==="all"?"bg-neutral-900 text-white":"border border-neutral-300 text-neutral-600 hover:bg-neutral-50"}`}>
             All ({attachments.length})
           </button>
-          {REPORT_TYPES.filter(t=>attachments.some(a=>a.report_type===t)).map(t=>(
+          {reportTypes.filter(t=>attachments.some(a=>a.report_type===t)).map(t=>(
             <button key={t} onClick={()=>setFilterType(t)}
               className={`rounded-full px-3 py-1 text-xs font-medium ${filterType===t?"bg-neutral-900 text-white":"border border-neutral-300 text-neutral-600 hover:bg-neutral-50"}`}>
               {t} ({attachments.filter(a=>a.report_type===t).length})

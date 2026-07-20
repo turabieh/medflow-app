@@ -15,6 +15,7 @@ const NAV = [
   ]},
   { group:"Clinical", icon:"🩺", items:[
     { href:"/admin/settings/medications",  label:"Medications & Symptoms", icon:"💊", feature:null },
+    { href:"/admin/report-types",             label:"Report Types",           icon:"📎", feature:null },
     { href:"/admin/settings/insurance",    label:"Insurance & Procedures", icon:"🏥", feature:"insurance_claims" },
     { href:"/admin/nurse-procedures",      label:"Nurse Procedures",       icon:"🩺", feature:"inpatients" },
     { href:"/admin/technician-procedures", label:"Tech Procedures",        icon:"🔬", feature:null },
