@@ -8,6 +8,7 @@ import { ClinicalTab } from "./clinical-tab";
 import { NotesTab } from "./notes-tab";
 import { AINotesTab } from "./ai-notes-tab";
 import { HistoryTab } from "./history-tab";
+import { AttachmentsTab } from "./attachments-tab";
 import { markVisitDone } from "@/lib/actions/visits";
 
 interface Symptom { id: string; name: string; name_ar: string | null; category: string; }
@@ -86,6 +87,7 @@ export function VisitTabs(props: VisitTabsProps) {
     { id: "notes",      label: "Notes" },
     { id: "ai",         label: "AI Notes" },
     { id: "history",    label: "History" },
+    { id: "attachments",label: "📎 Attachments" },
   ];
 
   const [activeTab, setActiveTab] = useState("patient");
@@ -188,6 +190,13 @@ export function VisitTabs(props: VisitTabsProps) {
           <HistoryTab
             pastVisits={props.pastVisits}
             patientName={props.patient.full_name}
+          />
+        )}
+        {activeTab === "attachments" && !isDental && (
+          <AttachmentsTab
+            visitId={props.visitId}
+            patientId={props.patient.id}
+            clinicId={props.clinicId}
           />
         )}
       </div>
