@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Maali Neurology Clinic",
-  description: "Maali Neurology Clinic — Advanced neurological care in Amman, Jordan.",
+  title: {
+    default: "عيادة معالي للأعصاب | Maali Neurology Clinic",
+    template: "%s | عيادة معالي للأعصاب",
+  },
+  description: "عيادة معالي للأعصاب في عمان، الأردن — رعاية عصبية متقدمة. Maali Neurology Clinic in Amman, Jordan — Advanced neurological care.",
+  keywords: ["عيادة معالي", "طب الأعصاب", "عمان", "الأردن", "Maali Neurology", "neurology", "Amman", "Jordan"],
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -13,9 +17,21 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   openGraph: {
-    title: "Maali Neurology Clinic",
-    description: "Advanced neurological care in Amman, Jordan.",
+    title: "عيادة معالي للأعصاب | Maali Neurology Clinic",
+    description: "عيادة معالي للأعصاب في عمان، الأردن. Maali Neurology Clinic in Amman, Jordan.",
     images: ["/opengraph-image.png"],
+    locale: "ar_JO",
+    alternateLocale: "en_US",
+    type: "website",
+    url: "https://www.maalineurology.com",
+    siteName: "عيادة معالي للأعصاب",
+  },
+  alternates: {
+    canonical: "https://www.maalineurology.com",
+    languages: {
+      "ar": "https://www.maalineurology.com",
+      "en": "https://www.maalineurology.com",
+    },
   },
 };
 
