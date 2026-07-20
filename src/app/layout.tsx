@@ -5,8 +5,12 @@ export const metadata: Metadata = {
   title: "Maali Neurology Clinic",
   description: "Maali Neurology Clinic — Advanced neurological care in Amman, Jordan.",
   icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: { url: "/apple-icon.png", sizes: "180x180" },
+    shortcut: "/favicon.ico",
   },
   openGraph: {
     title: "Maali Neurology Clinic",
