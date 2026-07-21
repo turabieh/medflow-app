@@ -118,7 +118,7 @@ export function FinanceDashboard({
   expenses, totalExpenses, expByCategory, totalSalaries, totalCosts, netProfit,
   monthlyTrend,
   staff, latestSalaries, clinicId,
-  unclaimedInsurance, unclaimedHospital, totalUnclaimed,
+  unclaimedInsurance, unclaimedHospital, totalUnclaimed, debugData,
   insuranceCompanies = [], claimsForTab = [],
 }: {
   currency: string; fromDate: string; toDate: string; period: string; tab: string;
@@ -130,6 +130,7 @@ export function FinanceDashboard({
   staff: StaffMember[]; latestSalaries: SalaryEntry[]; clinicId: string;
   unclaimedInsurance: UnclaimedEntry[]; unclaimedHospital: UnclaimedEntry[]; totalUnclaimed: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  debugData: any;
   insuranceCompanies?: { id: string; name: string; name_ar: string | null; phone: string | null; email: string | null; portal_url: string | null }[];
   claimsForTab?: { id: string; claim_number: string; from_date: string; to_date: string; total_claimed: number; total_paid: number | null; paid_date: string | null; status: string; notes: string | null; created_at: string; insuranceName: string; is_followup: boolean; parent_claim_id: string | null }[];
 }) {
@@ -158,7 +159,7 @@ export function FinanceDashboard({
     { id:"revenue",   label:"Revenue" },
     { id:"expenses",  label:"Expenses" },
     { id:"salaries",  label:"Staff & Salaries" },
-    { id:"reports",   label:"📊 Reports" },
+    { id:"reports",   label:"Reports" },
     { id:"cash",       label:"💵 Cash" },
     { id:"unclaimed",  label:"Unclaimed Revenue 🔴" },
   ];
@@ -288,6 +289,7 @@ export function FinanceDashboard({
           {/* Debug — remove after confirming */}
           <details className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-neutral-600">
             <summary className="cursor-pointer font-medium text-blue-800">🔍 Debug data (click to expand)</summary>
+            <pre className="mt-2 text-[10px] overflow-auto whitespace-pre-wrap">{JSON.stringify({ hospOutstanding, insOutstanding, hospWrittenOff, insWrittenOff, totalUnclaimed, cashTotal, hospitalPaid, insurancePaid, ...debugData }, null, 2)}</pre>
           </details>
 
           {/* Revenue breakdown */}
@@ -598,26 +600,131 @@ export function FinanceDashboard({
 
       {/* ── REPORTS TAB ── */}
       {activeTab === "reports" && (
-        <ReportsHub
-          fromDate={fromDate}
-          toDate={toDate}
-          currency={currency}
-          cashTotal={cashTotal}
-          hospitalPaid={hospitalPaid}
-          insurancePaid={insurancePaid}
-          totalRevenue={totalRevenue}
-          totalCosts={totalCosts}
-          totalSalaries={totalSalaries}
-          netProfit={netProfit}
-          expByCategory={expByCategory}
-          hospOutstanding={hospOutstanding}
-          insOutstanding={insOutstanding}
-          hospWrittenOff={hospWrittenOff}
-          insWrittenOff={insWrittenOff}
-          monthlyTrend={monthlyTrend}
-          fmt={fmt}
-        />
+        <div className="space-y-4">
+          {/* P&L Summary */}
+          <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+            <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3 flex justify-between items-center">
+              <p className="text-sm font-semibold text-neutral-900">Profit &amp; Loss — {fromDate} to {toDate}</p>
+              <a href={`/print/finance-report?from=${fromDate}&to=${toDate}&currency=${currency}`}
+                target="_blank" rel="noreferrer"
+                className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
+                Print Report
+              </a>
+            </div>
+            <div className="p-4">
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-neutral-100">
+                    <td colSpan={2} className="py-2 text-xs font-bold uppercase tracking-wide text-neutral-500">INCOME</td>
+                  </tr>
+                  {[
+                    ["Cash & Card Payments", cashTotal],
+                    ["Hospital Claims Received", hospitalPaid],
+                    ["Insurance Claims Received", insurancePaid],
+                  ].map(([label, val]) => (
+                    <tr key={label as string} className="border-b border-neutral-50">
+                      <td className="py-2 pl-4 text-neutral-700">{label as string}</td>
+                      <td className="py-2 text-right font-mono text-green-700 font-medium">{(val as number).toFixed(2)} {currency}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-b border-neutral-200 bg-green-50">
+                    <td className="py-2 pl-2 font-bold text-neutral-900">Total Revenue</td>
+                    <td className="py-2 text-right font-mono font-bold text-green-800">{fmt(totalRevenue, currency)}</td>
+                  </tr>
+                  <tr className="border-b border-neutral-100 mt-2">
+                    <td colSpan={2} className="py-2 text-xs font-bold uppercase tracking-wide text-neutral-500 pt-4">EXPENSES</td>
+                  </tr>
+                  {Object.entries(expByCategory).sort(([,a],[,b]) => b-a).map(([cat, amt]) => (
+                    <tr key={cat} className="border-b border-neutral-50">
+                      <td className="py-2 pl-4 text-neutral-700">{cat}</td>
+                      <td className="py-2 text-right font-mono text-red-600">{amt.toFixed(2)} {currency}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-b border-neutral-50">
+                    <td className="py-2 pl-4 text-neutral-700">Staff Salaries</td>
+                    <td className="py-2 text-right font-mono text-red-600">{totalSalaries.toFixed(2)} {currency}</td>
+                  </tr>
+                  <tr className="border-b border-neutral-200 bg-red-50">
+                    <td className="py-2 pl-2 font-bold text-neutral-900">Total Costs</td>
+                    <td className="py-2 text-right font-mono font-bold text-red-800">{fmt(totalCosts, currency)}</td>
+                  </tr>
+                  <tr className={`${netProfit >= 0 ? "bg-emerald-50" : "bg-red-50"}`}>
+                    <td className="py-3 pl-2 text-base font-bold">Net {netProfit >= 0 ? "Profit" : "Loss"}</td>
+                    <td className={`py-3 text-right font-mono text-lg font-bold ${netProfit >= 0 ? "text-emerald-800" : "text-red-800"}`}>
+                      {netProfit >= 0 ? "+" : ""}{fmt(netProfit, currency)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pl-2 text-xs text-neutral-500">Outstanding (uncollected)</td>
+                    <td className="py-2 text-right font-mono text-xs text-amber-700">{fmt(hospOutstanding + insOutstanding, currency)}</td>
+                  </tr>
+                  {(hospWrittenOff + insWrittenOff) > 0 && (
+                    <tr>
+                      <td className="py-2 pl-2 text-xs text-neutral-400">Closed at partial — written off</td>
+                      <td className="py-2 text-right font-mono text-xs text-neutral-400">{fmt(hospWrittenOff + insWrittenOff, currency)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Tax estimate */}
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+            <p className="mb-3 text-sm font-semibold text-neutral-900">Tax Estimate</p>
+            <p className="text-xs text-neutral-500 mb-3">Taxable income = Revenue − Allowable expenses. Consult your accountant for the exact rate.</p>
+            <table className="w-full text-sm">
+              <tbody>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-1.5 text-neutral-600">Gross Revenue</td>
+                  <td className="text-right font-mono font-medium">{fmt(totalRevenue, currency)}</td>
+                </tr>
+                <tr className="border-b border-neutral-100">
+                  <td className="py-1.5 text-neutral-600">Deductible Expenses</td>
+                  <td className="text-right font-mono text-red-600">−{fmt(totalCosts, currency)}</td>
+                </tr>
+                <tr className="border-b border-neutral-200 font-bold">
+                  <td className="py-2">Taxable Net Profit</td>
+                  <td className={`text-right font-mono ${netProfit >= 0 ? "text-emerald-700" : "text-red-700"}`}>{fmt(netProfit, currency)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Monthly detail table */}
+          {monthlyTrend.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-neutral-100 px-4 py-3">
+                <p className="text-sm font-medium text-neutral-900">Monthly Breakdown</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-neutral-100 bg-neutral-50 text-left">
+                  <th className="px-4 py-2 text-xs font-medium text-neutral-500">Month</th>
+                  <th className="px-4 py-2 text-xs font-medium text-neutral-500 text-right">Revenue</th>
+                  <th className="px-4 py-2 text-xs font-medium text-neutral-500 text-right">Expenses</th>
+                  <th className="px-4 py-2 text-xs font-medium text-neutral-500 text-right">Profit / Loss</th>
+                </tr></thead>
+                <tbody className="divide-y divide-neutral-50">
+                  {monthlyTrend.map(m => {
+                    const [y, mon] = m.month.split("-");
+                    return (
+                      <tr key={m.month} className="hover:bg-neutral-50">
+                        <td className="px-4 py-2 font-medium text-neutral-800">{MONTHS_SHORT[parseInt(mon)-1]} {y}</td>
+                        <td className="px-4 py-2 text-right font-mono text-green-700">{m.revenue.toFixed(2)}</td>
+                        <td className="px-4 py-2 text-right font-mono text-red-600">{m.expenses.toFixed(2)}</td>
+                        <td className={`px-4 py-2 text-right font-mono font-semibold ${m.profit >= 0 ? "text-emerald-700" : "text-red-700"}`}>
+                          {m.profit >= 0 ? "+" : ""}{m.profit.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
+
       {/* ── UNCLAIMED REVENUE TAB ── */}
       {/* ── CASH TAB ── */}
       {activeTab === "cash" && (
@@ -909,332 +1016,6 @@ export function FinanceDashboard({
       )}
 
 
-    </div>
-  );
-}
-
-// ── Reports Hub ──────────────────────────────────────────────────────────────
-interface ReportsHubProps {
-  fromDate: string; toDate: string; currency: string;
-  cashTotal: number; hospitalPaid: number; insurancePaid: number;
-  totalRevenue: number; totalCosts: number; totalSalaries: number;
-  netProfit: number; expByCategory: Record<string,number>;
-  hospOutstanding: number; insOutstanding: number;
-  hospWrittenOff: number; insWrittenOff: number;
-  monthlyTrend: MonthlyPoint[];
-  fmt: (v:number, c:string) => string;
-}
-
-function ReportsHub(p: ReportsHubProps) {
-  const [report, setReport] = useState("pl");
-
-  const REPORTS = [
-    { id:"pl",      label:"📋 P&L Summary",      desc:"Revenue vs expenses for period" },
-    { id:"daily",   label:"📅 Daily Income",      desc:"Day-by-day revenue breakdown" },
-    { id:"monthly", label:"📆 Monthly Comparison",desc:"Month vs month revenue & expenses" },
-    { id:"tax",     label:"🧾 Tax Estimate",      desc:"Taxable income calculation" },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {/* Report selector */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {REPORTS.map(r => (
-          <button key={r.id} onClick={() => setReport(r.id)}
-            className={`rounded-xl border p-3 text-left transition-all ${
-              report === r.id
-                ? "border-neutral-900 bg-neutral-900 text-white"
-                : "border-neutral-200 bg-white hover:border-neutral-400"
-            }`}>
-            <p className={`text-sm font-semibold ${report === r.id ? "text-white" : "text-neutral-900"}`}>{r.label}</p>
-            <p className={`text-xs mt-0.5 ${report === r.id ? "text-neutral-300" : "text-neutral-500"}`}>{r.desc}</p>
-          </button>
-        ))}
-      </div>
-
-      {/* P&L Report */}
-      {report === "pl" && (
-        <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3 flex justify-between items-center">
-            <p className="text-sm font-semibold text-neutral-900">Profit & Loss — {p.fromDate} to {p.toDate}</p>
-            <a href={`/print/finance-report?from=${p.fromDate}&to=${p.toDate}&currency=${p.currency}`}
-              target="_blank" rel="noreferrer"
-              className="rounded-md border border-neutral-300 px-3 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
-              🖨 Print
-            </a>
-          </div>
-          <div className="p-4">
-            <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b border-neutral-100">
-                  <td colSpan={2} className="py-2 text-xs font-bold uppercase tracking-wide text-neutral-500">INCOME</td>
-                </tr>
-                {[
-                  ["Cash & Card Payments", p.cashTotal],
-                  ["Hospital Claims Received", p.hospitalPaid],
-                  ["Insurance Claims Received", p.insurancePaid],
-                ].map(([label, val]) => (
-                  <tr key={label as string} className="border-b border-neutral-50">
-                    <td className="py-2 pl-4 text-neutral-700">{label as string}</td>
-                    <td className="py-2 text-right font-mono text-green-700 font-medium">{(val as number).toFixed(2)} {p.currency}</td>
-                  </tr>
-                ))}
-                <tr className="border-b border-neutral-200 bg-green-50">
-                  <td className="py-2 pl-2 font-bold text-neutral-900">Total Revenue</td>
-                  <td className="py-2 text-right font-mono font-bold text-green-800">{p.fmt(p.totalRevenue, p.currency)}</td>
-                </tr>
-                <tr className="border-b border-neutral-100">
-                  <td colSpan={2} className="py-2 text-xs font-bold uppercase tracking-wide text-neutral-500 pt-4">EXPENSES</td>
-                </tr>
-                {Object.entries(p.expByCategory).sort(([,a],[,b]) => b-a).map(([cat, amt]) => (
-                  <tr key={cat} className="border-b border-neutral-50">
-                    <td className="py-2 pl-4 text-neutral-700">{cat}</td>
-                    <td className="py-2 text-right font-mono text-red-600">{amt.toFixed(2)} {p.currency}</td>
-                  </tr>
-                ))}
-                <tr className="border-b border-neutral-50">
-                  <td className="py-2 pl-4 text-neutral-700">Staff Salaries</td>
-                  <td className="py-2 text-right font-mono text-red-600">{p.totalSalaries.toFixed(2)} {p.currency}</td>
-                </tr>
-                <tr className="border-b border-neutral-200 bg-red-50">
-                  <td className="py-2 pl-2 font-bold text-neutral-900">Total Costs</td>
-                  <td className="py-2 text-right font-mono font-bold text-red-800">{p.fmt(p.totalCosts, p.currency)}</td>
-                </tr>
-                <tr className={p.netProfit >= 0 ? "bg-emerald-50" : "bg-red-50"}>
-                  <td className="py-3 pl-2 text-base font-bold">Net {p.netProfit >= 0 ? "Profit" : "Loss"}</td>
-                  <td className={`py-3 text-right font-mono text-lg font-bold ${p.netProfit >= 0 ? "text-emerald-800" : "text-red-800"}`}>
-                    {p.netProfit >= 0 ? "+" : ""}{p.fmt(p.netProfit, p.currency)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 pl-2 text-xs text-neutral-500">Outstanding (uncollected)</td>
-                  <td className="py-2 text-right font-mono text-xs text-amber-700">{p.fmt(p.hospOutstanding + p.insOutstanding, p.currency)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Daily Income Report */}
-      {report === "daily" && (
-        <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
-            <p className="text-sm font-semibold text-neutral-900">Daily Income — {p.fromDate} to {p.toDate}</p>
-          </div>
-          <div className="p-4">
-            {p.monthlyTrend.length === 0 ? (
-              <p className="text-sm text-neutral-400 py-8 text-center">No data for this period.</p>
-            ) : (
-              <>
-                {/* Bar chart */}
-                <div className="mb-4">
-                  <p className="text-xs text-neutral-500 mb-3">Revenue by month (daily avg shown per bar)</p>
-                  <div className="flex items-end gap-1.5 h-36">
-                    {p.monthlyTrend.map((m, i) => {
-                      const maxRev = Math.max(...p.monthlyTrend.map(x => x.revenue), 1);
-                      const h = Math.max(m.revenue/maxRev*100, 2);
-                      return (
-                        <div key={i} className="flex flex-col items-center flex-1 gap-1">
-                          <span className="text-[8px] font-bold text-neutral-600">{m.revenue > 0 ? m.revenue.toFixed(0) : ""}</span>
-                          <div className="w-full rounded-t-sm bg-emerald-500" style={{height:`${h}%`,minHeight:3}}/>
-                          <span className="text-[7px] text-neutral-400">{m.month}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {/* Table */}
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50 text-left">
-                      <th className="px-3 py-2 text-xs font-semibold text-neutral-600">Month</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-neutral-600 text-right">Revenue</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-neutral-600 text-right">Expenses</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-neutral-600 text-right">Net</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {p.monthlyTrend.map((m, i) => {
-                      const net = m.revenue - m.expenses;
-                      return (
-                        <tr key={i} className="border-b border-neutral-50 hover:bg-neutral-50">
-                          <td className="px-3 py-2 font-medium text-neutral-800">{m.month}</td>
-                          <td className="px-3 py-2 text-right font-mono text-green-700">{m.revenue.toFixed(2)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-red-600">{m.expenses.toFixed(2)}</td>
-                          <td className={`px-3 py-2 text-right font-mono font-semibold ${net >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                            {net >= 0 ? "+" : ""}{net.toFixed(2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Monthly Comparison */}
-      {report === "monthly" && (
-        <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-neutral-100 bg-neutral-50 px-4 py-3">
-            <p className="text-sm font-semibold text-neutral-900">Monthly Comparison</p>
-          </div>
-          <div className="p-4">
-            {p.monthlyTrend.length === 0 ? (
-              <p className="text-sm text-neutral-400 py-8 text-center">No data for this period.</p>
-            ) : (
-              <>
-                {/* Side by side bars */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-500"/><span className="text-xs text-neutral-600">Revenue</span></div>
-                    <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-red-400"/><span className="text-xs text-neutral-600">Expenses</span></div>
-                  </div>
-                  <div className="flex items-end gap-2 h-40">
-                    {p.monthlyTrend.map((m, i) => {
-                      const maxVal = Math.max(...p.monthlyTrend.map(x => Math.max(x.revenue, x.expenses)), 1);
-                      const rh = Math.max(m.revenue/maxVal*100, 1);
-                      const eh = Math.max(m.expenses/maxVal*100, 1);
-                      return (
-                        <div key={i} className="flex flex-col items-center flex-1 gap-1">
-                          <div className="flex items-end gap-0.5 w-full" style={{height:"90%"}}>
-                            <div className="flex-1 rounded-t-sm bg-emerald-500" style={{height:`${rh}%`}}/>
-                            <div className="flex-1 rounded-t-sm bg-red-400" style={{height:`${eh}%`}}/>
-                          </div>
-                          <span className="text-[7px] text-neutral-400">{m.month}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {/* Summary stats */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-center">
-                    <p className="text-lg font-black text-emerald-800">{p.fmt(p.totalRevenue, p.currency)}</p>
-                    <p className="text-xs text-emerald-600">Total Revenue</p>
-                  </div>
-                  <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-center">
-                    <p className="text-lg font-black text-red-800">{p.fmt(p.totalCosts, p.currency)}</p>
-                    <p className="text-xs text-red-600">Total Expenses</p>
-                  </div>
-                  <div className={`rounded-lg border p-3 text-center ${p.netProfit >= 0 ? "bg-blue-50 border-blue-200" : "bg-orange-50 border-orange-200"}`}>
-                    <p className={`text-lg font-black ${p.netProfit >= 0 ? "text-blue-800" : "text-orange-800"}`}>{p.fmt(p.netProfit, p.currency)}</p>
-                    <p className={`text-xs ${p.netProfit >= 0 ? "text-blue-600" : "text-orange-600"}`}>Net {p.netProfit >= 0 ? "Profit" : "Loss"}</p>
-                  </div>
-                </div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 bg-neutral-50 text-left">
-                      <th className="px-3 py-2 text-xs font-semibold text-neutral-600">Month</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-right text-neutral-600">Revenue</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-right text-neutral-600">Expenses</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-right text-neutral-600">Net</th>
-                      <th className="px-3 py-2 text-xs font-semibold text-right text-neutral-600">Margin</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {p.monthlyTrend.map((m, i) => {
-                      const net = m.revenue - m.expenses;
-                      const margin = m.revenue > 0 ? Math.round(net/m.revenue*100) : 0;
-                      return (
-                        <tr key={i} className="border-b border-neutral-50 hover:bg-neutral-50">
-                          <td className="px-3 py-2 font-medium text-neutral-800">{m.month}</td>
-                          <td className="px-3 py-2 text-right font-mono text-green-700">{m.revenue.toFixed(2)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-red-600">{m.expenses.toFixed(2)}</td>
-                          <td className={`px-3 py-2 text-right font-mono font-semibold ${net >= 0 ? "text-emerald-700" : "text-red-700"}`}>
-                            {net >= 0 ? "+" : ""}{net.toFixed(2)}
-                          </td>
-                          <td className={`px-3 py-2 text-right text-xs font-semibold ${margin >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                            {margin}%
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tax Report */}
-      {report === "tax" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-            <p className="mb-1 text-sm font-semibold text-neutral-900">Tax Estimate — {p.fromDate} to {p.toDate}</p>
-            <p className="text-xs text-neutral-500 mb-4">Taxable income = Revenue − Allowable expenses. Consult your accountant for the exact rate.</p>
-            <table className="w-full text-sm">
-              <tbody>
-                <tr className="border-b border-neutral-100">
-                  <td className="py-2 text-neutral-600">Gross Revenue</td>
-                  <td className="text-right font-mono font-medium text-green-700">{p.fmt(p.totalRevenue, p.currency)}</td>
-                </tr>
-                <tr className="border-b border-neutral-100">
-                  <td className="py-2 text-neutral-600">Total Expenses</td>
-                  <td className="text-right font-mono text-red-600">−{p.fmt(p.totalCosts, p.currency)}</td>
-                </tr>
-                <tr className="border-b border-neutral-200 bg-neutral-50 font-bold">
-                  <td className="py-2">Taxable Net Profit</td>
-                  <td className={`text-right font-mono ${p.netProfit >= 0 ? "text-emerald-700" : "text-red-700"}`}>{p.fmt(p.netProfit, p.currency)}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[14, 20, 28].map(rate => (
-                <div key={rate} className="rounded-lg bg-neutral-50 border border-neutral-200 p-3 text-center">
-                  <p className="text-xs text-neutral-500 mb-1">At {rate}% rate</p>
-                  <p className="text-base font-black text-neutral-800">{p.fmt(Math.max(p.netProfit * rate / 100, 0), p.currency)}</p>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-[10px] text-neutral-400">⚠ This is an estimate only. Jordan income tax rates vary. Please consult a licensed accountant.</p>
-          </div>
-          {/* Expense breakdown for tax */}
-          <div className="rounded-xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-neutral-100 px-4 py-3">
-              <p className="text-sm font-medium text-neutral-900">Deductible Expenses Breakdown</p>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
-                  <th className="px-4 py-2 text-left text-xs font-semibold text-neutral-600">Category</th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-neutral-600">Amount</th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold text-neutral-600">% of Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(p.expByCategory).sort(([,a],[,b]) => b-a).map(([cat, amt]) => (
-                  <tr key={cat} className="border-b border-neutral-50 hover:bg-neutral-50">
-                    <td className="px-4 py-2 text-neutral-700">{cat}</td>
-                    <td className="px-4 py-2 text-right font-mono text-red-600">{amt.toFixed(2)} {p.currency}</td>
-                    <td className="px-4 py-2 text-right text-xs text-neutral-500">
-                      {p.totalRevenue > 0 ? Math.round(amt/p.totalRevenue*100) : 0}%
-                    </td>
-                  </tr>
-                ))}
-                <tr className="border-b border-neutral-50 hover:bg-neutral-50">
-                  <td className="px-4 py-2 text-neutral-700">Staff Salaries</td>
-                  <td className="px-4 py-2 text-right font-mono text-red-600">{p.totalSalaries.toFixed(2)} {p.currency}</td>
-                  <td className="px-4 py-2 text-right text-xs text-neutral-500">
-                    {p.totalRevenue > 0 ? Math.round(p.totalSalaries/p.totalRevenue*100) : 0}%
-                  </td>
-                </tr>
-                <tr className="bg-neutral-50 font-bold">
-                  <td className="px-4 py-2">Total Deductible</td>
-                  <td className="px-4 py-2 text-right font-mono text-red-700">{p.fmt(p.totalCosts, p.currency)}</td>
-                  <td className="px-4 py-2 text-right text-xs text-neutral-500">
-                    {p.totalRevenue > 0 ? Math.round(p.totalCosts/p.totalRevenue*100) : 0}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
