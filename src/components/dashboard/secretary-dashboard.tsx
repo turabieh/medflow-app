@@ -1,3 +1,4 @@
+import { UnclaimedBanner } from "@/components/secretary/unclaimed-banner";
 import { PendingSection } from "@/components/secretary/pending-section";
 import { ConfirmationCallForm } from "@/components/secretary/confirmation-call-form";
 import { TodayQueue } from "@/components/secretary/today-queue";
