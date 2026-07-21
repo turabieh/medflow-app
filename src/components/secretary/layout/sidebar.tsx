@@ -9,6 +9,7 @@ const BASE_NAV = [
   { href: "/secretary/dashboard",        label: "Dashboard",       icon: "⊞" },
   { href: "/secretary/patients",         label: "Patients",        icon: "👤" },
   { href: "/secretary/appointments",     label: "Appointments",    icon: "📅" },
+  { href: "/secretary/daily-report", label: "Daily Report", icon: "📊" },
   { href: "/secretary/schedule",         label: "Schedule",        icon: "🗓" },
   { href: "/secretary/technician-schedule", label: "Tech Schedule",    icon: "🔬" },
   { href: "/secretary/reports",          label: "Reports & Print", icon: "🖨" },

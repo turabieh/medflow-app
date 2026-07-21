@@ -291,14 +291,18 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
   const [confirmFinalize, setConfirmFinalize] = useState(false);
 
   // Payment fields
-  const [method, setMethod] = useState<"cash"|"card"|"insurance"|"other">((item.payment_method as any) ?? "cash");
+  const [method, setMethod] = useState<"cash"|"card"|"cliq"|"insurance"|"other">((item.payment_method as any) ?? "cash");
+  const [isSplit, setIsSplit] = useState(false);
+  // Split amounts per method
+  const [splitAmounts, setSplitAmounts] = useState<Record<string,string>>({cash:"",card:"",cliq:""});
+  const [cliqRef, setCliqRef] = useState("");
   const [visitFee, setVisitFee] = useState(item.visit_fee ? String(item.visit_fee) : "");
   // Insurance split
   const hasInsurance = !!(item.insuranceCompanyId);
   const [coveragePct, setCoveragePct] = useState(String(item.insuranceCoveragePct ?? 80));
   const [patientPays, setPatientPays] = useState(item.patient_cash_amount ? String(item.patient_cash_amount) : "");
   const [insurancePays, setInsurancePays] = useState(item.insurance_claim_amount ? String(item.insurance_claim_amount) : "");
-  const [patientPayMethod, setPatientPayMethod] = useState<"cash"|"card"|"other">("cash");
+  const [patientPayMethod, setPatientPayMethod] = useState<"cash"|"card"|"cliq"|"other">("cash");
   // Insurance not covering
   const [insuranceCoversVisit, setInsuranceCoversVisit] = useState(true);
 
@@ -404,12 +408,67 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-neutral-600 w-28 shrink-0">Method</span>
                 <div className="flex gap-1.5">
-                  {methodBtn("cash",      "Cash",      method==="cash")}
-                  {methodBtn("card",      "Card",      method==="card")}
-                  {methodBtn("insurance", "Insurance", method==="insurance")}
+                  {methodBtn("cash",      "💵 Cash",      method==="cash")}
+                  {methodBtn("card",      "💳 Card",      method==="card")}
+                  {methodBtn("cliq",      "📱 CliQ",      method==="cliq")}
+                  {methodBtn("insurance", "🏥 Insurance", method==="insurance")}
                   {methodBtn("other",     "Other",     method==="other")}
+                  <button type="button" onClick={()=>setIsSplit(s=>!s)}
+                    className={`rounded px-2 py-1 text-xs font-medium ${isSplit?"bg-amber-600 text-white":"border border-amber-400 text-amber-700 hover:bg-amber-50"}`}>
+                    ✂ Split
+                  </button>
                 </div>
               </div>
+
+              {/* CliQ reference */}
+              {method === "cliq" && !isSplit && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-neutral-600 w-28 shrink-0">CliQ Ref # <span className="font-normal text-neutral-400">(optional)</span></label>
+                  <input value={cliqRef} onChange={e=>setCliqRef(e.target.value)}
+                    placeholder="e.g. TXN123456" className={inp + " w-48"}/>
+                </div>
+              )}
+
+              {/* Split payment panel */}
+              {isSplit && method !== "insurance" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-amber-800">Split Payment — Total: {visitFee || "0"} {currency}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      {m:"cash",  label:"💵 Cash"},
+                      {m:"card",  label:"💳 Card"},
+                      {m:"cliq",  label:"📱 CliQ"},
+                    ].map(({m,label})=>(
+                      <div key={m}>
+                        <label className="text-xs font-medium text-neutral-600 block mb-1">{label}</label>
+                        <input type="number" step="0.01" min="0"
+                          value={splitAmounts[m]??""} 
+                          onChange={e=>setSplitAmounts(prev=>({...prev,[m]:e.target.value}))}
+                          placeholder="0.00" className={inp}/>
+                      </div>
+                    ))}
+                  </div>
+                  {cliqRef===''&&(
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-neutral-600 w-28 shrink-0">CliQ Ref # <span className="font-normal text-neutral-400">(optional)</span></label>
+                      <input value={cliqRef} onChange={e=>setCliqRef(e.target.value)}
+                        placeholder="e.g. TXN123456" className={inp + " w-48"}/>
+                    </div>
+                  )}
+                  {(()=>{
+                    const total = Object.values(splitAmounts).reduce((s,v)=>s+(parseFloat(v)||0),0);
+                    const fee   = parseFloat(visitFee)||0;
+                    const diff  = fee - total;
+                    return (
+                      <div className={`text-xs font-semibold ${Math.abs(diff)<0.01?"text-emerald-700":"text-red-600"}`}>
+                        Total entered: {total.toFixed(2)} {currency}
+                        {Math.abs(diff)>0.01&&` — remaining: ${diff.toFixed(2)} ${currency}`}
+                        {Math.abs(diff)<0.01&&" ✓ Balanced"}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Insurance split section */}
               {method === "insurance" && (
@@ -462,7 +521,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-neutral-700 w-28 shrink-0">Patient pays by</span>
                           <div className="flex gap-1.5">
-                            {(["cash","card","other"] as const).map(m => (
+                            {(["cash","card","cliq","other"] as const).map(m => (
                               <button key={m} type="button" onClick={() => setPatientPayMethod(m)}
                                 className={`rounded px-2 py-0.5 text-xs capitalize ${patientPayMethod===m?"bg-neutral-900 text-white":"border border-neutral-300 text-neutral-600"}`}>
                                 {m}
