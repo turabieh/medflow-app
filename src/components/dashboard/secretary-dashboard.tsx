@@ -1,3 +1,4 @@
+import { PatientQuickAccess } from "@/components/secretary/patient-quick-access";
 import { UnclaimedBanner } from "@/components/secretary/unclaimed-banner";
 import { PendingSection } from "@/components/secretary/pending-section";
 import { ConfirmationCallForm } from "@/components/secretary/confirmation-call-form";
@@ -5,8 +6,9 @@ import { TodayQueue } from "@/components/secretary/today-queue";
 import { computeConfirmationCallDate, type ExistingAppointmentForSlots } from "@/lib/scheduling/slots";
 import { createClient } from "@/lib/supabase/server";
 
-export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
+export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string; pdate?: string }) {
   const supabase = await createClient();
+  const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
 
   // Pending appointments: no time slot assigned yet, secretary needs to call.
   // Archived ones are hidden here but stay in the database.
@@ -89,8 +91,6 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
     .select("id, appt_date, start_time, visit_type, doctor_id, confirmation_call_attempts, patient_id")
     .eq("status", "booked")
     .order("appt_date", { ascending: true });
-
-  const todayStr = new Date().toISOString().split("T")[0];
 
   const doctorWorkingDaysMap = new Map<string, number[]>();
   for (const wh of workingHoursData ?? []) {
@@ -202,6 +202,49 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
   const unclaimedCount  = unclaimedByCompany.reduce((s,co)=>s+co.count, 0);
   const unclaimedAmount = unclaimedByCompany.reduce((s,co)=>s+co.amount, 0);
 
+  // ── TODAY'S PATIENTS ─────────────────────────────────────────────────────
+  const patientDate = pdate ?? todayStr;
+  // New patients registered on patientDate
+  const { data: newPatients } = await supabase
+    .from("patients")
+    .select("id, full_name, phone, dob, insurance_company_id, created_at")
+    .eq("clinic_id", clinicId)
+    .gte("created_at", patientDate + "T00:00:00+03:00")
+    .lte("created_at", patientDate + "T23:59:59+03:00")
+    .order("created_at", { ascending: false });
+
+  // All appointments on patientDate with patient info
+  const { data: todayAppts } = await supabase
+    .from("appointments")
+    .select("id, status, visit_type, start_time, patient_id, doctor_id, patients(id, full_name, phone, dob, insurance_company_id), users(full_name)")
+    .eq("clinic_id", clinicId)
+    .eq("appt_date", patientDate)
+    .neq("status", "cancelled")
+    .order("start_time");
+
+  // Build quick access data
+  const newPatientsData = (newPatients ?? []).map(p => ({
+    id: p.id, name: p.full_name, phone: p.phone ?? "",
+    hasInsurance: !!p.insurance_company_id,
+    hasDob: !!p.dob,
+    createdAt: p.created_at,
+    badge: "new" as const,
+  }));
+
+  const apptPatientsData = (todayAppts ?? []).map(a => {
+    const pt = Array.isArray(a.patients) ? a.patients[0] : a.patients as any;
+    const dr = Array.isArray(a.users) ? a.users[0] : a.users as any;
+    return {
+      id: pt?.id ?? "", name: pt?.full_name ?? "—", phone: pt?.phone ?? "",
+      hasInsurance: !!pt?.insurance_company_id, hasDob: !!pt?.dob,
+      createdAt: null as string | null,
+      appointmentId: a.id, status: a.status,
+      visitType: a.visit_type, startTime: a.start_time,
+      doctorName: dr?.full_name ?? "",
+      badge: a.status as string,
+    };
+  }).filter(a => a.id);
+
   return (
     <>
       <UnclaimedBanner
@@ -248,6 +291,12 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
       <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
         Today&apos;s queue
       </h2>
+      <PatientQuickAccess
+        newPatients={newPatientsData}
+        todayAppointments={apptPatientsData}
+        todayStr={todayStr}
+        patientDate={patientDate}
+      />
       <div className="mb-6">
         <TodayQueue items={todayQueueItems} currency={currency} />
       </div>

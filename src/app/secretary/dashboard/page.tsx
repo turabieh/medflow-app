@@ -4,7 +4,7 @@ import { SecretaryDashboard } from "@/components/dashboard/secretary-dashboard";
 
 export const dynamic = "force-dynamic";
 
-export default async function SecretaryDashboardPage() {
+export default async function SecretaryDashboardPage({ searchParams }: { searchParams: Promise<{ pdate?: string }> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -12,5 +12,6 @@ export default async function SecretaryDashboardPage() {
     .from("users").select("clinic_id").eq("id", user.id).single();
   if (!profile) redirect("/login");
 
-  return <SecretaryDashboard clinicId={profile.clinic_id} />;
+  const { pdate } = await searchParams;
+  return <SecretaryDashboard clinicId={profile.clinic_id} pdate={pdate} />;
 }
