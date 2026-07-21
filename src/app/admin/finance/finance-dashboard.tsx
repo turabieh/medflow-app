@@ -955,15 +955,34 @@ export function FinanceDashboard({
               <input type="date" value={cashDateTo} onChange={e=>setCashDateTo(e.target.value)} className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none"/></div>
             <button disabled={cashLoading} onClick={async()=>{
               setCashLoading(true);
-              const { createClient } = await import("@/lib/supabase/client");
-              const sb = createClient();
-              const { data } = await sb.from("appointments")
-                .select("id, appt_date, payment_amount, payment_method, patients(full_name), users(full_name)")
-                .eq("clinic_id", clinicId).eq("payment_confirmed", true)
-                .gte("appt_date", cashDateFrom).lte("appt_date", cashDateTo).order("appt_date", {ascending:false});
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setCashRows((data??[]).map((r:any)=>({ id:r.id, appt_date:r.appt_date, payment_amount:r.payment_amount, payment_method:r.payment_method, patientName:(Array.isArray(r.patients)?r.patients[0]:r.patients)?.full_name??"—", doctorName:(Array.isArray(r.users)?r.users[0]:r.users)?.full_name??"—" })));
-              setCashLoading(false);
+              try {
+                const { createClient } = await import("@/lib/supabase/client");
+                const sb = createClient();
+                const { data, error } = await sb.from("appointments")
+                  .select("id, appt_date, payment_amount, payment_method, doctor_id, patients(full_name)")
+                  .eq("clinic_id", clinicId).eq("payment_confirmed", true)
+                  .gte("appt_date", cashDateFrom).lte("appt_date", cashDateTo)
+                  .order("appt_date", {ascending:false});
+                if (error) throw error;
+                // Fetch doctor names separately
+                const doctorIds = [...new Set((data??[]).map((r:any)=>r.doctor_id).filter(Boolean))];
+                let doctorMap: Record<string,string> = {};
+                if (doctorIds.length > 0) {
+                  const { data: docs } = await sb.from("users").select("id, full_name").in("id", doctorIds);
+                  doctorMap = Object.fromEntries((docs??[]).map((d:any)=>[d.id, d.full_name]));
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setCashRows((data??[]).map((r:any)=>({
+                  id:r.id, appt_date:r.appt_date, payment_amount:r.payment_amount,
+                  payment_method:r.payment_method,
+                  patientName:(Array.isArray(r.patients)?r.patients[0]:r.patients)?.full_name??"—",
+                  doctorName:r.doctor_id?doctorMap[r.doctor_id]??"—":"—",
+                })));
+              } catch(e) {
+                console.error("Cash load error:", e);
+              } finally {
+                setCashLoading(false);
+              }
             }} className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
               {cashLoading?"Loading...":"Load"}
             </button>
@@ -981,17 +1000,77 @@ export function FinanceDashboard({
                   <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Doctor</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-neutral-500">Method</th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-neutral-500">Amount</th>
+                  <th className="px-4 py-2 text-xs font-medium text-neutral-500">Edit</th>
                 </tr></thead>
                 <tbody>
-                  {cashRows.map(r=>(
-                    <tr key={r.id} className="border-b border-neutral-50 hover:bg-neutral-50">
+                  {cashRows.map(r=>{
+                    const isEditing = editCashId === r.id;
+                    return (
+                    <tr key={r.id} className={`border-b border-neutral-50 ${isEditing?"bg-amber-50":"hover:bg-neutral-50"}`}>
                       <td className="px-4 py-2 text-neutral-600 text-xs">{r.appt_date}</td>
                       <td className="px-4 py-2 text-neutral-800 text-sm">{r.patientName}</td>
                       <td className="px-4 py-2 text-neutral-600 text-xs">{r.doctorName}</td>
-                      <td className="px-4 py-2 text-neutral-500 text-xs capitalize">{r.payment_method??"cash"}</td>
-                      <td className="px-4 py-2 text-right font-mono text-emerald-700 font-medium">{fmt(r.payment_amount??0, currency)}</td>
+                      <td className="px-4 py-2">
+                        {isEditing ? (
+                          <select value={editCashAmt.split("|")[1]??"cash"}
+                            onChange={e=>setEditCashAmt(editCashAmt.split("|")[0]+"|"+e.target.value)}
+                            className="rounded border border-neutral-300 px-2 py-1 text-xs outline-none">
+                            {["cash","card","insurance","other"].map(m=><option key={m} value={m}>{m}</option>)}
+                          </select>
+                        ) : (
+                          <span className="text-neutral-500 text-xs capitalize">{r.payment_method??"cash"}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        {isEditing ? (
+                          <input type="number" step="0.01" min="0"
+                            value={editCashAmt.split("|")[0]}
+                            onChange={e=>setEditCashAmt(e.target.value+"|"+(editCashAmt.split("|")[1]??"cash"))}
+                            className="rounded border border-amber-400 px-2 py-1 text-sm w-24 text-right outline-none font-mono"/>
+                        ) : (
+                          <span className="font-mono text-emerald-700 font-medium">{fmt(r.payment_amount??0, currency)}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">
+                        {isEditing ? (
+                          <div className="flex gap-1">
+                            <button disabled={cashSaving} onClick={async()=>{
+                              setCashSaving(true);
+                              const amt = parseFloat(editCashAmt.split("|")[0]);
+                              const method = editCashAmt.split("|")[1]??"cash";
+                              if (!isNaN(amt) && amt >= 0) {
+                                const { createClient } = await import("@/lib/supabase/client");
+                                const sb = createClient();
+                                await sb.from("appointments").update({
+                                  payment_amount: amt,
+                                  payment_method: method,
+                                }).eq("id", r.id);
+                                setCashRows(prev=>prev.map(row=>row.id===r.id?{...row,payment_amount:amt,payment_method:method}:row));
+                                setCashSaved(r.id);
+                                setTimeout(()=>setCashSaved(null),2000);
+                              }
+                              setEditCashId(null);
+                              setCashSaving(false);
+                            }} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700 disabled:opacity-50">
+                              {cashSaving?"...":"Save"}
+                            </button>
+                            <button onClick={()=>setEditCashId(null)}
+                              className="rounded border border-neutral-300 px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-50">
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={()=>{
+                            setEditCashId(r.id);
+                            setEditCashAmt(`${r.payment_amount??0}|${r.payment_method??"cash"}`);
+                          }} className="rounded border border-neutral-200 px-2 py-1 text-xs text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800">
+                            {cashSaved===r.id?"✓ Saved":"✏ Edit"}
+                          </button>
+                        )}
+                      </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
