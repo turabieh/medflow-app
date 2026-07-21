@@ -377,7 +377,7 @@ function DonePanel({ item, patientId, currency }: { item: QueueItem; patientId: 
 
   const inp = "rounded border border-neutral-300 px-2 py-1 text-sm w-full outline-none focus:border-neutral-500";
   const methodBtn = (m: string, label: string, active: boolean) => (
-    <button key={m} type="button" onClick={() => { setMethod(m as typeof method); if (m !== "insurance") { setPatientPays(""); setInsurancePays(""); } else if (visitFee) recalcSplit(visitFee, coveragePct); }}
+    <button key={m} type="button" onClick={() => { setMethod(m as typeof method); setIsSplit(false); if (m !== "insurance") { setPatientPays(""); setInsurancePays(""); } else if (visitFee) recalcSplit(visitFee, coveragePct); }}
       className={`rounded px-2 py-1 text-xs font-medium ${active ? "bg-neutral-900 text-white" : "border border-neutral-300 text-neutral-600 hover:bg-neutral-50"}`}>
       {label}
     </button>
