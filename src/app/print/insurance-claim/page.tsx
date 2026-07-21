@@ -77,7 +77,7 @@ export default function InsuranceClaimPrintPage() {
       // Get visits/appointments in date range
       const { data: appts } = patientIds.length ? await supabase
         .from("appointments")
-        .select("id, appt_date, start_time, visit_type, insurance_fee, payment_amount, patient_id")
+        .select("id, appt_date, start_time, visit_type, insurance_claim_amount, insurance_fee, payment_amount, patient_id")
         .in("patient_id", patientIds)
         .gte("appt_date", claim.from_date)
         .lte("appt_date", claim.to_date)
@@ -85,8 +85,8 @@ export default function InsuranceClaimPrintPage() {
         .order("appt_date") : { data: [] };
 
       // Only include visits where insurance owes money
-      const filteredAppts = (appts ?? []).filter((a: {insurance_fee: number|null; payment_amount: number|null}) =>
-        (a.insurance_fee ?? 0) > 0 || (a.payment_amount ?? 0) > 0
+      const filteredAppts = (appts ?? []).filter((a: {insurance_claim_amount: number|null; insurance_fee: number|null; payment_amount: number|null}) =>
+        (a.insurance_claim_amount ?? 0) > 0
       );
 
       const apptIds = filteredAppts.map((a: { id: string }) => a.id);
@@ -118,7 +118,7 @@ export default function InsuranceClaimPrintPage() {
       for (const a of filteredAppts) {
         const pt = patientMap.get(a.patient_id);
         const apptProcs = procsByAppt.get(a.id) ?? [];
-        const visitFee = a.insurance_fee ?? a.payment_amount ?? 0;
+        const visitFee = a.insurance_claim_amount ?? a.insurance_fee ?? a.payment_amount ?? 0;
         const procTotal = apptProcs.reduce((s: number, p: { price: number }) => s + (p.price ?? 0), 0);
         const rowTotal = visitFee + procTotal;
         grandTotal += rowTotal;

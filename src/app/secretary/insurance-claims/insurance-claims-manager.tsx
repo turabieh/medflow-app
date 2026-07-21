@@ -26,12 +26,13 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export function InsuranceClaimsManager({
-  insuranceCompanies, claims: initialClaims, currency, clinicId,
+  insuranceCompanies, claims: initialClaims, currency, clinicId, readyToClaim = [],
 }: {
   insuranceCompanies: InsuranceCompany[];
   claims: Claim[];
   currency: string;
   clinicId: string;
+  readyToClaim?: { id:string; name:string; amount:number; count:number; from:string; to:string }[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -161,6 +162,54 @@ export function InsuranceClaimsManager({
         </div>
       )}
 
+      {/* Ready to Claim — smart section */}
+      {readyToClaim.length > 0 && (
+        <div className="mb-6 rounded-xl border-2 border-emerald-200 bg-emerald-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-emerald-200 bg-emerald-100">
+            <div>
+              <p className="text-sm font-bold text-emerald-900">✅ Ready to Claim</p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                {readyToClaim.reduce((s,c)=>s+c.count,0)} visits · {readyToClaim.reduce((s,c)=>s+c.amount,0).toFixed(2)} {currency} total unclaimed
+              </p>
+            </div>
+            <span className="text-xs text-emerald-600 font-medium">Click a company to auto-fill the claim form</span>
+          </div>
+          <div className="divide-y divide-emerald-100">
+            {readyToClaim.map(co => (
+              <div key={co.id} className="flex items-center justify-between px-4 py-3 hover:bg-emerald-100 transition">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-800">
+                    {co.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">{co.name}</p>
+                    <p className="text-xs text-emerald-600">
+                      {co.count} visit{co.count!==1?"s":""} · {co.from} → {co.to}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-base font-black text-emerald-800">{co.amount.toFixed(2)} {currency}</p>
+                    <p className="text-[10px] text-emerald-600">to claim</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setInsuranceId(co.id);
+                      setFromDate(co.from);
+                      setToDate(co.to);
+                      setShowNew(true);
+                      setTimeout(() => document.getElementById("new-claim-form")?.scrollIntoView({ behavior:"smooth" }), 100);
+                    }}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition whitespace-nowrap">
+                    Create Claim →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Action buttons */}
       <div className="flex items-center gap-3">
         <button onClick={() => setShowNew(!showNew)}
@@ -178,7 +227,7 @@ export function InsuranceClaimsManager({
 
       {/* New claim form */}
       {showNew && (
-        <form onSubmit={handleCreate}
+        <form id="new-claim-form" onSubmit={handleCreate}
           className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
           <h2 className="text-sm font-semibold text-neutral-900">New Insurance Claim</h2>
           {(preAmount || preVisits) && (

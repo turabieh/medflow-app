@@ -26,6 +26,34 @@ export default async function SecretaryInsuranceClaimsPage() {
     .from("clinic_settings").select("value").eq("clinic_id", profile?.clinic_id ?? "").eq("key", "currency").single();
   const currency = clinicSetting?.value ?? "JOD";
 
+  // Fetch unclaimed appointments grouped by company
+  const { data: unclaimedAppts } = await supabase
+    .from("appointments")
+    .select("id, appt_date, insurance_claim_amount, insurance_fee, patients(insurance_company_id, insurance_companies(id, name))")
+    .eq("clinic_id", profile?.clinic_id ?? "")
+    .eq("payment_method", "insurance")
+    .eq("payment_confirmed", true)
+    .in("status", ["done","finalized"]);
+
+  const { data: claimedLinks } = await supabase
+    .from("insurance_claim_appointments").select("appointment_id");
+  const claimedSet = new Set((claimedLinks ?? []).map((r: any) => r.appointment_id));
+
+  const companyMap = new Map<string, { id:string; name:string; amount:number; count:number; from:string; to:string }>();
+  for (const a of (unclaimedAppts ?? []).filter((a: any) => !claimedSet.has(a.id))) {
+    const pt  = Array.isArray(a.patients) ? a.patients[0] : a.patients as any;
+    const ins = pt?.insurance_companies ? (Array.isArray(pt.insurance_companies) ? pt.insurance_companies[0] : pt.insurance_companies) as { id:string; name:string }|null : null;
+    if (!ins?.id || !a.appt_date) continue;
+    const amt = (a.insurance_claim_amount ?? a.insurance_fee) ?? 0;
+    if (amt <= 0) continue;
+    const e = companyMap.get(ins.id) ?? { id:ins.id, name:ins.name, amount:0, count:0, from:a.appt_date, to:a.appt_date };
+    e.amount += amt; e.count++;
+    if (a.appt_date < e.from) e.from = a.appt_date;
+    if (a.appt_date > e.to)   e.to   = a.appt_date;
+    companyMap.set(ins.id, e);
+  }
+  const readyToClaim = Array.from(companyMap.values()).sort((a,b)=>b.amount-a.amount);
+
   return (
     <div>
       <h1 className="mb-1 text-lg font-medium text-neutral-900">Insurance Claims</h1>
@@ -40,6 +68,8 @@ export default async function SecretaryInsuranceClaimsPage() {
         }))}
         currency={currency}
         clinicId={profile?.clinic_id ?? ""}
+        readyToClaim={readyToClaim}
+        currency={currency}
       />
     </div>
   );

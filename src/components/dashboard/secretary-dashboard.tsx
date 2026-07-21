@@ -172,32 +172,67 @@ export async function SecretaryDashboard({ clinicId }: { clinicId: string }) {
   // Unclaimed insurance revenue banner
   const { data: unclaimedAppts } = await supabase
     .from("appointments")
-    .select("id, insurance_claim_amount, insurance_fee")
+    .select("id, appt_date, insurance_claim_amount, insurance_fee, patients(insurance_company_id, insurance_companies(id, name))")
     .eq("clinic_id", clinicId)
     .eq("payment_method", "insurance")
-    .eq("payment_confirmed", true);
+    .eq("payment_confirmed", true)
+    .in("status", ["done","finalized"]);
   const { data: claimedLinks } = await supabase
     .from("insurance_claim_appointments")
     .select("appointment_id");
   const claimedSet = new Set(
     (claimedLinks ?? []).map((r: { appointment_id: string }) => r.appointment_id)
   );
-  const unclaimedCount = (unclaimedAppts ?? []).filter(a => !claimedSet.has(a.id)).length;
-  const unclaimedAmount = (unclaimedAppts ?? [])
-    .filter(a => !claimedSet.has(a.id))
-    .reduce((s, a) => s + ((a.insurance_claim_amount ?? a.insurance_fee) ?? 0), 0);
+  // Only count appointments where patient has insurance company linked
+  const companyMap = new Map<string, { id:string; name:string; amount:number; count:number; from:string; to:string }>();
+  for (const a of (unclaimedAppts ?? []).filter((a: any) => !claimedSet.has(a.id))) {
+    const pt  = Array.isArray(a.patients) ? a.patients[0] : a.patients as any;
+    const ins = pt?.insurance_companies ? (Array.isArray(pt.insurance_companies) ? pt.insurance_companies[0] : pt.insurance_companies) as { id:string; name:string }|null : null;
+    if (!ins?.id || !a.appt_date) continue;
+    const amt = (a.insurance_claim_amount ?? a.insurance_fee) ?? 0;
+    if (amt <= 0) continue;
+    const e = companyMap.get(ins.id) ?? { id:ins.id, name:ins.name, amount:0, count:0, from:a.appt_date, to:a.appt_date };
+    e.amount += amt; e.count++;
+    if (a.appt_date < e.from) e.from = a.appt_date;
+    if (a.appt_date > e.to)   e.to   = a.appt_date;
+    companyMap.set(ins.id, e);
+  }
+  const unclaimedByCompany = Array.from(companyMap.values()).sort((a,b)=>b.amount-a.amount);
+  const unclaimedCount  = unclaimedByCompany.reduce((s,co)=>s+co.count, 0);
+  const unclaimedAmount = unclaimedByCompany.reduce((s,co)=>s+co.amount, 0);
 
   return (
     <>
       {unclaimedCount > 0 && (
-        <a href="/secretary/insurance-claims"
-          className="mb-4 flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 hover:bg-amber-100 transition">
-          <div>
-            <p className="text-sm font-semibold text-amber-900">🔴 {unclaimedCount} unclaimed insurance visit{unclaimedCount !== 1 ? "s" : ""}</p>
-            <p className="text-xs text-amber-700">{unclaimedAmount.toFixed(2)} JOD not yet claimed from insurance companies</p>
+        <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-amber-200">
+            <div>
+              <p className="text-sm font-bold text-amber-900">🔴 {unclaimedCount} unclaimed insurance visit{unclaimedCount !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-amber-700 mt-0.5">Total: <span className="font-bold">{unclaimedAmount.toFixed(2)} {currency}</span> from {unclaimedByCompany.length} compan{unclaimedByCompany.length === 1 ? "y" : "ies"}</p>
+            </div>
+            <a href="/secretary/insurance-claims"
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-700 transition shrink-0">
+              Generate Claims →
+            </a>
           </div>
-          <span className="text-xs font-semibold text-amber-800">Generate Claims →</span>
-        </a>
+          <div className="divide-y divide-amber-100">
+            {unclaimedByCompany.map(co => (
+              <div key={co.id} className="flex items-center justify-between px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs font-bold text-amber-800">
+                    {co.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">{co.name}</p>
+                    <p className="text-xs text-amber-600">{co.count} visit{co.count !== 1 ? "s" : ""} · {co.from} → {co.to}</p>
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-amber-900">{co.amount.toFixed(2)} {currency}</p>
+              </div>
+            ))}
+
+          </div>
+        </div>
       )}
       <div className="mb-6 grid grid-cols-4 gap-4">
         {/* Today total */}

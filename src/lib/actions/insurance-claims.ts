@@ -41,14 +41,14 @@ async function computeInsuranceTotal(
 
   const { data: appts } = await supabase
     .from("appointments")
-    .select("id, insurance_fee, payment_amount")
+    .select("id, insurance_claim_amount, insurance_fee, payment_amount")
     .in("patient_id", patientIds)
     .gte("appt_date", fromDate).lte("appt_date", toDate)
     .in("status", ["finalized", "done"]);
 
-  const billableAppts = (appts ?? []).filter(a => (a.insurance_fee ?? 0) > 0 || (a.payment_amount ?? 0) > 0);
+  const billableAppts = (appts ?? []).filter(a => (a.insurance_claim_amount ?? 0) > 0);
   const apptIds = billableAppts.map(a => a.id);
-  const visitFeeTotal = billableAppts.reduce((s, a) => s + (a.insurance_fee ?? a.payment_amount ?? 0), 0);
+  const visitFeeTotal = billableAppts.reduce((s, a) => s + (a.insurance_claim_amount ?? 0), 0);
 
   let procTotal = 0;
   let procApptIds: string[] = [];
