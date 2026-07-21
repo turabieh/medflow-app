@@ -207,7 +207,7 @@ export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string
   // New patients registered on patientDate
   const { data: newPatients } = await supabase
     .from("patients")
-    .select("id, full_name, phone, dob, insurance_company_id, created_at")
+    .select("id, full_name, first_name, last_name, gender, phone, dob, insurance_company_id, created_at")
     .eq("clinic_id", clinicId)
     .gte("created_at", patientDate + "T00:00:00+03:00")
     .lte("created_at", patientDate + "T23:59:59+03:00")
@@ -216,7 +216,7 @@ export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string
   // All appointments on patientDate with patient info
   const { data: todayAppts } = await supabase
     .from("appointments")
-    .select("id, status, visit_type, start_time, patient_id, doctor_id, patients(id, full_name, phone, dob, insurance_company_id), users(full_name)")
+    .select("id, status, visit_type, start_time, patient_id, doctor_id, patients(id, full_name, first_name, last_name, gender, phone, dob, insurance_company_id), users(full_name)")
     .eq("clinic_id", clinicId)
     .eq("appt_date", patientDate)
     .neq("status", "cancelled")
@@ -227,6 +227,8 @@ export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string
     id: p.id, name: p.full_name, phone: p.phone ?? "",
     hasInsurance: !!p.insurance_company_id,
     hasDob: !!p.dob,
+    hasLastName: !!(p as any).last_name,
+    hasGender: !!(p as any).gender,
     createdAt: p.created_at,
     badge: "new" as const,
   }));
@@ -237,6 +239,7 @@ export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string
     return {
       id: pt?.id ?? "", name: pt?.full_name ?? "—", phone: pt?.phone ?? "",
       hasInsurance: !!pt?.insurance_company_id, hasDob: !!pt?.dob,
+      hasLastName: !!pt?.last_name, hasGender: !!pt?.gender,
       createdAt: null as string | null,
       appointmentId: a.id, status: a.status,
       visitType: a.visit_type, startTime: a.start_time,

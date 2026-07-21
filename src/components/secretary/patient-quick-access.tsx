@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 interface Patient {
   id: string; name: string; phone: string;
   hasInsurance: boolean; hasDob: boolean;
+  hasLastName: boolean; hasGender: boolean;
   createdAt: string | null; badge: string;
 }
 
@@ -49,6 +50,8 @@ function PatientRow({ p, showTime, showStatus }: {
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-sm font-semibold text-neutral-900 truncate">{p.name}</span>
+            {!p.hasLastName && <span className="text-[9px] font-bold text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">⚠ No Last Name</span>}
+            {!p.hasGender && <span className="text-[9px] font-bold text-red-500 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">⚠ No Gender</span>}
             {!p.hasDob && <span className="text-[9px] font-bold text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">⚠ No DOB</span>}
             {p.hasInsurance && <span className="text-[9px] font-bold text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">🏥 Ins</span>}
             {showStatus && s && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${s.bg} ${s.color}`}>{s.label}</span>}
