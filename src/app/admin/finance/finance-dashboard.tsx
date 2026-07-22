@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { InsuranceClaimsManager } from "@/app/secretary/insurance-claims/insurance-claims-manager";
@@ -700,7 +701,7 @@ export function FinanceDashboard({
     setClaimsLoading(false);
   }
 
-  type CRow = { id: string; appt_date: string; payment_amount: number | null; payment_method?: string; patientName: string; doctorName: string };
+  type CRow = { id: string; appt_date: string; payment_amount: number | null; payment_method?: string; patientName: string; doctorName: string; splits?: {method:string;amount:number;ref?:string}[] };
   const [cashRows, setCashRows]         = useState<CRow[]>([]);
   const [cashDateFrom, setCashDateFrom] = useState(fromDate);
   const [cashDateTo, setCashDateTo]     = useState(toDate);
@@ -950,9 +951,9 @@ export function FinanceDashboard({
         <div className="space-y-4">
           <div className="flex items-end gap-3 flex-wrap">
             <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">From</label>
-              <input type="date" value={cashDateFrom} onChange={e=>setCashDateFrom(e.target.value)} className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none"/></div>
+              <JordanDateInput value={cashDateFrom} onChange={v=>{ if(v) setCashDateFrom(v); }}/></div>
             <div><label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-neutral-500">To</label>
-              <input type="date" value={cashDateTo} onChange={e=>setCashDateTo(e.target.value)} className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none"/></div>
+              <JordanDateInput value={cashDateTo} onChange={v=>{ if(v) setCashDateTo(v); }}/></div>
             <button disabled={cashLoading} onClick={async()=>{
               setCashLoading(true);
               try {
@@ -971,12 +972,25 @@ export function FinanceDashboard({
                   const { data: docs } = await sb.from("users").select("id, full_name").in("id", doctorIds);
                   doctorMap = Object.fromEntries((docs??[]).map((d:any)=>[d.id, d.full_name]));
                 }
+                // Fetch split payments
+                const apptIds = (data??[]).map((r:any)=>r.id);
+                let splitMap: Record<string,{method:string;amount:number;ref?:string}[]> = {};
+                if (apptIds.length > 0) {
+                  const { data: splits } = await sb.from("appointment_payments")
+                    .select("appointment_id, method, amount, reference_number")
+                    .in("appointment_id", apptIds);
+                  for (const sp of splits??[]) {
+                    if (!splitMap[sp.appointment_id]) splitMap[sp.appointment_id] = [];
+                    splitMap[sp.appointment_id].push({method:sp.method, amount:sp.amount, ref:sp.reference_number??undefined});
+                  }
+                }
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setCashRows((data??[]).map((r:any)=>({
                   id:r.id, appt_date:r.appt_date, payment_amount:r.payment_amount,
                   payment_method:r.payment_method,
                   patientName:(Array.isArray(r.patients)?r.patients[0]:r.patients)?.full_name??"—",
                   doctorName:r.doctor_id?doctorMap[r.doctor_id]??"—":"—",
+                  splits: splitMap[r.id]??[],
                 })));
               } catch(e) {
                 console.error("Cash load error:", e);
