@@ -1,5 +1,4 @@
 "use client";
-import { JordanDateInput } from "@/components/ui/jordan-date-input";
 
 import { useState } from "react";
 import { todayJordan, to12h } from "@/lib/client-timezone";
@@ -201,7 +200,12 @@ export function ScheduleCalendar({
         <button onClick={() => navigate(-1)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50">Prev</button>
         <button onClick={() => setCurrentDate(today)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50">Today</button>
         <button onClick={() => navigate(1)}  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50">Next</button>
-        <div className="w-40 shrink-0"><JordanDateInput value={currentDate} onChange={v => { if(v) setCurrentDate(v); }}/></div>
+        <label className="relative flex items-center gap-1.5 cursor-pointer rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm hover:bg-neutral-50">
+          <span className="text-neutral-700 whitespace-nowrap">{currentDate.split("-").reverse().join("/")}</span>
+          <span className="text-neutral-400">📅</span>
+          <input type="date" value={currentDate} onChange={e=>{ if(e.target.value) setCurrentDate(e.target.value); }}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full"/>
+        </label>
         <div className="ml-4 flex overflow-hidden rounded-md border border-neutral-300">
           <button onClick={() => setView("week")} className={`px-3 py-1.5 text-sm ${view==="week"?"bg-neutral-900 text-white":"hover:bg-neutral-50"}`}>Week</button>
           <button onClick={() => setView("day")}  className={`px-3 py-1.5 text-sm ${view==="day" ?"bg-neutral-900 text-white":"hover:bg-neutral-50"}`}>Day</button>
