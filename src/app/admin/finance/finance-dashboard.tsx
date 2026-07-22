@@ -52,7 +52,7 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
   }
   return (
     <div className="relative flex items-center gap-2">
-      <span className="text-xs text-neutral-500 font-medium">{fromDate} → {toDate}</span>
+      <span className="text-xs text-neutral-500 font-medium">{fromDate.split("-").reverse().join("/")} → {toDate.split("-").reverse().join("/")}</span>
       <button onClick={() => setOpen(o => !o)}
         className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-xs text-neutral-600 hover:bg-neutral-50">
         Custom range
@@ -62,9 +62,9 @@ function CustomRangePicker({ fromDate, toDate, activeTab }: { fromDate: string; 
           <p className="text-xs font-semibold text-neutral-700">Select date range</p>
           <div className="space-y-2">
             <div><label className="mb-1 block text-[10px] text-neutral-500">From</label>
-              <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" /></div>
+              <JordanDateInput value={from} onChange={v=>{ if(v) setFrom(v); }}/></div>
             <div><label className="mb-1 block text-[10px] text-neutral-500">To</label>
-              <input type="date" value={to} onChange={e => setTo(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-xs" /></div>
+              <JordanDateInput value={to} onChange={v=>{ if(v) setTo(v); }}/></div>
           </div>
           <div className="flex gap-2">
             <button onClick={apply} className="flex-1 rounded-md bg-neutral-900 py-1.5 text-xs font-medium text-white hover:bg-neutral-800">Apply</button>
@@ -175,8 +175,7 @@ function ReportsHub({ fromDate, toDate, currency, cashTotal, hospitalPaid, insur
           <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 flex-wrap">
             <div>
               <p className="text-xs font-semibold text-neutral-600 mb-1">Jump to date</p>
-              <input type="date" value={jumpDate} onChange={e=>setJumpDate(e.target.value)}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-neutral-500"/>
+              <JordanDateInput value={jumpDate} onChange={v=>{ if(v) setJumpDate(v); }}/>
             </div>
             {jumpedDay ? (
               <div className="flex gap-5 ml-2 flex-wrap">
@@ -841,7 +840,7 @@ export function FinanceDashboard({
             <p className="text-sm font-semibold text-neutral-800">Add Expense</p>
             <div className="grid grid-cols-2 gap-3">
               <div><label className="mb-1 block text-xs text-neutral-500">Date</label>
-                <input type="date" value={expDate} onChange={e=>setExpDate(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+                <JordanDateInput value={expDate} onChange={v=>{ if(v) setExpDate(v); }}/></div>
               <div><label className="mb-1 block text-xs text-neutral-500">Category</label>
                 <select value={expCat} onChange={e=>setExpCat(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm">
                   {EXPENSE_CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
@@ -899,7 +898,7 @@ export function FinanceDashboard({
               <div><label className="mb-1 block text-xs text-neutral-500">Monthly Salary ({currency})</label>
                 <input type="number" min="0" step="0.01" value={salAmount} onChange={e=>setSalAmount(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm" placeholder="0.00"/></div>
               <div><label className="mb-1 block text-xs text-neutral-500">Effective From</label>
-                <input type="date" value={salFrom} onChange={e=>setSalFrom(e.target.value)} className="w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm"/></div>
+                <JordanDateInput value={salFrom} onChange={v=>{ if(v) setSalFrom(v); }}/></div>
             </div>
             <button type="submit" disabled={savingSal} className="rounded-md bg-neutral-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
               {savingSal?"Saving...":"Save Salary"}
