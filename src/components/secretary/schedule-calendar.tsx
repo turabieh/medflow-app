@@ -202,7 +202,7 @@ export function ScheduleCalendar({
         <button onClick={() => setCurrentDate(today)} className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50">Today</button>
         <button onClick={() => navigate(1)}  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50">Next</button>
         <div className="w-40 shrink-0"><JordanDateInput value={currentDate} onChange={v => { if(v) setCurrentDate(v); }}/></div>
-        <div className="flex overflow-hidden rounded-md border border-neutral-300">
+        <div className="ml-4 flex overflow-hidden rounded-md border border-neutral-300">
           <button onClick={() => setView("week")} className={`px-3 py-1.5 text-sm ${view==="week"?"bg-neutral-900 text-white":"hover:bg-neutral-50"}`}>Week</button>
           <button onClick={() => setView("day")}  className={`px-3 py-1.5 text-sm ${view==="day" ?"bg-neutral-900 text-white":"hover:bg-neutral-50"}`}>Day</button>
         </div>
