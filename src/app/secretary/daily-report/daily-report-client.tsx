@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { JordanDateInput } from "@/components/ui/jordan-date-input";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -93,9 +94,9 @@ export default function DailyReportClient({
           <p className="text-sm text-neutral-500 mt-0.5">End of day payment reconciliation</p>
         </div>
         <div className="flex items-center gap-2">
-          <input type="date" value={selectedDate}
-            onChange={e => { setSelectedDate(e.target.value); router.push(`?date=${e.target.value}`); }}
-            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"/>
+          <JordanDateInput value={selectedDate}
+            onChange={v => { setSelectedDate(v); if(v) router.push(`?date=${v}`); }}
+          />
           <button onClick={() => window.open(`/print/daily-report?date=${targetDate}`, "_blank")}
             className="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50">
             🖨 Print
