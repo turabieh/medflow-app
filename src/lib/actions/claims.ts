@@ -56,7 +56,9 @@ async function computeClaimTotal(
     .from("visits").select("id, visit_fee")
     .in("inpatient_id", ids)
     .gte("visit_date", fromDate).lte("visit_date", toDate)
-    .in("status", ["done", "finalized", "in_progress"]);
+    .in("status", ["done", "finalized"])
+    .not("visit_fee", "is", null)
+    .gt("visit_fee", 0);
 
   const visitIds = (visits ?? []).map(v => v.id);
   let procTotal = 0;

@@ -30,9 +30,10 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 export function ClaimsManager({
-  hospitals, claims: initialClaims, currency, doctorId, clinicId,
+  hospitals, claims: initialClaims, currency, doctorId, clinicId, readyToClaim = [],
 }: {
   hospitals: Hospital[];
+  readyToClaim?: {id:string;name:string;amount:number;count:number;from:string;to:string}[];
   claims: Claim[];
   currency: string;
   doctorId: string;
@@ -121,6 +122,50 @@ export function ClaimsManager({
     <div className="space-y-5">
       {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
+      {readyToClaim.length > 0 && (
+        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-emerald-200 bg-emerald-100">
+            <div>
+              <p className="text-sm font-bold text-emerald-900">✅ Ready to Claim</p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                {readyToClaim.reduce((s,h)=>s+h.count,0)} visits · {readyToClaim.reduce((s,h)=>s+h.amount,0).toFixed(2)} {currency} total
+              </p>
+            </div>
+            <span className="text-xs text-emerald-600 font-medium">Click to auto-fill claim form</span>
+          </div>
+          <div className="divide-y divide-emerald-100">
+            {readyToClaim.map(h=>(
+              <div key={h.id} className="flex items-center justify-between px-4 py-3 hover:bg-emerald-100 transition">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-800">
+                    {h.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">{h.name}</p>
+                    <p className="text-xs text-emerald-600">{h.count} visit{h.count!==1?"s":""} · {h.from} → {h.to}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-base font-black text-emerald-800">{h.amount.toFixed(2)} {currency}</p>
+                    <p className="text-[10px] text-emerald-600">to claim</p>
+                  </div>
+                  <button onClick={()=>{
+                    setHospitalId(h.id);
+                    setFromDate(h.from);
+                    setToDate(h.to);
+                    setShowNew(true);
+                    setTimeout(()=>document.getElementById("new-claim-form")?.scrollIntoView({behavior:"smooth"}),100);
+                  }} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition">
+                    Create Claim →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3">
         {[
@@ -152,7 +197,7 @@ export function ClaimsManager({
 
       {/* New claim form */}
       {showNew && (
-        <form onSubmit={handleCreate}
+        <form id="new-claim-form" onSubmit={handleCreate}
           className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm space-y-3">
           <h2 className="text-sm font-semibold text-neutral-900">Generate New Claim</h2>
           <div className="grid grid-cols-2 gap-3">

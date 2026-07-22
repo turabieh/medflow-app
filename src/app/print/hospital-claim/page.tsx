@@ -64,7 +64,9 @@ export default function HospitalClaimPrintPage() {
         .in("inpatient_id", inpatientIds)
         .gte("visit_date", claim.from_date)
         .lte("visit_date", claim.to_date)
-        .in("status", ["done", "finalized", "in_progress"])
+        .in("status", ["done", "finalized"])
+        .not("visit_fee", "is", null)
+        .gt("visit_fee", 0)
         .order("visit_date", { ascending: true }) : { data: [] };
 
       const visitIds = (visits ?? []).map((v: { id: string }) => v.id);
