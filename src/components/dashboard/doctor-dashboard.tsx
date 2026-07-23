@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { TodoPanel } from "@/components/shared/todo-panel";
 import { DoctorQueue } from "@/components/doctor/doctor-queue";
 
 export async function DoctorDashboard({ doctorId }: { doctorId: string }) {
   const supabase = await createClient();
+  const { data: currentUser } = await supabase.from("users").select("id, full_name, role, clinic_id").eq("id", doctorId).single();
 
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
 
@@ -35,7 +37,7 @@ export async function DoctorDashboard({ doctorId }: { doctorId: string }) {
 
   return (
     <>
-      <div className="mb-6 grid grid-cols-2 gap-3">
+<div className="mb-6 grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-neutral-700">Waiting</span>

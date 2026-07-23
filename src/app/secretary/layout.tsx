@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { TodoPanel } from "@/components/shared/todo-panel";
 import { SecretarySidebar } from "@/components/secretary/layout/sidebar";
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
@@ -66,6 +67,7 @@ export default async function SecretaryLayout({
           </div>
         )}
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <TodoPanel currentUserId={profile?.id??""} currentUserRole="secretary" clinicId={profile?.clinic_id??""} currentUserName={profile?.full_name??"Secretary"}/>
         <FloatingChatButton
           userId={profile.id}
           clinicId={profile.clinic_id}

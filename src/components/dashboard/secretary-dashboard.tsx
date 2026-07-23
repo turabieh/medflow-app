@@ -1,3 +1,4 @@
+import { TodoPanel } from "@/components/shared/todo-panel";
 import { PatientQuickAccess } from "@/components/secretary/patient-quick-access";
 import { UnclaimedBanner } from "@/components/secretary/unclaimed-banner";
 import { PendingSection } from "@/components/secretary/pending-section";
@@ -9,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string; pdate?: string }) {
   const supabase = await createClient();
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" });
+  const { data: currentUser } = await supabase.from("users").select("id, full_name, role, clinic_id").eq("id", (await supabase.auth.getUser()).data.user?.id ?? "").single();
 
   // Pending appointments: no time slot assigned yet, secretary needs to call.
   // Archived ones are hidden here but stay in the database.
@@ -294,7 +296,7 @@ export async function SecretaryDashboard({ clinicId, pdate }: { clinicId: string
       <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
         Today&apos;s queue
       </h2>
-      <PatientQuickAccess
+<PatientQuickAccess
         newPatients={newPatientsData}
         todayAppointments={apptPatientsData}
         todayStr={todayStr}

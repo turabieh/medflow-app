@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { TodoPanel } from "@/components/shared/todo-panel";
 import { DoctorSidebarNav } from "@/components/doctor/layout/sidebar";
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
@@ -110,6 +111,7 @@ export default async function DoctorLayout({ children }: { children: React.React
         inpatients={sidebarInpatients}
       />
       <main className="flex-1 overflow-y-auto">{children}</main>
+      <TodoPanel currentUserId={profile?.id??""} currentUserRole="doctor" clinicId={profile?.clinic_id??""} currentUserName={profile?.full_name??"Doctor"}/>
       <FloatingChatButton
         userId={user.id}
         clinicId={profile.clinic_id}

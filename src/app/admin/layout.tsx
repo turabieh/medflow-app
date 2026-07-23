@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminSidebarNav } from "@/components/admin/layout/sidebar";
 import { getClinicTier, hasFeature } from "@/lib/clinic-tier";
 import { SecretarySidebar } from "@/components/secretary/layout/sidebar";
+import { TodoPanel } from "@/components/shared/todo-panel";
 import { FloatingChatButton } from "@/components/chat/floating-chat-button";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -74,6 +75,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         quickTasks={chatTasks as {id:string;label:string;category:string}[]}
         isDoctor={true}
       />
+      <TodoPanel currentUserId={profile.id} currentUserRole={profile.role} clinicId={profile.clinic_id} currentUserName={profile.full_name}/>
     </div>
   );
 }

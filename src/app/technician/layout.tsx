@@ -1,3 +1,4 @@
+import { TodoPanel } from "@/components/shared/todo-panel";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -45,6 +46,7 @@ export default async function TechnicianLayout({ children }: { children: React.R
       <main style={{ maxWidth:"960px", margin:"0 auto", padding:"28px 20px" }}>
         {children}
       </main>
+      <TodoPanel currentUserId={profile.id} currentUserRole="technician" clinicId={profile.clinic_id} currentUserName={profile.full_name}/>
     </div>
   );
 }
