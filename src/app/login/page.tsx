@@ -43,7 +43,7 @@ export default async function LoginPage() {
           <LoginForm/>
         </div>
 
-        {/* Contact info */}
+        {/* Contact info — updated */}
         {(email||phone||website) && (
           <div style={{display:"flex",flexWrap:"wrap",justifyContent:"center",gap:"0.75rem 1.5rem",paddingTop:"0.5rem"}}>
             {email && <a href={`mailto:${email}`} style={{display:"flex",alignItems:"center",gap:"0.35rem",fontSize:"0.75rem",color:"#9CA3AF",textDecoration:"none"}}>
